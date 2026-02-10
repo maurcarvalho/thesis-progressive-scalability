@@ -48,7 +48,7 @@ These claims motivate a baseline definition of what \textit{“good modularity�
 This framing also clarifies why domain centric modularity is emphasized. Functional decomposition is generally preferred over technical decomposition when the goal is to reduce change amplification, because it tends to localize business evolution inside a bounded unit. This directly relates to the distinction between intrinsic complexity, which comes from the domain and requirements, and accidental complexity, which comes from architectural and organizational choices. A recurring risk in modularization is mistaking organization for encapsulation, because directory structure alone does not enforce boundaries unless it is backed by interface contracts and dependency rules.
 
 \subsection*{Modular Decomposition Styles: Horizontal vs Vertical}
-A fundamental design decision concerns how system functionality is decomposed. The two primary strategies are horizontal decomposition, organized by technical layer, and vertical decomposition, organized by feature or business capability. In traditional layered architectures, code is structured by technical responsibilities such as presentation, application services, and persistence. While this approach provides a form of separation of concerns, it often disperses domain logic across multiple layers and obscures the system’s business intent \cite{fowler2002patterns}. As a result, understanding or modifying a specific feature frequently requires coordinated changes across several layers.
+A fundamental design decision concerns how system functionality is decomposed. The two primary strategies are horizontal decomposition, organized by technical layer, and vertical decomposition, organized by feature or business capability. In traditional layered architectures, code is structured by technical responsibilities such as presentation, application services, and persistence. While this approach provides a form of separation of concerns, it often disperses domain logic across multiple layers and obscures the system’s business intent \cite{fowler2002}. As a result, understanding or modifying a specific feature frequently requires coordinated changes across several layers.
 
 This change amplification effect can be stated directly. Changes to a layered architecture usually result in changes across all layers. The reason is that the dependency structure encourages features to cut across horizontal boundaries, even when the business change is conceptually localized. This coupling pattern increases the long term cost of change, because each new behavior requires cross layer coordination, additional integration effort, and broader regression risk.
 
@@ -130,7 +130,7 @@ Within this research, screaming architecture and the model--code gap are treated
 \pagebreak
 \subsection*{Separation of Concerns and Dependency Discipline}
 
-Separation of concerns can be implemented through architectural styles that constrain dependency direction. Layered Architecture typically structures dependencies outward to inward by technical responsibility, often represented as Presentation, Business, and Persistence layers \cite{fowler2002patterns}. While layering can improve local reasoning, it may also amplify change cost when features cut across layers and when domain logic is fragmented into anemic models and service orchestration.
+Separation of concerns can be implemented through architectural styles that constrain dependency direction. Layered Architecture typically structures dependencies outward to inward by technical responsibility, often represented as Presentation, Business, and Persistence layers \cite{fowler2002}. While layering can improve local reasoning, it may also amplify change cost when features cut across layers and when domain logic is fragmented into anemic models and service orchestration.
 
 Hexagonal Architecture, Onion Architecture, and Clean Architecture formalize a stricter dependency rule: business logic is insulated from delivery and infrastructure concerns, and dependencies must point inward toward stable domain abstractions \cite{cockburn2005hexagonal,palermo2008onion,martin2012clean}. A common representation of this structure is:
 
@@ -184,7 +184,7 @@ A common failure mode arises when components are defined without a clear domain 
 
 \subsection*{Modularity as an Enforceable Principle}
 
-Modularity is treated at this research as an enforceable property rather than as a folder convention. Encapsulation and information hiding remain core mechanisms, because they minimize the number of potential dependencies by reducing what other modules can see and use \cite{parnas1972criteria}. This implies several practical principles that the Architectural Design Dimension (G1–G3) later operationalizes:
+Modularity is treated at this research as an enforceable property rather than as a folder convention. Encapsulation and information hiding remain core mechanisms, because they minimize the number of potential dependencies by reducing what other modules can see and use \cite{parnas1972informationhiding}. This implies several practical principles that the Architectural Design Dimension (G1–G3) later operationalizes:
 
 \begin{itemize}
     \item Separating interface from implementation. Modules should expose a small public API and keep internal details private.
