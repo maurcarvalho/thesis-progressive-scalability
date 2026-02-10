@@ -82,7 +82,7 @@ These anti-patterns emerge when local convenience is prioritized over long-term 
 \subsection*{Metrics and Verification}
 Maintainability in G2 is assessed through a set of explicit, measurable structural signals that capture boundary erosion, hidden coupling, and architectural drift over time. These metrics operationalize maintainability as a bounded cost of change by making the growth of coupling, dependency instability, and encapsulation violations observable and verifiable.
 
-G2 builds directly on the enforcement model introduced in G1. While G1 establishes the correctness of modular boundaries, G2 uses quantitative signals to assess whether those boundaries remain effective as the system evolves. The quality measurement baseline derived from G1 is presented in Section~\ref{sec:g2-quality-measurement-baseline} and is reused here as the foundation for maintainability verification.
+G2 builds directly on the enforcement model introduced in G1. While G1 establishes the correctness of modular boundaries, G2 uses quantitative signals to assess whether those boundaries remain effective as the system evolves. The quality measurement baseline derived from G1 (Section~\ref{sec:g1-enforce-modular-boundaries}) is reused here as the foundation for maintainability verification.
 
 \begin{itemize}[noitemsep,topsep=2pt]
   \item \emph{Notation:} Let $M$ be the set of bounded-context modules. Let $R$ be the multiset of observed cross-module references, including static imports, dependency injection wiring, and event handlers. Let $D \subseteq M \times M$ be the set of declared allowed dependencies (\emph{requires}) and $F \subseteq M \times M$ be the set of explicitly forbidden dependencies (\emph{forbids}).
