@@ -131,7 +131,7 @@ This single image contains all four bounded contexts (orders, inventory, payment
 The local development environment mirrors production topology. Kafka, Temporal, and PostgreSQL run as containers alongside the application. This ensures that developers work against the same infrastructure from day one, eliminating ``works on my machine'' failures caused by in-memory substitutes.
 
 \begin{lstlisting}[language=bash,caption={Docker Compose: full infrastructure from day one ({\ttfamily docker-compose.yml})},label={lst:g5-docker-compose}]
-# docker-compose.yml — infrastructure is a day-one requirement
+# docker-compose.yml -- infrastructure is a day-one requirement
 version: '3.8'
 services:
   api:
@@ -281,7 +281,7 @@ Kamal is chosen because it matches the progressive scalability philosophy: deplo
 \paragraph{D0: Monolith deployment.} The primary Kamal configuration (\texttt{config/deploy.yml}) deploys the monolith with all infrastructure managed as Kamal \emph{accessories}:
 
 \begin{lstlisting}[language=bash,caption={Kamal D0 configuration ({\ttfamily config/deploy.yml}, trimmed)},label={lst:g5-kamal-d0}]
-# config/deploy.yml — Kamal 2 deployment
+# config/deploy.yml -- Kamal 2 deployment
 service: tiny-store
 image: maurcarvalho/tiny-store
 
@@ -356,7 +356,7 @@ env:
     TEMPORAL_ADDRESS: tiny-store-temporal:7233
     EVENT_TRANSPORT: kafka
 
-# Accessories shared with main deploy.yml — no redeclaration needed
+# Accessories shared with main deploy.yml -- no redeclaration needed
 \end{lstlisting}
 
 \paragraph{Deployment scripts.} Two shell scripts operationalize the D0 and D1 topologies:
