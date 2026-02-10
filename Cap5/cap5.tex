@@ -24,6 +24,8 @@ Together, these six guidelines form a self-contained framework supported by a co
 
 The framework's distinguishing characteristic is that schema isolation, caching, async queues, event-driven communication, and distributed tracing are \emph{architectural requirements from project inception}---not migration prerequisites to be added later. Extraction becomes a deployment topology change, not a codebase rewrite. The system is operationally indistinguishable from a distributed deployment while retaining the simplicity of a single deployable unit.
 
+Critically, the systematic literature review found no existing study that directly addresses progressive scalability as a step-by-step guideline approach for modular monoliths. While the reviewed literature covers individual techniques---modular boundaries, maintainability patterns, migration strategies, deployment automation---none integrate them into a cohesive, progressive framework. This dissertation's core innovation is precisely this integration: the G1$\rightarrow$G6 progression synthesizes individually studied techniques into a deliberate scalability pathway, enabling startups to absorb growth through proportional, evidence-driven interventions without requiring premature adoption of distributed architectures.
+
 \section{Extending the Research Process}
 
 The next step is to conduct the verification plan outlined in Chapter~\ref{sec:proposal}. Semi-structured interviews with industry practitioners and academic researchers will confirm, refine, or extend the guidelines and reveal any additional constraints or trade-offs. Insights from these interviews, combined with targeted research in the gray literature, will inform revisions leading to a more actionable and context-informed set of heuristics.
