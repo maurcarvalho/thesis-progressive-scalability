@@ -144,7 +144,7 @@ services:
       ORDERS_SERVICE_URL: http://orders-service:3001
     depends_on: [postgres, kafka, temporal]
 
-  orders-service:                      # D1: extracted service
+  orders-service:                      # D2: extracted service
     build: { context: ., dockerfile: apps/orders-service/Dockerfile }
     ports: ['3001:3001']
     environment:
@@ -241,7 +241,7 @@ The \texttt{affected} command uses Nx's project graph, the same graph that encod
 
 When G3's scalability spectrum triggers Level L3 for the orders module, the monorepo produces a second deployment artifact. The orders module becomes a standalone application (\texttt{apps/orders-service}) with its own Dockerfile, its own entry point, and its own deployment pipeline. The remaining modules continue to ship inside the original \texttt{apps/api} image.
 
-\begin{lstlisting}[language=bash,caption={Extracted orders service Dockerfile (D2)},label={lst:g5-dockerfile-d2}]
+\begin{lstlisting}[language=bash,caption={Extracted orders service Dockerfile ({\ttfamily apps/orders-service/Dockerfile})},label={lst:g5-dockerfile-d2}]
 # apps/orders-service/Dockerfile
 FROM node:20-alpine AS builder
 WORKDIR /app
@@ -269,7 +269,7 @@ Key observations:
   \item The CI pipeline uses Nx to determine which deployment targets are affected by a change. A change to \texttt{libs/modules/orders} triggers builds for both \texttt{apps/api} and \texttt{apps/orders-service}. A change to \texttt{libs/modules/inventory} triggers only \texttt{apps/api}.
 \end{itemize}
 
-Note that the Docker Compose configuration in Listing~\ref{lst:g5-docker-compose} already includes the \texttt{orders-service} entry alongside the monolith, reflecting Tiny Store's design principle that both deployment topologies (D0 and D1) are supported from inception. The \texttt{orders-service} connects to a dedicated database schema (\texttt{tinystore\_orders}), completing the schema isolation from G4. The \texttt{api} service routes order-related requests to \texttt{orders-service} via HTTP through the \texttt{ORDERS\_SERVICE\_URL} environment variable. This routing change is confined to the composition root; no domain logic changes.
+Note that the Docker Compose configuration in Listing~\ref{lst:g5-docker-compose} already includes the \texttt{orders-service} entry alongside the monolith, reflecting Tiny Store's design principle that both deployment topologies (D0 and D2) are supported from inception. The \texttt{orders-service} connects to a dedicated database schema (\texttt{tinystore\_orders}), completing the schema isolation from G4. The \texttt{api} service routes order-related requests to \texttt{orders-service} via HTTP through the \texttt{ORDERS\_SERVICE\_URL} environment variable. This routing change is confined to the composition root; no domain logic changes.
 
 
 \subsubsection*{Production Deployment with Kamal}
@@ -330,9 +330,9 @@ proxy:
 
 The accessories pattern is central to progressive deployment: Postgres, Kafka, Temporal, Redis, and Jaeger are provisioned by Kamal on the same server as the application. They persist across application deploys (Kamal manages their lifecycle independently), and they are shared across deployment targets when extraction occurs.
 
-\paragraph{D1: Adding the extracted orders service.} A separate Kamal destination configuration (\texttt{config/deploy.orders-service.yml}) deploys the orders service alongside the monolith. Traefik, Kamal's built-in reverse proxy, routes requests based on path prefix:
+\paragraph{D2: Adding the extracted orders service.} A separate Kamal destination configuration (\texttt{config/deploy.orders-service.yml}) deploys the orders service alongside the monolith. Traefik, Kamal's built-in reverse proxy, routes requests based on path prefix:
 
-\begin{lstlisting}[language=bash,caption={Kamal D1 configuration for orders service ({\ttfamily config/deploy.orders-service.yml}, trimmed)},label={lst:g5-kamal-d1}]
+\begin{lstlisting}[language=bash,caption={Kamal D2 configuration for orders service ({\ttfamily config/deploy.orders-service.yml}, trimmed)},label={lst:g5-kamal-d1}]
 # config/deploy.orders-service.yml
 service: tiny-store-orders
 image: maurcarvalho/tiny-store-orders
@@ -363,11 +363,11 @@ env:
 
 \begin{itemize}[noitemsep,topsep=2pt]
   \item \texttt{bin/deploy} --- Deploys the monolith only (\texttt{kamal deploy}). First-time usage: \texttt{bin/deploy setup} provisions all accessories.
-  \item \texttt{bin/deploy-d1} --- Deploys both the monolith and the orders service. Executes \texttt{kamal deploy} followed by \texttt{kamal deploy -d orders-service}.
+  \item \texttt{bin/deploy-d2} --- Deploys both the monolith and the orders service. Executes \texttt{kamal deploy} followed by \texttt{kamal deploy -d orders-service}.
 \end{itemize}
 
 \noindent
-This progression from D0 to D1 is a deployment topology change, not a rewrite. The same Kafka topics, Temporal workflows, and ACL gateways from G4 operate identically in both topologies. The only difference is whether the orders module runs inside the monolith process or as a separate container behind Traefik's path-based routing.
+This progression from D0 to D2 is a deployment topology change, not a rewrite. The same Kafka topics, Temporal workflows, and ACL gateways from G4 operate identically in both topologies. The only difference is whether the orders module runs inside the monolith process or as a separate container behind Traefik's path-based routing.
 
 
 \subsection*{Common Failure Modes and Anti-Patterns}
@@ -469,7 +469,7 @@ All code listings in this section correspond to files in the Tiny Store referenc
   \item \texttt{config/deploy.yml} --- Kamal D0 configuration (monolith + accessories)
   \item \texttt{config/deploy.orders-service.yml} --- Kamal D1 configuration (extracted orders)
   \item \texttt{bin/deploy} --- D0 deployment script
-  \item \texttt{bin/deploy-d1} --- D1 deployment script (monolith + orders service)
+  \item \texttt{bin/deploy-d2} --- D2 deployment script (monolith + orders service)
   \item \texttt{nx.json} --- Nx workspace configuration with caching and affected defaults
 \end{itemize}
 \normalsize

@@ -215,7 +215,7 @@ export function extractTraceContext(
 }
 \end{lstlisting}
 
-\begin{lstlisting}[language=TypeScript,caption={Traced order placement handler using the observability primitives},label={lst:g6-traced-handler}]
+\begin{lstlisting}[language=TypeScript,caption={Traced order placement handler ({\ttfamily libs/modules/orders/src/features/place-order/handler.ts})},label={lst:g6-traced-handler}]
 // libs/modules/orders/src/features/place-order/handler.ts
 const tracer  = getModuleTracer('orders');
 const logger  = getModuleLogger('orders');

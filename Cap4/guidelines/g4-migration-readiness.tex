@@ -2,7 +2,7 @@
 \section{G4: Promote Migration Readiness}
 \label{sec:g4-promote-migration-readiness}
 
-This section presents G4, which focuses on designing modules so that they can be extracted from the monolith and deployed as independent services with minimal downstream disruption. Migration readiness is treated as a proactive design property rather than a reactive refactoring exercise. The guideline establishes the internal conditions, specifically internal APIs, anti-corruption layers, and the elimination of shared mutable state, that make extraction a controlled, low-risk operation when the conditions described in G3 (Level L3) are met.
+This section presents G4, which focuses on designing modules so that they can be extracted from the monolith and deployed as independent services with minimal downstream disruption. Migration readiness is treated as a proactive design property rather than a reactive refactoring exercise. The guideline establishes the internal conditions---internal APIs, anti-corruption layers, and the elimination of shared mutable state---that make extraction a controlled, low-risk operation when the conditions described in G3 (Level L3) are met.
 
 G4 extends the Architectural Design Dimension (G1--G3) into the Operational Fit Dimension. While G1 enforces boundaries, G2 preserves maintainability, and G3 prepares for progressive scalability, G4 ensures that the transition from monolith to service, when justified, does not require a rewrite. The guideline targets the structural prerequisites that make the difference between a planned extraction and an emergency migration.
 
@@ -16,7 +16,7 @@ G4 inverts this dynamic. Instead of treating migration as a future problem to be
 
 \subsection*{Conceptual Overview}
 
-Migration readiness is embedded by designing each module so that its external integration surface is network-boundary compatible. Crucially, G4 does not treat this as a hypothetical design exercise. The guideline prescribes introducing production-grade infrastructure, specifically Apache Kafka for event streaming and Temporal for durable workflow orchestration, \emph{inside} the monolith, before any extraction occurs. This approach eliminates the gap between ``designed for extraction'' and ``ready for extraction'': the same brokers, workflow engines, and contract mechanisms that would be used in a distributed deployment are already running in the monolith, validated by the same integration tests, and observable through the same monitoring tools.
+Migration readiness is embedded by designing each module so that its external integration surface is network-boundary compatible. Crucially, G4 does not treat this as a hypothetical design exercise. The guideline prescribes introducing production-grade infrastructure---Apache Kafka for event streaming and Temporal for durable workflow orchestration---\emph{inside} the monolith, before any extraction occurs. This approach eliminates the gap between ``designed for extraction'' and ``ready for extraction'': the same brokers, workflow engines, and contract mechanisms that would be used in a distributed deployment are already running in the monolith, validated by the same integration tests, and observable through the same monitoring tools.
 
 \begin{itemize}[noitemsep,topsep=2pt]
   \item Each module exposes its capabilities through a versioned internal API that could be replaced by a network endpoint without changing the contract.
@@ -463,7 +463,7 @@ The extract command embodies G4's core principle that extraction should be a con
 
 The extract command operates from a declarative configuration file (\texttt{extraction.config.yml}) that specifies which modules are deployed as monoliths versus independent services. This manifest serves as the single source of truth for deployment topology, following Service Weaver's philosophy that the same application code should be deployable in different configurations without modification.
 
-\begin{lstlisting}[caption={Extraction configuration manifest},label={lst:g4-extract-config}]
+\begin{lstlisting}[caption={Extraction configuration manifest ({\ttfamily extraction.config.yml})},label={lst:g4-extract-config}]
 version: '1.0'
 
 modules:
@@ -513,7 +513,7 @@ The manifest captures the deployment intentions without embedding them in applic
 
 The extract command orchestrates a multi-step process that transforms a module from in-process deployment to independent service deployment. Each step is designed to be atomic and reversible, ensuring that partial failures can be rolled back cleanly.
 
-\begin{lstlisting}[language=Bash,caption={Extract command usage},label={lst:g4-extract-usage}]
+\begin{lstlisting}[language=Bash,caption={Extract command usage ({\ttfamily tools/extract/extract.ts})},label={lst:g4-extract-usage}]
 # Extract the orders module as an independent service
 npx ts-node tools/extract/extract.ts orders
 
@@ -548,7 +548,7 @@ The extraction process consists of eight automated steps:
 
 Production systems require the ability to reverse architectural decisions when extraction proves premature or problematic. The \texttt{retract} command provides an automated rollback mechanism that restores the module to monolith deployment while preserving data and configuration history.
 
-\begin{lstlisting}[language=Bash,caption={Retract command restoring monolith deployment},label={lst:g4-retract-usage}]
+\begin{lstlisting}[language=Bash,caption={Retract command restoring monolith deployment ({\ttfamily tools/extract/extract.ts})},label={lst:g4-retract-usage}]
 # Retract orders service back to monolith
 npx ts-node tools/extract/extract.ts retract orders
 
