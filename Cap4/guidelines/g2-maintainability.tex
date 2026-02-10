@@ -420,81 +420,137 @@ npm run test:integration
 # rho_api = 1.0, P_iso = 1.0
 \end{lstlisting}
 
-\subsubsection*{Exercise 1: Cross-Module Internal Reuse ($C_{\mathrm{leak}}\uparrow$, $\rho_{\mathrm{api}}\downarrow$)}
-Introduce the most common maintainability anti-pattern: importing another module's internal utility directly instead of interacting through the public surface.
+\subsubsection*{Exercise 1: Convenience Re-export Chain ($\rho_{\mathrm{api}}\downarrow$)}
+Introduce a ``dependency laundering'' layer: a shared barrel file that re-exports handlers from multiple modules, allowing consumers to bypass the actual module API surface. G1's boundary checks see only a legal import from \texttt{@tiny-store/shared-infrastructure}, but the architectural intent---that each module is the \emph{sole gateway} to its own capabilities---is silently violated.
 
-\emph{What you change:} In \texttt{libs/modules/orders/src/features/place-order/service.ts}, add a direct import of an Inventory internal:
+\emph{What you change:} Create \texttt{libs/shared/infrastructure/src/convenience.ts} with re-exports from two peer modules:
 
-\begin{lstlisting}[language=TypeScript,caption={Violation: cross-module internal import},label={lst:g2-ex1-violation}]
-// VIOLATION: importing Inventory internals from Orders
-import { ProductRepository }
-  from '../../../../../../modules/inventory/src/domain/repositories/product.repository';
+\begin{lstlisting}[language=TypeScript,caption={Anti-pattern: convenience re-export barrel},label={lst:g2-ex1-violation}]
+// libs/shared/infrastructure/src/convenience.ts
+// "Convenience" re-exports -- every symbol here is public,
+// but routing through shared hides the real dependency.
+export { PlaceOrderHandler } from '@tiny-store/modules-orders';
+export { ReserveStockHandler } from '@tiny-store/modules-inventory';
+\end{lstlisting}
+
+Then, in a new Shipments feature, import from the convenience barrel instead of the owning module:
+
+\begin{lstlisting}[language=TypeScript,caption={Consumer uses the convenience barrel},label={lst:g2-ex1-consumer}]
+// libs/modules/shipments/src/features/create-shipment/service.ts
+// DRIFT: importing Orders capability via shared, not via Orders
+import { PlaceOrderHandler }
+  from '@tiny-store/shared-infrastructure/convenience';
 \end{lstlisting}
 
 \emph{What you run:}
 \begin{lstlisting}[language=bash,caption={Run enforcement after Exercise 1},label={lst:g2-ex1-run}]
-npm run test:boundary
+npm run test:boundary          # G1 checks
+npm run metrics:maintainability # G2 metrics
 \end{lstlisting}
 
-\emph{Expected signal:} The boundary test that asserts \texttt{ProductRepository} is not accessible from outside Inventory may not catch a deep relative import directly, but \texttt{@nx/enforce-module-boundaries} (if configured) or the grep-based metric check will detect the cross-module reference. Metric impact: $C_{\mathrm{undecl}}$ rises from 0 to 1, $\rho_{\mathrm{api}}$ drops below 1.0, and $C_{\mathrm{leak}}$ increments because an internal symbol is consumed across the boundary.
+\emph{Expected signal:} G1 boundary checks: \textbf{pass} \checkmark{} --- Shipments imports from \texttt{shared-infrastructure}, which is an allowed dependency. No $C_{\mathrm{leak}}$, $C_{\mathrm{undecl}}$, or $C_{\mathrm{forbid}}$ violations appear. However, the G2 metric $\rho_{\mathrm{api}}$ drops below 1.0: Shipments consumes an Orders capability without a direct dependency edge to \texttt{modules-orders}. The Nx dependency graph shows Shipments $\rightarrow$ shared-infrastructure but \emph{not} Shipments $\rightarrow$ Orders, masking the true coupling topology.
 
-\emph{Fix:} Remove the direct import. If Orders needs product availability information, it should either (a)~publish an event and let Inventory respond, or (b)~consume a public handler like \texttt{GetProductHandler} through the composition root.
+\emph{Fix:} Delete the convenience barrel. Shipments should import \texttt{PlaceOrderHandler} directly from \texttt{@tiny-store/modules-orders}. If the import is needed, it should be explicit---making the dependency visible in the graph and countable by $\rho_{\mathrm{api}}$.
 
-\subsubsection*{Exercise 2: Bidirectional Coupling ($C_{\mathrm{forbid}}\uparrow$, cycle detection)}
-Introduce a dependency cycle by having Inventory import from Orders, creating bidirectional coupling.
+\emph{G2 insight:} A boundary can be \emph{correct} (G1) yet \emph{opaque}---convenience re-exports erode dependency traceability over time, turning ``shared'' libraries into coupling laundromats that $\rho_{\mathrm{api}}$ is designed to detect.
 
-\emph{What you change:} In \texttt{libs/modules/inventory/src/features/reserve-stock/service.ts}, add:
+\subsubsection*{Exercise 2: Feature-Centric Co-Change Pattern ($\mathrm{CCI}\uparrow$)}
+Introduce a cross-cutting business feature---discounts---that requires simultaneous changes to Orders and Payments. Both modules remain structurally independent (no shared imports, no boundary violations), yet every commit that touches one also touches the other. This is invisible to G1 but measurable by G2's Change Coupling Index.
 
-\begin{lstlisting}[language=TypeScript,caption={Violation: bidirectional coupling},label={lst:g2-ex2-violation}]
-// VIOLATION: Inventory now depends on Orders (cycle)
-import { GetOrderHandler } from '@tiny-store/modules-orders';
+\emph{What you change:} Simulate a ``discount'' feature that spans two modules. In Orders, add discount application logic; in Payments, add discounted-amount calculation:
+
+\begin{lstlisting}[language=TypeScript,caption={Orders: apply discount (commit 1/3)},label={lst:g2-ex2-orders}]
+// libs/modules/orders/src/features/apply-discount/handler.ts
+export class ApplyDiscountHandler {
+  execute(orderId: string, pct: number) {
+    // apply percentage discount to order total
+  }
+}
 \end{lstlisting}
 
-Since Orders' listeners already consume Inventory events (wired in the composition root), this creates a dependency cycle: Orders $\rightarrow$ Inventory events $\rightarrow$ Orders.
+\begin{lstlisting}[language=TypeScript,caption={Payments: calculate discounted amount (same commit)},label={lst:g2-ex2-payments}]
+// libs/modules/payments/src/features/calc-discount/handler.ts
+export class CalcDiscountedAmountHandler {
+  execute(orderId: string, pct: number) {
+    // recalculate payment amount after discount
+  }
+}
+\end{lstlisting}
+
+Repeat this pattern across three consecutive commits (add feature, fix edge case, update validation)---each commit touches files in \emph{both} modules.
 
 \emph{What you run:}
-\begin{lstlisting}[language=bash,caption={Run enforcement after Exercise 2},label={lst:g2-ex2-run}]
-npm run test:boundary
-npx nx graph  # visualize the dependency graph for cycle detection
+\begin{lstlisting}[language=bash,caption={Compute co-change coupling from git history},label={lst:g2-ex2-run}]
+npm run test:boundary   # G1 checks
+
+# Detect co-changes between Orders and Payments (last 50 commits)
+git log --pretty=format:"%h" -50 | while read sha; do
+  files=$(git diff-tree --no-commit-id --name-only -r "$sha")
+  has_orders=$(echo "$files" | grep -c "modules/orders" || true)
+  has_payments=$(echo "$files" | grep -c "modules/payments" || true)
+  if [ "$has_orders" -gt 0 ] && [ "$has_payments" -gt 0 ]; then
+    echo "CO-CHANGE: $sha"
+  fi
+done
 \end{lstlisting}
 
-\emph{Expected signal:} If \texttt{@nx/enforce-module-boundaries} is configured with forbidden constraints between peer modules, this import triggers a lint failure. The Nx dependency graph will show a cycle between \texttt{modules-orders} and \texttt{modules-inventory}. Metric impact: $C_{\mathrm{forbid}}\uparrow$ (the import violates the architectural constraint that peer bounded contexts must not import each other directly).
+\emph{Expected signal:} G1 boundary checks: \textbf{pass} \checkmark{} --- no direct imports exist between Orders and Payments; $C_{\mathrm{leak}} = 0$, $C_{\mathrm{undecl}} = 0$, $C_{\mathrm{forbid}} = 0$. All G1 metrics remain at baseline. However, the CCI between Orders and Payments rises sharply: 3 out of the last 5 Orders commits also touch Payments, yielding $\mathrm{CCI}_{\mathrm{Orders \leftrightarrow Payments}} = 0.6$. This signals that a business feature lacks clear ownership---changes cannot be made to one module without coordinating with the other.
 
-\emph{Fix:} Remove the direct import. If the reserve-stock feature needs order details, introduce an event contract: Inventory publishes a request event, and the composition root wires the response---or restructure the flow so that the necessary data is included in the originating event payload.
+\emph{Fix:} Extract the discount logic into a dedicated feature module (\texttt{modules-pricing}) or consolidate it into whichever module owns the pricing domain concept. The goal is to reduce CCI by giving the cross-cutting concern a single home, so that future discount changes touch only one module.
 
-\subsubsection*{Exercise 3: API Surface Inflation ($G_{\mathrm{api}}\uparrow$)}
-Demonstrate how unnecessary exports increase the public surface, creating downstream obligations and reducing refactoring freedom.
+\emph{G2 insight:} Structural independence (G1) does not guarantee \emph{change} independence---CCI reveals temporal coupling that only manifests in the commit history, making it a purely longitudinal G2 signal.
 
-\emph{What you change:} In \texttt{libs/modules/orders/src/index.ts}, add exports of internal symbols:
+\subsubsection*{Exercise 3: Gradual Public Surface Bloat ($G_{\mathrm{api}}\uparrow$)}
+Demonstrate how a module's public surface can inflate with \emph{legitimate} exports---valid handlers, not internal entities---while every G1 check remains green. The danger is not what is exported, but \emph{how much}: each new public symbol is a downstream obligation that freezes internal design choices.
 
-\begin{lstlisting}[language=TypeScript,caption={Violation: inflating the public surface},label={lst:g2-ex3-violation}]
-// VIOLATION: exporting internal types inflates the API surface
-export * from './domain/entities/order';
-export * from './domain/repositories/order.repository';
-export * from './domain/enums/order-status.enum';
-export * from './domain/value-objects/order-item.value-object';
-export * from './domain/value-objects/customer-id.value-object';
+\emph{What you change:} In \texttt{libs/modules/orders/src/index.ts}, add five new query handlers that are perfectly valid public capabilities:
+
+\begin{lstlisting}[language=TypeScript,caption={Surface bloat: valid but excessive exports},label={lst:g2-ex3-violation}]
+// libs/modules/orders/src/index.ts
+// --- existing exports (9 symbols) ---
+export { PlaceOrderHandler } from './features/place-order/handler';
+export { GetOrderHandler } from './features/get-order/handler';
+// ... (7 more existing handlers/listeners)
+
+// --- NEW: 5 additional query handlers in one sprint ---
+export { GetOrdersByStatusHandler }
+  from './features/get-orders-by-status/handler';
+export { GetOrdersByDateHandler }
+  from './features/get-orders-by-date/handler';
+export { GetOrdersByCustomerAndStatusHandler }
+  from './features/get-orders-by-customer-status/handler';
+export { CountOrdersHandler }
+  from './features/count-orders/handler';
+export { ExportOrdersHandler }
+  from './features/export-orders/handler';
 \end{lstlisting}
 
 \emph{What you run:}
 \begin{lstlisting}[language=bash,caption={Run enforcement after Exercise 3},label={lst:g2-ex3-run}]
-npm run test:boundary
+npm run test:boundary           # G1 checks
+npm run metrics:maintainability  # G2 metrics
+
+# Quick manual check: count public symbols
+node -e "const m = require('@tiny-store/modules-orders');
+  console.log('G_api =', Object.keys(m).length);"
 \end{lstlisting}
 
-\emph{Expected signal:} The boundary tests that assert \texttt{(orders as any).Order} is \texttt{undefined} and \texttt{(orders as any).OrderRepository} is \texttt{undefined} now \emph{fail}---these symbols are defined when they should not be. Metric impact: $C_{\mathrm{leak}}$ rises from 0 to 5+ (each newly exposed internal symbol counts), $G_{\mathrm{api}}$ increases by 5 symbols in a single change, and $\rho_{\mathrm{api}}$ degrades as downstream code begins depending on internal types rather than stable handlers.
+\emph{Expected signal:} G1 boundary checks: \textbf{pass} \checkmark{} --- every exported symbol is a handler (not an internal entity), so $C_{\mathrm{leak}} = 0$, $C_{\mathrm{undecl}} = 0$, $C_{\mathrm{forbid}} = 0$. G1 is fully green. However, $G_{\mathrm{api}}$ for Orders jumps from 9 to 14 in a single sprint---a 56\% increase. Each new export is a contract that downstream consumers may depend on, progressively freezing the module's internal structure and making future refactoring more expensive.
 
-\emph{Fix:} Remove the internal exports. The public surface should contain only handlers and listener factories---capabilities, not implementation details.
+\emph{Fix:} Apply the \emph{minimal public surface} principle: expose only the handlers that external modules actually consume today. The five query handlers are likely consumed only by the HTTP adapter within Orders itself; they should remain internal and be wired through the module's own composition, not exported through \texttt{index.ts}. Set a $G_{\mathrm{api}}$ threshold (e.g., $\leq 12$ per module) in CI to catch surface inflation early.
+
+\emph{G2 insight:} G1 guards \emph{what kind} of symbol crosses the boundary; G2 guards \emph{how many}---surface bloat is invisible to boundary correctness checks but directly degrades long-term maintainability by expanding the module's contractual obligations.
 
 \pagebreak
 \subsubsection*{Exercise Summary}
 \small
 \noindent
-\begin{tabularx}{\linewidth}{p{0.06\linewidth} X p{0.24\linewidth} p{0.20\linewidth}}
-\textbf{Ex.} & \textbf{What you change} & \textbf{Run} & \textbf{Signal / metric} \\
-0 & Establish baseline & \texttt{test:boundary}\newline\texttt{test:integration} & all pass (baseline) \\
-1 & Import Inventory internal from Orders & \texttt{test:boundary} & $C_{\mathrm{undecl}}\uparrow$, $\rho_{\mathrm{api}}\downarrow$ \\
-2 & Import Orders handler from Inventory (cycle) & \texttt{test:boundary}\newline\texttt{nx graph} & $C_{\mathrm{forbid}}\uparrow$, cycle \\
-3 & Export 5 internal types from Orders \texttt{index.ts} & \texttt{test:boundary} & $C_{\mathrm{leak}}\uparrow$, $G_{\mathrm{api}}\uparrow$ \\
+\begin{tabularx}{\linewidth}{p{0.04\linewidth} X p{0.22\linewidth} p{0.18\linewidth} p{0.10\linewidth}}
+\textbf{Ex.} & \textbf{What you change} & \textbf{Run} & \textbf{G2 signal} & \textbf{G1 status} \\
+0 & Establish baseline & \texttt{test:boundary}\newline\texttt{metrics:maint.} & all pass & \checkmark{} pass \\
+1 & Re-export handlers via shared barrel & \texttt{test:boundary}\newline\texttt{metrics:maint.} & $\rho_{\mathrm{api}}\downarrow$ & \checkmark{} pass \\
+2 & Co-change Orders + Payments for discount feature & \texttt{test:boundary}\newline\texttt{git log} analysis & $\mathrm{CCI}\uparrow$ & \checkmark{} pass \\
+3 & Add 5 valid query handlers to Orders \texttt{index.ts} & \texttt{test:boundary}\newline\texttt{metrics:maint.} & $G_{\mathrm{api}}\uparrow$ (9$\to$14) & \checkmark{} pass \\
 \end{tabularx}
 \normalsize
 
