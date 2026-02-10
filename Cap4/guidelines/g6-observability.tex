@@ -1,0 +1,52 @@
+\pagebreak
+\section{G6: Observability Patterns}
+\label{sec:g6-introduce-observability-patterns}
+
+In this section, we present G6, which advocates reducing operational complexity by incorporating observability patterns such as structured logging, metrics collection, and traceability within the modular monolith. G6 ensures that, even without a distributed tracing framework, teams can monitor and trace module interactions, detect performance bottlenecks, and troubleshoot failures before they escalate.
+
+\subsection*{Conceptual Overview}
+To be done during research.
+
+\subsection*{Objectives}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Internal metrics collection:} To be done.
+  \item \emph{Traceability of interactions:} To be done.
+  \item \emph{Monitoring patterns:} To be done.
+\end{itemize}
+
+\subsection*{Key Principles}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Principle 1:} To be done.
+  \item \emph{Principle 2:} To be done.
+  \item \emph{Principle 3:} To be done.
+  \item \emph{Principle 4:} To be done.
+  \item \emph{Principle 5:} To be done.
+\end{itemize}
+
+\subsection*{Metrics \& Verification}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Log coverage per module:} To be done.
+  \item \emph{Request trace success rate:} To be done.
+  \item \emph{Metric collection latency:} To be done.
+  \item \emph{Alert accuracy:} To be done.
+\end{itemize}
+
+\subsection*{Documentation Guidelines}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{ADR Template:} To be done.
+  \item \emph{Module Descriptor:} To be done.
+  \item \emph{Change Log Practices:} To be done.
+\end{itemize}
+
+\subsection*{Tool Capabilities}
+Any open‐source or proprietary software tool used to support G6 should address:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Metrics collection library:} To be done.
+  \item \emph{Traceability instrumentation:} To be done.
+  \item \emph{Dashboard integration:} To be done.
+  \item \emph{Alerting framework:} To be done.
+  \item \emph{Log aggregation support:} To be done.
+\end{itemize}
+
+\subsection*{Literature Support Commentary}
+Microservices literature heavily emphasizes observability and distributed tracing, yet monoliths often lack comparable practices, treating the system as a single black box~\cite{montesi2021sliceable}. Consequently, hidden complexity surfaces only during outages. G6 transfers proven observability techniques like module-scoped metrics, correlation IDs and log aggregation to the monolith domain, offering early insight into inter-module behavior and making complexity visible when teams are still small.
