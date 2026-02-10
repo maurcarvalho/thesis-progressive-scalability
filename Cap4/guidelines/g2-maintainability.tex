@@ -298,7 +298,7 @@ grep -c "eventBus.subscribe" \
 # Baseline: ~19 subscriptions (13 event-store + 6 listener wiring)
 \end{lstlisting}
 
-This number is not inherently good or bad---it reflects the system's current collaboration complexity. The G2 concern is \emph{growth rate}: if this count doubles after adding one feature, the wiring is likely feature-centric rather than bounded-context-oriented, signaling the ``Feature-Centric Coupling'' anti-pattern described in the failure modes section.
+This number is not inherently good or bad; it reflects the system's current collaboration complexity. The G2 concern is \emph{growth rate}: if this count doubles after adding one feature, the wiring is likely feature-centric rather than bounded-context-oriented, signaling the ``Feature-Centric Coupling'' anti-pattern described in the failure modes section.
 
 \subsubsection*{Step 4: Compute $\rho_{\mathrm{api}}$ from the Composition Root}
 The API-only dependency ratio ($\rho_{\mathrm{api}}$) measures whether cross-module references target public entrypoints or internal paths. In Tiny Store, all imports in \texttt{register-listeners.ts} use the public path \texttt{@tiny-store/modules-*}:
@@ -313,7 +313,7 @@ import { OrderPaidListener } from '@tiny-store/modules-shipments';
 None of these imports target internal paths (e.g., \texttt{@tiny-store/modules-payments/src/domain/...}). With all cross-module references routing through public surfaces, $\rho_{\mathrm{api}} = 1.0$. Any deviation from 1.0 means an internal path has leaked into the composition root---a maintainability regression that G1's boundary tests may not catch if the import resolves correctly at runtime.
 
 \subsubsection*{Step 5: Detect Change Coupling via Co-Change Analysis}
-G2 defines the Change Coupling Index ($CCI$) as a supplementary metric that captures modules changing together across commits. This is not detectable by static analysis---it requires commit history:
+G2 defines the Change Coupling Index ($CCI$) as a supplementary metric that captures modules changing together across commits. This is not detectable by static analysis; it requires commit history:
 
 \begin{lstlisting}[language=bash,caption={Detect co-changing modules in recent commits},label={lst:g2-cci}]
 # List modules touched per commit, flag co-changes
@@ -324,7 +324,7 @@ git log --oneline -50 --name-only | \
          print c, ":", length(mods[c]), "modules"}'
 \end{lstlisting}
 
-In a healthy codebase, most commits touch a single module. When Payments and Shipments consistently change together (e.g., every shipment feature also modifies payment logic), it indicates that responsibility boundaries are blurred---even if no import violations exist. This is precisely the kind of degradation G2 is designed to surface: structurally valid code with economically unsustainable change patterns.
+In a healthy codebase, most commits touch a single module. When Payments and Shipments consistently change together (e.g., every shipment feature also modifies payment logic), it indicates that responsibility boundaries are blurred, even if no import violations exist. This is precisely the kind of degradation G2 is designed to surface: structurally valid code with economically unsustainable change patterns.
 
 \subsubsection*{Step 6: Understand the Longitudinal Perspective}
 The key distinction between G1 and G2 enforcement is \emph{when} degradation becomes visible. G1 catches violations at the moment they are introduced (a failing test, a lint error). G2 catches degradation that accumulates over time: a public surface that grows by one export per sprint, a $\rho_{\mathrm{api}}$ that drops from 1.0 to 0.95 to 0.87 across releases, a $CCI$ that rises as features span more modules.
@@ -497,7 +497,7 @@ grep -c "^export" libs/modules/payments/src/index.ts
 
 \emph{Why this matters for G2:} The Payments module went from a lean 3-symbol contract to an 8-symbol surface in a single sprint. Every exported handler is a contract that downstream consumers may depend on. Once another module or the composition root begins using \texttt{GetPaymentsByStatusHandler}, Payments can no longer rename, restructure, or remove that handler without coordinating a cross-module change. The module's internal refactoring freedom shrinks with each export. Over three sprints, if each adds 2 exports, $G_{\mathrm{api}}(\mathrm{payments}) \approx 2/\mathrm{sprint}$---a sustained growth rate that warrants consolidation.
 
-G1 cannot detect this: every exported symbol is a handler (not an entity or repository), so $C_{\mathrm{leak}} = 0$. The issue is purely quantitative---\emph{how much} surface, not \emph{what kind}---and requires the longitudinal $G_{\mathrm{api}}$ metric to become visible.
+G1 cannot detect this: every exported symbol is a handler (not an entity or repository), so $C_{\mathrm{leak}} = 0$. The issue is purely quantitative (\emph{how much} surface, not \emph{what kind}) and requires the longitudinal $G_{\mathrm{api}}$ metric to become visible.
 
 \emph{Fix:} Remove exports that are consumed only within the module's own HTTP adapter or feature code. Expose only handlers that external modules actually invoke through the composition root. Set a $G_{\mathrm{api}}$ threshold (e.g., $\leq 5$ for lean modules like Payments) in CI to catch surface inflation early.
 
@@ -520,6 +520,6 @@ G1 cannot detect this: every exported symbol is a handler (not an entity or repo
 \subsection*{Conclusion of the G2 Implementation}
 This section demonstrated that maintainability in a modular monolith cannot be reduced to boundary enforcement alone. G1 ensures that boundaries are \emph{correct} at any given moment; G2 ensures that they remain \emph{economically sustainable} over time. The distinction is practical: a system can pass every boundary test while accumulating convenience-driven type coupling, inflated API surfaces, and feature-centric wiring that progressively raises the cost of change.
 
-The tutorial introduced maintainability-specific tooling---dependency graph extraction, API surface counting, wiring density measurement, and co-change analysis---that operationalizes G2's metrics on a real codebase. The exercises showed that each failure mode produces a specific, measurable signal: a new module-to-module edge that did not exist at baseline ($C_{\mathrm{undecl}}$), a transitive orchestration chain that expands the blast radius of composition root changes, and a growing public surface that creates contractual obligations faster than the module can absorb them ($G_{\mathrm{api}}$). Crucially, none of these violations were caught by G1's boundary tests---they required longitudinal tracking to become visible.
+The tutorial introduced maintainability-specific tooling---dependency graph extraction, API surface counting, wiring density measurement, and co-change analysis---that operationalizes G2's metrics on a real codebase. The exercises showed that each failure mode produces a specific, measurable signal: a new module-to-module edge that did not exist at baseline ($C_{\mathrm{undecl}}$), a transitive orchestration chain that expands the blast radius of composition root changes, and a growing public surface that creates contractual obligations faster than the module can absorb them ($G_{\mathrm{api}}$). None of these violations were caught by G1's boundary tests---they required longitudinal tracking to become visible.
 
 Together, G1 and G2 establish a layered defense for progressive scalability. G1 provides the immediate, binary gate that prevents structural violations. G2 provides the longitudinal, quantitative signals that detect gradual erosion before it becomes irreversible. With both guidelines in place, the architecture retains the option to evolve incrementally---adding modules, extracting services, or scaling selectively---while keeping the cost of change bounded and predictable as the system grows.
