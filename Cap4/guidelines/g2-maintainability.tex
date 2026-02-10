@@ -210,3 +210,297 @@ G2's maintainability principles are demonstrated through the same Tiny Store ref
 Although maintainability is a central topic in software engineering, much of the literature treats it either as an abstract principle or as a collection of localized code quality metrics. Recent empirical studies and systematic reviews emphasize that maintainability improvements in modular monoliths are primarily driven by boundary discipline and dependency management rather than deployment decomposition alone~\cite{gravanis2021dont,berry2024isItWorth,blinowski2022monolithic}.
 
 Evolutionary architecture research further argues that architectural properties such as maintainability must be preserved through objective, executable constraints rather than informal guidance~\cite{FordParsons2017}. The concept of \emph{architectural fitness functions}, as popularized by ThoughtWorks~\cite{thoughtworks2017fitnessfunction}, operationalizes this perspective by defining automated checks that continuously verify whether the architecture satisfies its intended properties. G2 synthesizes these insights by framing maintainability as bounded cost of change and by providing concrete design mechanisms and measurable signals grounded in the boundary enforcement model established by G1.
+
+%% ============================================================
+%% G2 APPLIED
+%% ============================================================
+\pagebreak
+\subsection*{G2 Applied: Maintainability in the Tiny Store}
+\label{sec:g2-applied}
+
+This section operationalizes G2 using the same Tiny Store reference implementation introduced in G1 (Section~\ref{sec:g1-demo-tiny-store}). While G1 demonstrated how to \emph{establish} modular boundaries, G2 shows how to keep those boundaries \emph{effective over time} by examining layered internal structure, tracing dependency direction, measuring encapsulation health, and detecting architectural drift through concrete metrics. The tutorial connects each G2 principle to an observable artifact in the codebase, and the exercise walkthrough introduces controlled maintainability violations so the reader can witness metric degradation firsthand.
+
+\subsection*{Reader Map}
+The tutorial below is designed to be completed in a single sitting (approximately 30 minutes). It assumes the repository baseline established in G1 is passing. You will first inspect how maintainability is structurally embedded in the codebase, then learn to compute the G2 metrics from real dependency data, and finally run exercises that degrade specific metrics by introducing common maintainability anti-patterns. Each exercise states what you change, what you run, and the expected signal.
+
+\pagebreak
+\subsection*{Tutorial: Step-by-Step Application}
+
+\subsubsection*{Step 1: Examine the Layered Internal Structure}
+Within each bounded context, Tiny Store organizes code into three cohesive layers that mirror the separation of concerns prescribed by G2:
+
+\begin{lstlisting}[language=bash,caption={Internal structure of the Orders module},label={lst:g2-orders-tree}]
+libs/modules/orders/src/
+  domain/
+    entities/        # Order aggregate, value objects
+    enums/           # OrderStatus
+    events/          # OrderPlaced, OrderConfirmed, ...
+    repositories/    # OrderRepository (persistence port)
+    value-objects/   # CustomerId, OrderItem
+  features/
+    place-order/     # handler.ts, service.ts, dto.ts
+    cancel-order/
+    get-order/
+    list-orders/
+  listeners/
+    inventory-reserved.listener.ts
+    inventory-reservation-failed.listener.ts
+    payment-processed.listener.ts
+    payment-failed.listener.ts
+    shipment-created.listener.ts
+  index.ts           # Public API surface
+\end{lstlisting}
+
+The dependency direction within the module is strictly inward: \texttt{listeners/} and \texttt{features/} depend on \texttt{domain/}, but \texttt{domain/} depends on neither. This layering insulates business rules from application-level orchestration and event-handling concerns. For example, the \texttt{InventoryReservedListener} imports from \texttt{domain/repositories} and \texttt{domain/events} within its own module, but never reaches into another module's internals:
+
+\begin{lstlisting}[language=TypeScript,caption={Listener depending only on local domain (orders/src/listeners/inventory-reserved.listener.ts)},label={lst:g2-listener-deps}]
+import { DomainEvent, EventBus } from '@tiny-store/shared-infrastructure';
+import { OrderRepository } from '../domain/repositories/order.repository';
+import {
+  createOrderConfirmedEvent,
+  OrderConfirmedPayload,
+} from '../domain/events/order-confirmed.event';
+
+export class InventoryReservedListener {
+  private orderRepository: OrderRepository;
+  private eventBus: EventBus;
+
+  constructor(dataSource: DataSource) {
+    this.orderRepository = new OrderRepository(dataSource);
+    this.eventBus = EventBus.getInstance();
+  }
+
+  async handle(event: DomainEvent): Promise<void> {
+    const { orderId } = event.payload;
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) return;
+    order.confirm();
+    await this.orderRepository.save(order);
+
+    const confirmedEvent = createOrderConfirmedEvent(
+      order.id, { orderId: order.id });
+    await this.eventBus.publish(confirmedEvent);
+  }
+}
+\end{lstlisting}
+
+This structure ensures that the \emph{domain layer} remains the stable core of the module. Features and listeners can change independently as long as they honor the domain contracts, which is the practical manifestation of G2's \emph{change locality} principle.
+
+\subsubsection*{Step 2: Trace Dependency Direction}
+G2 requires that dependency direction reflects responsibility and information flow. In Tiny Store, the Orders module depends on \texttt{shared-domain} and \texttt{shared-infrastructure}, but never imports from \texttt{@tiny-store/modules-inventory} or any other bounded context. Cross-module collaboration flows exclusively through domain events.
+
+Inspect the import statements in any Orders source file. All external imports resolve to shared libraries:
+
+\begin{lstlisting}[language=TypeScript,caption={External dependencies in Order aggregate (orders/src/domain/entities/order.ts)},label={lst:g2-order-deps}]
+import {
+  AggregateRoot,
+  BusinessRuleViolationError,
+  Money,
+  Address,
+} from '@tiny-store/shared-domain';
+\end{lstlisting}
+
+No file under \texttt{libs/modules/orders/} contains an import from \texttt{@tiny-store/modules-inventory}, \texttt{@tiny-store/modules-payments}, or \texttt{@tiny-store/modules-shipments}. This is verifiable mechanically:
+
+\begin{lstlisting}[language=bash,caption={Verify no cross-module imports exist in Orders},label={lst:g2-grep-cross}]
+grep -r "@tiny-store/modules-" libs/modules/orders/src/ \
+  --include="*.ts" | grep -v node_modules
+# Expected: no output (zero cross-module imports)
+\end{lstlisting}
+
+The same holds for Inventory, Payments, and Shipments. Each module is a self-contained unit whose only outward dependencies point to shared infrastructure. This unidirectional flow is what makes independent evolution possible: refactoring the Order aggregate's internal structure requires no coordination with the Inventory team.
+
+\subsubsection*{Step 3: Contract-Oriented Collaboration via the Composition Root}
+Cross-module wiring in Tiny Store is centralized in \texttt{register-listeners.ts}, the composition root introduced in G1. From a G2 perspective, this file is the \emph{auditable map of cross-module coupling}. Every event subscription is visible in one place, making it straightforward to answer questions like ``Who reacts when an order is placed?'' or ``What happens after payment succeeds?''
+
+\begin{lstlisting}[language=TypeScript,caption={Cross-module wiring excerpt (register-listeners.ts)},label={lst:g2-register-excerpt}]
+// Inventory reacts to order lifecycle events
+const orderPlacedListener = new OrderPlacedListener(dataSource);
+eventBus.subscribe('OrderPlaced',
+  (event) => orderPlacedListener.handle(event));
+
+const orderCancelledListener = new OrderCancelledListener(dataSource);
+eventBus.subscribe('OrderCancelled',
+  (event) => orderCancelledListener.handle(event));
+
+// Orders reacts to inventory decisions
+const inventoryReservedListener =
+  new InventoryReservedListener(dataSource);
+eventBus.subscribe('InventoryReserved',
+  (event) => inventoryReservedListener.handle(event));
+\end{lstlisting}
+
+This centralization serves two G2 objectives. First, it makes dependency direction \emph{reviewable}: a new subscription is a code change in the composition root, subject to review. Second, it prevents \emph{implicit coupling}: no module can silently subscribe to another module's events from within its own code. The cross-module dependency graph is exactly what \texttt{register-listeners.ts} declares---nothing more, nothing less.
+
+\subsubsection*{Step 4: API Surface Control}
+G2 treats the module entrypoint (\texttt{index.ts}) as the enforceable boundary between public contract and internal implementation. Compare what Orders exports with what it contains:
+
+\begin{lstlisting}[language=TypeScript,caption={Orders public surface (libs/modules/orders/src/index.ts)},label={lst:g2-orders-index}]
+// Public API -- Handlers
+export * from './features/place-order/handler';
+export * from './features/cancel-order/handler';
+export * from './features/get-order/handler';
+export * from './features/list-orders/handler';
+
+// Public API -- Listeners
+export * from './listeners/inventory-reserved.listener';
+export * from './listeners/inventory-reservation-failed.listener';
+export * from './listeners/payment-processed.listener';
+export * from './listeners/payment-failed.listener';
+export * from './listeners/shipment-created.listener';
+\end{lstlisting}
+
+The module contains 14+ internal files (entities, repositories, value objects, enums, services, DTOs), yet exports only 9 symbols: 4 handlers and 5 listeners. Everything else---\texttt{Order}, \texttt{OrderRepository}, \texttt{OrderItem}, \texttt{CustomerId}, \texttt{PlaceOrderService}---remains internal. The boundary test suite confirms this:
+
+\begin{lstlisting}[language=TypeScript,caption={Boundary test verifying encapsulation (module-boundary.spec.ts)},label={lst:g2-boundary-encap}]
+it('should NOT allow access to Order entities', async () => {
+  const orders = await import('@tiny-store/modules-orders');
+  expect((orders as any).Order).toBeUndefined();
+  expect((orders as any).OrderEntity).toBeUndefined();
+});
+
+it('should NOT expose internal services directly', async () => {
+  const orders = await import('@tiny-store/modules-orders');
+  expect((orders as any).PlaceOrderService).toBeUndefined();
+  expect((orders as any).OrderDomainService).toBeUndefined();
+});
+\end{lstlisting}
+
+This controlled surface is how G2 bounds the cost of change: downstream consumers depend on \emph{what the module does} (handlers, listeners), not on \emph{how it does it} (entities, repositories, services).
+
+\subsubsection*{Step 5: Computing Maintainability Metrics}
+G2 defines several metrics that make architectural health observable. Using Tiny Store's current state, we can compute the baseline values:
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item $C_{\mathrm{undecl}}$: Run \texttt{grep -r "@tiny-store/modules-" libs/modules/orders/src/} to find cross-module references. In the clean baseline, this returns zero results, so $C_{\mathrm{undecl}} = 0$.
+  \item $C_{\mathrm{leak}}$: The boundary test suite checks that internal symbols (\texttt{Order}, \texttt{OrderRepository}, \texttt{Product}, etc.) are not exported. All assertions pass, so $C_{\mathrm{leak}} = 0$.
+  \item $\rho_{\mathrm{api}}$: All cross-module references in \texttt{register-listeners.ts} target public entrypoints (\texttt{@tiny-store/modules-*}), never deep paths. With $|R| = |R_{\mathrm{api}}|$, we get $\rho_{\mathrm{api}} = 1.0$.
+  \item $C_{\mathrm{forbid}}$: No module imports another module directly, so $C_{\mathrm{forbid}} = 0$.
+  \item $P_{\mathrm{iso}}$: All boundary tests pass, so $P_{\mathrm{iso}} = 1.0$.
+\end{itemize}
+
+\begin{lstlisting}[language=bash,caption={Baseline metric verification},label={lst:g2-baseline-metrics}]
+# C_undecl: cross-module imports inside any module
+grep -r "@tiny-store/modules-" libs/modules/*/src/ \
+  --include="*.ts" | wc -l
+# Expected: 0
+
+# C_leak + rho_api: boundary tests cover both
+npm run test:boundary
+# Expected: all pass
+
+# C_forbid: no forbidden imports
+npm run test:boundary
+# Expected: all pass, no forbidden reference warnings
+\end{lstlisting}
+
+\subsubsection*{Step 6: Detecting Architectural Drift}
+Architectural drift occurs when small, individually harmless changes accumulate into structural degradation. The metrics above provide early warning. For example, if a developer adds a convenience import in a single file:
+
+\begin{lstlisting}[language=TypeScript,caption={A single convenience import (architectural drift seed)},label={lst:g2-drift-seed}]
+// In libs/modules/orders/src/features/place-order/service.ts
+import { Product } from '@tiny-store/modules-inventory/src/domain/entities/product';
+\end{lstlisting}
+
+This single line shifts $C_{\mathrm{undecl}}$ from 0 to 1 and $\rho_{\mathrm{api}}$ below 1.0. If left undetected, similar shortcuts in other files would compound: $C_{\mathrm{undecl}}$ grows linearly, $\rho_{\mathrm{api}}$ declines, and eventually the ``modular'' monolith behaves like a coupled monolith where changing Inventory's \texttt{Product} entity forces coordinated changes in Orders. The boundary test suite catches this immediately, transforming what would be invisible drift into an actionable signal.
+
+\pagebreak
+\subsection*{Exercise Walkthrough: Controlled Maintainability Violations}
+The exercises below intentionally degrade specific G2 metrics to demonstrate that the enforcement mechanisms are active and the metrics are observable. Each exercise introduces a single anti-pattern from the failure modes described earlier, runs the verification suite, and reports the expected metric change.
+
+\subsubsection*{Exercise 0: Establish Maintainability Baseline}
+Confirm that all G2 metrics are at their healthy values before introducing violations.
+
+\begin{lstlisting}[language=bash,caption={Establish G2 baseline},label={lst:g2-ex0}]
+npm run test:boundary
+npm run test:integration
+
+# Baseline values:
+# C_undecl = 0, C_leak = 0, C_forbid = 0
+# rho_api = 1.0, P_iso = 1.0
+\end{lstlisting}
+
+\subsubsection*{Exercise 1: Cross-Module Internal Reuse ($C_{\mathrm{leak}}\uparrow$, $\rho_{\mathrm{api}}\downarrow$)}
+Introduce the most common maintainability anti-pattern: importing another module's internal utility directly instead of interacting through the public surface.
+
+\emph{What you change:} In \texttt{libs/modules/orders/src/features/place-order/service.ts}, add a direct import of an Inventory internal:
+
+\begin{lstlisting}[language=TypeScript,caption={Violation: cross-module internal import},label={lst:g2-ex1-violation}]
+// VIOLATION: importing Inventory internals from Orders
+import { ProductRepository }
+  from '../../../../../../modules/inventory/src/domain/repositories/product.repository';
+\end{lstlisting}
+
+\emph{What you run:}
+\begin{lstlisting}[language=bash,caption={Run enforcement after Exercise 1},label={lst:g2-ex1-run}]
+npm run test:boundary
+\end{lstlisting}
+
+\emph{Expected signal:} The boundary test that asserts \texttt{ProductRepository} is not accessible from outside Inventory may not catch a deep relative import directly, but \texttt{@nx/enforce-module-boundaries} (if configured) or the grep-based metric check will detect the cross-module reference. Metric impact: $C_{\mathrm{undecl}}$ rises from 0 to 1, $\rho_{\mathrm{api}}$ drops below 1.0, and $C_{\mathrm{leak}}$ increments because an internal symbol is consumed across the boundary.
+
+\emph{Fix:} Remove the direct import. If Orders needs product availability information, it should either (a)~publish an event and let Inventory respond, or (b)~consume a public handler like \texttt{GetProductHandler} through the composition root.
+
+\subsubsection*{Exercise 2: Bidirectional Coupling ($C_{\mathrm{forbid}}\uparrow$, cycle detection)}
+Introduce a dependency cycle by having Inventory import from Orders, creating bidirectional coupling.
+
+\emph{What you change:} In \texttt{libs/modules/inventory/src/features/reserve-stock/service.ts}, add:
+
+\begin{lstlisting}[language=TypeScript,caption={Violation: bidirectional coupling},label={lst:g2-ex2-violation}]
+// VIOLATION: Inventory now depends on Orders (cycle)
+import { GetOrderHandler } from '@tiny-store/modules-orders';
+\end{lstlisting}
+
+Since Orders' listeners already consume Inventory events (wired in the composition root), this creates a dependency cycle: Orders $\rightarrow$ Inventory events $\rightarrow$ Orders.
+
+\emph{What you run:}
+\begin{lstlisting}[language=bash,caption={Run enforcement after Exercise 2},label={lst:g2-ex2-run}]
+npm run test:boundary
+npx nx graph  # visualize the dependency graph for cycle detection
+\end{lstlisting}
+
+\emph{Expected signal:} If \texttt{@nx/enforce-module-boundaries} is configured with forbidden constraints between peer modules, this import triggers a lint failure. The Nx dependency graph will show a cycle between \texttt{modules-orders} and \texttt{modules-inventory}. Metric impact: $C_{\mathrm{forbid}}\uparrow$ (the import violates the architectural constraint that peer bounded contexts must not import each other directly).
+
+\emph{Fix:} Remove the direct import. If the reserve-stock feature needs order details, introduce an event contract: Inventory publishes a request event, and the composition root wires the response---or restructure the flow so that the necessary data is included in the originating event payload.
+
+\subsubsection*{Exercise 3: API Surface Inflation ($G_{\mathrm{api}}\uparrow$)}
+Demonstrate how unnecessary exports increase the public surface, creating downstream obligations and reducing refactoring freedom.
+
+\emph{What you change:} In \texttt{libs/modules/orders/src/index.ts}, add exports of internal symbols:
+
+\begin{lstlisting}[language=TypeScript,caption={Violation: inflating the public surface},label={lst:g2-ex3-violation}]
+// VIOLATION: exporting internal types inflates the API surface
+export * from './domain/entities/order';
+export * from './domain/repositories/order.repository';
+export * from './domain/enums/order-status.enum';
+export * from './domain/value-objects/order-item.value-object';
+export * from './domain/value-objects/customer-id.value-object';
+\end{lstlisting}
+
+\emph{What you run:}
+\begin{lstlisting}[language=bash,caption={Run enforcement after Exercise 3},label={lst:g2-ex3-run}]
+npm run test:boundary
+\end{lstlisting}
+
+\emph{Expected signal:} The boundary tests that assert \texttt{(orders as any).Order} is \texttt{undefined} and \texttt{(orders as any).OrderRepository} is \texttt{undefined} now \emph{fail}---these symbols are defined when they should not be. Metric impact: $C_{\mathrm{leak}}$ rises from 0 to 5+ (each newly exposed internal symbol counts), $G_{\mathrm{api}}$ increases by 5 symbols in a single change, and $\rho_{\mathrm{api}}$ degrades as downstream code begins depending on internal types rather than stable handlers.
+
+\emph{Fix:} Remove the internal exports. The public surface should contain only handlers and listener factories---capabilities, not implementation details.
+
+\pagebreak
+\subsubsection*{Exercise Summary}
+\small
+\noindent
+\begin{tabularx}{\linewidth}{p{0.06\linewidth} X p{0.24\linewidth} p{0.20\linewidth}}
+\textbf{Ex.} & \textbf{What you change} & \textbf{Run} & \textbf{Signal / metric} \\
+0 & Establish baseline & \texttt{test:boundary}\newline\texttt{test:integration} & all pass (baseline) \\
+1 & Import Inventory internal from Orders & \texttt{test:boundary} & $C_{\mathrm{undecl}}\uparrow$, $\rho_{\mathrm{api}}\downarrow$ \\
+2 & Import Orders handler from Inventory (cycle) & \texttt{test:boundary}\newline\texttt{nx graph} & $C_{\mathrm{forbid}}\uparrow$, cycle \\
+3 & Export 5 internal types from Orders \texttt{index.ts} & \texttt{test:boundary} & $C_{\mathrm{leak}}\uparrow$, $G_{\mathrm{api}}\uparrow$ \\
+\end{tabularx}
+\normalsize
+
+\subsection*{Conclusion of the G2 Implementation}
+This section demonstrated that embedding maintainability in a modular monolith is not a matter of code quality alone---it requires structural discipline that is measurable and enforceable. In Tiny Store, G2 is realized through layered internal organization that insulates domain logic, unidirectional dependency flow that prevents cascading change, controlled API surfaces that limit downstream obligations, and centralized composition that keeps cross-module wiring auditable.
+
+The exercise walkthrough showed that each common maintainability anti-pattern---cross-module internal reuse, bidirectional coupling, and API surface inflation---produces a specific, observable metric signal. This confirms that G2's metrics are not abstract: they detect real architectural drift in real code. When combined with G1's boundary enforcement, these signals create a layered defense where boundary violations are caught immediately and maintainability degradation is caught early, before it becomes structurally expensive to reverse.
+
+Together, G1 and G2 establish the foundation for progressive scalability: boundaries that are both correct and sustainable. With coupling bounded and change locality preserved, the system retains the option to evolve incrementally---adding modules, extracting services, or scaling selectively---without the coordination overhead that characterizes tightly coupled monoliths.
