@@ -1,0 +1,482 @@
+\pagebreak
+\section{G1: Enforce Modular Boundaries}
+\label{sec:g1-enforce-modular-boundaries}
+
+In this section, we present one of the concrete guidelines proposed for evolving a modular monolith application. G1 focuses on enforcing clear modular boundaries. The guideline aims to prevent unintended coupling in the codebase, preserve encapsulation, and ensure that dependencies between modules remain explicit and verifiable through build- and test-time checks.
+
+\subsection*{Intent and Rationale}
+This research proposes that modularity in a monolith should be treated as an enforceable architectural property rather than an assumed outcome of refactoring. Without enforcement, boundaries tend to degrade over time through convenience-driven imports, shared utilities, and implicit wiring, which gradually reintroduces tight coupling. G1 therefore treats boundary enforcement as a preventive control, making coupling explicit, reviewable, and auditable, enabling independent evolution of modules and reducing the cost of architectural change.
+
+\subsection*{Conceptual Overview}
+Define clear boundaries around each bounded-context module so that:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item Each module encapsulates its internal implementation and feature-level organization.
+  \item Dependencies between modules occur only through explicitly declared and verifiable interfaces.
+  \item Unintended coupling is prevented, enabling independent evolution of modules within a single deployable system.
+\end{itemize}
+
+
+\subsection*{Applicability Conditions and Scope}
+G1 is applicable when a system is decomposed into logical modules within a single codebase. Inter-module dependencies must be explicitly declared and automatically verifiable, independent of packaging, deployment, or distribution decisions. This guideline assumes a two-level decomposition strategy:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Bounded Context Modules:} The codebase is decomposed into bounded-context modules (for example, under a \texttt{modules/} root), and each bounded context is treated as a first-class module boundary.
+  \item \emph{Package-by-Feature Within Modules:} Inside each module, code is organized by feature (use cases, domain concepts, aggregates) to localize behavior and reduce scattering, without weakening the outer module boundary.
+\end{itemize}
+G1 focuses on enforcing the \emph{outer} boundary between bounded-context modules. The internal package-by-feature organization is treated as a complementary structuring mechanism, and its detailed rules are addressed in subsequent topics.
+
+\subsection*{Objectives}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Clear Declaration and Isolation:} Ensure each module is clearly identified (for example, via naming conventions, package control, or a descriptor) and remains isolated unless an explicit dependency is declared.
+  \item \emph{Encapsulation:} Keep internal classes, data, and resources hidden within a module.
+  \item \emph{Controlled Dependency:} Allow one module to depend on another only when explicitly declared.
+  \item \emph{Visibility Management:} Declare which services, events, or commands a module exposes or consumes.
+  \item \emph{Early Verification:} Detect boundary violations at build or test time rather than at runtime.
+  \item \emph{Isolation Guarantees:} Optionally forbid certain modules from ever depending on each other.
+\end{itemize}
+
+\subsection*{Key Principles}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Provided Interface vs.\ Internal Components:}
+    \begin{itemize}[noitemsep,topsep=1pt,leftmargin=1.5em]
+      \item \emph{Provided Interface:} Public classes, services, APIs, or events explicitly exposed to other modules.
+      \item \emph{Internal Components:} Classes, utilities, or data that should remain private within the module.
+    \end{itemize}
+
+  \item \emph{Explicit Declarations:}
+    All dependencies on other modules must be declared in a central descriptor to provide auto-verifiability (for example, annotation, configuration file, or YAML).
+
+  \item \emph{Forbidden Dependencies:}
+    Declare modules that must never depend on each other to enforce stronger isolation where necessary.
+
+  \item \emph{Inter-Module Communication:}
+    Use either synchronous calls via public interfaces or asynchronous event-driven channels, and avoid direct references to another module’s internals.
+
+  \item \emph{Boundary-First Discipline:}
+    Package-by-feature improves cohesion within a bounded context, but it does not replace module boundaries. A feature slice must not become a cross-module dependency mechanism (for example, by importing internal feature code from other modules).
+\end{itemize}
+
+\subsection*{Implementation Mechanisms}
+This research proposes implementing G1 through a combination of (i) structural encapsulation, (ii) explicit dependency declaration, and (iii) automated verification:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Structural encapsulation:} Separate public API packages from internal packages, and restrict visibility so that only the declared API is importable across module boundaries.
+  \item \emph{Declarative dependency model:} Maintain a module descriptor that defines which modules are required and which are forbidden, and keep it version-controlled with boundary changes.
+  \item \emph{Automated verification:} Fail the build when undeclared cross-module references are detected, and optionally verify event subscriptions and command usage against declared dependencies.
+\end{itemize}
+
+\subsection*{Metrics}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Undeclared Dependency Reference Count:}
+  Number of static references from module $A$ to module $B$ where $A \rightarrow B$ is not declared in the module descriptor.
+
+  \item \emph{Forbidden Dependency Reference Count:}
+  Number of static references from module $A$ to module $B$ where $A \rightarrow B$ is explicitly forbidden.
+
+  \item \emph{API-Only Dependency Ratio:}
+  For all cross-module references, the proportion that targets the provider module's declared public API surface (interfaces, exported packages, published events) rather than internal packages.
+
+  \item \emph{Encapsulation Leakage Count:}
+  Number of external references to internal symbols (classes, packages, resources) that are not part of the provider module's declared public surface.
+
+  \item \emph{Module Isolation Test Pass Rate:}
+  Percentage of module-scoped tests that execute with only the module and its declared dependencies available (for example, module-level context loading).
+  Failures indicate hidden wiring to undeclared modules, even when imports look compliant.
+  
+  \item \emph{Event Subscription Boundary Violations (if events are used):}
+  Number of event handlers in module $A$ consuming events from module $B$ without a declared $A \rightarrow B$ dependency (or without a declared event subscription, depending on the enforcement model).
+
+ \item \emph{Boundary Bypass Surface Count (optional):}
+  Number of occurrences of mechanisms that can bypass static boundaries (for example, reflection-based access, service locator patterns, dynamic class loading) within cross-module interaction paths. This metric is intended as a risk indicator even when no violations are detected statically.
+\end{itemize}
+
+\subsection*{Documentation Guidelines}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Module Descriptor:}
+    Maintain a machine-readable descriptor (YAML, annotation, or code) that centralizes \emph{requires} and \emph{forbids} entries for each module.
+  \item \emph{Change Log:}
+    Whenever a boundary is added, removed, or modified, update the descriptor with version and author metadata.
+\end{itemize}
+
+\subsection*{Tooling Capabilities Checklist}
+Any open-source or proprietary tool used to enforce modular boundaries should support:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Module Discovery:} Automatically identify modules via conventions (for example, module folders, annotations) or explicit configuration.
+  \item \emph{Boundary Verification:} Perform automated checks during build/test to detect undeclared cross-module references and fail on violations.
+  \item \emph{Event-Driven Enforcement:} Track published events and subscribers, enforcing that only modules with declared subscriptions handle specific events.
+  \item \emph{Isolated Testing:} Allow tests to load only a given module (and its declared dependencies), failing early if the module tries to wire code from undeclared modules.
+  \item \emph{Documentation Artifacts:} Generate up-to-date artifacts or reports for inclusion in architecture documentation or CI/CD feedback.
+  \item \emph{Runtime Validation (Optional):} Optionally perform runtime checks to catch dynamic boundary violations (for example, reflection) that compile-time checks might miss.
+\end{itemize}
+
+\subsection*{Literature Support Commentary}
+Although modularity is widely recognized as essential, much of the research treats it as an outcome of refactoring rather than a design criterion. Few works propose proactive structural mechanisms for enforcing modularity in monoliths, and those that do often lack empirical validation. This gap motivates G1 as a guideline that operationalizes modular boundaries through explicit declarations and automated verification.
+
+\pagebreak
+\section{G1 Applied: The Modular Tiny Store Example}
+\label{sec:g1-demo-tiny-store}
+
+This section operationalizes Guideline G1 (Enforce Modular Boundaries) using Tiny Store, a small modular monolith maintained as an executable reference for this dissertation.\footnote{\url{https://github.com/maurcarvalho/tiny-store}}
+The objective is to show how G1 is applied as an engineering practice, not only as an architectural principle. In Tiny Store, modularity is encoded in the repository structure, integration is wired in a visible composition root, and boundary erosion is surfaced as a failing check. The tutorial therefore connects the guideline to concrete actions: introduce a controlled violation, observe a crisp failure signal, trace it to an unauthorized dependency, and repair the system by restoring an explicit contract between bounded contexts.
+
+The tutorial is written from the perspective of an engineer evolving a monolithic application that contains multiple business capabilities. The goal is to keep bounded contexts isolated, to ensure that any cross-module dependency is intentional and reviewable, and to prevent accidental coupling from accumulating into a refactoring bottleneck.
+
+Two complementary feedback loops are used throughout the steps. The first is \texttt{npm run test:boundary}, which validates structural rules and fails when a module imports
+forbidden internals or bypasses the public surface of another context. The second is \texttt{npm run test:integration}, which exercises cross-module behavior end to end and confirms that the system remains correct after boundaries are tightened or contracts are introduced. Together, these targets support a workflow that is both practical and repeatable: make a change, observe the result immediately, and keep architectural integrity measurable as the system evolves.
+
+\subsection*{Reader map}
+This tutorial is designed to be completed in a single sitting. It assumes you can run the repository’s boundary and integration targets locally, and it keeps the steps intentionally hands-on. You will first trigger a boundary failure on demand, then locate the exact import or export that caused the violation, and finally fix it by introducing an explicit modular contract rather than importing another context’s internals. The expected time investment is 20--30 minutes, and the outcome is a concrete, reproducible ability to detect and remediate boundary erosion using the same mechanisms that can be embedded into a continuous integration pipeline.
+
+\subsection*{Repository Orientation}
+Tiny Store is the reference codebase used in this dissertation to ground architectural claims in an executable artifact. Its structure is designed to make modularity observable: boundaries are explicit in the directory layout, integration points are concentrated in a few predictable places, and the allowed dependency direction can be verified through automated checks.
+
+The repository is an Nx monorepo: a single workspace that contains multiple projects (applications and libraries) managed under a shared toolchain and an inspectable dependency graph.\footnote{\url{https://nx.dev/concepts/monorepos}}
+Deployable applications live under \texttt{apps/}, while reusable libraries live under \texttt{libs/}. This separation encodes a core rule of the modular monolith: composition roots are allowed to wire dependencies, while modules remain cohesive units that expose controlled integration surfaces.
+
+The system’s HTTP boundary is the \texttt{apps/api/} project, implemented with Next.js (App Router).
+REST endpoints under \texttt{apps/api/src/app/api/} act as thin adapters that translate requests into application operations. The same project also hosts shared runtime wiring under
+\texttt{apps/api/src/app/lib/}, so the API becomes the main composition root that assembles bounded contexts and connects infrastructure such as persistence and the event bus.
+
+Cross-module integration is intentionally made visible. Listener subscription wiring is centralized in \texttt{apps/api/src/app/lib/register-listeners.ts}, which serves as an auditable map of event choreography: which events are subscribed to, which handlers react, and which dependencies exist at the system level. Centralizing subscriptions avoids hidden side effects (for example, listeners registered implicitly during import time) and makes integration decisions reviewable and testable.
+
+Initially, domain behavior were divided into four bounded contexts under \texttt{libs/modules/}: \texttt{orders}, \texttt{inventory}, \texttt{payments}, and \texttt{shipments}. Each context is an Nx library structured around three concerns. The \texttt{domain/} subtree holds aggregates, entities, value objects, domain events, and repository abstractions. The \texttt{features/} subtree holds application use cases organized as vertical slices. The \texttt{listeners/} subtree reacts to published
+events and invokes local features, enabling collaboration without direct access to another context’s internals.
+
+Modules are consumed through a deliberate public API surface. Each bounded context exposes an entrypoint, typically \texttt{modules/<context>/src/index.ts}.
+This entrypoint is the module’s contract: it re-exports only approved symbols (handlers, listener factories, public types, event contracts) and keeps domain internals private. As a result, other projects import capabilities through stable module-level paths (for example,
+\texttt{@tiny-store/modules-orders}) while boundary discipline remains enforceable.
+
+The project makes event-driven collaboration the primary cross-module trace. Instead of
+``class-to-class'' dependencies, the relevant path is ``event $\rightarrow$ listener $\rightarrow$ feature.'' Orders emits domain events, Inventory reacts to reserve stock, and subsequent events drive Payments and Shipments. This choreography is expressed in each context’s \texttt{domain/events/}, implemented by \texttt{listeners/}, and wired in the composition root via \texttt{register-listeners.ts}.
+
+\captionsetup{justification=raggedright,singlelinecheck=false}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{Cap4/guidelines/order-events-lifecycle.png}
+  \caption{Lifecycle of order-related events across bounded contexts.}
+  \label{fig:order-events-lifecycle}
+
+  \vspace{0.5em}
+  \begin{minipage}{0.95\linewidth}
+    \footnotesize
+    \textbf{Statuses description:}
+    \begin{description}[leftmargin=!,labelwidth=3.2cm]
+      \item[\texttt{PENDING}] Order created, awaiting inventory check
+      \item[\texttt{CONFIRMED}] Inventory reserved, ready for payment
+      \item[\texttt{REJECTED}] Insufficient stock
+      \item[\texttt{PAID}] Payment successful
+      \item[\texttt{PAYMENT\_FAILED}] Payment declined
+      \item[\texttt{SHIPPED}] Shipment created and dispatched
+      \item[\texttt{CANCELLED}] User cancelled order
+    \end{description}
+  \end{minipage}
+\end{figure}
+
+\pagebreak
+
+Shared code is intentionally constrained under \texttt{libs/shared/}. The \texttt{domain/} library provides domain-neutral primitives, while \texttt{infrastructure/} provides reusable mechanisms such as the in-memory event bus and persistence utilities. This split reduces accidental coupling: domain meaning stays inside bounded contexts, and shared libraries remain a small set of stable building blocks rather than a catch-all dependency hub.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{Cap4/guidelines/repo-orientation-diagram.png}
+  \caption{Repository-level orientation of the Tiny Store monorepo.}
+  \label{fig:repo-orientation-diagram}
+\end{figure}
+
+Architecture is enforced as executable checks. The \texttt{npm run test:boundary} target validates module dependency rules and detects coupling regressions, while \texttt{npm run test:integration} exercises cross-module flows end to end. Together, they provide fast feedback on both structural correctness and runtime behavior.
+
+A practical reading order follows the enforced dependency direction: begin at \texttt{apps/api/} to see system assembly, then
+inspect \texttt{register-listeners.ts} to identify cross-context collaboration points. Next, enter a bounded context through its \texttt{src/index.ts} public surface and trace inward from
+\texttt{features/} into \texttt{domain/}. When behavior crosses contexts, follow the published events into \texttt{listeners/} and then into the next context's \texttt{features/}. This navigation strategy reflects the architectural intent: explicit contracts, visible integration, and boundaries that remain testable as the system scales.
+
+This repository orientation establishes the concrete elements that G1 relies on: bounded contexts exposed through explicit entrypoints, cross-context collaboration expressed as event-driven contracts, and integration wiring centralized in the composition root. With this map in place, the tutorial can move from structure to action. The steps below apply G1 using Tiny Store as an executable reference.
+Each step states the intent and the expected signal, and when applicable it includes a runnable snippet that reproduces a boundary failure, pinpoints the violating dependency, and validates the
+fix through the same automated checks that enforce modular boundaries during day-to-day development.
+
+\pagebreak
+\subsection*{Tutorial: Step-by-Step Application}
+The steps below apply G1 using Tiny Store as an executable reference. Each step states the intent and the expected signal, and when applicable it includes a runnable snippet.
+
+\subsubsection*{Steps}
+\begin{itemize}[noitemsep,topsep=2pt]
+
+  \item \emph{Step 0: Establish a Clean Baseline:}
+  Confirm that boundary enforcement is active before introducing controlled violations.
+  Run the baseline checks, and verify that all targets pass.
+
+  \begin{lstlisting}[language=bash,caption={Baseline checks for G1},label={lst:g1-baseline}]
+npm install
+npm test
+npm run test:boundary
+npm run test:integration
+  \end{lstlisting}
+
+\item \emph{Step 1: Confirm Module Discovery is Unambiguous:}
+Verify that bounded contexts are mechanically discoverable by path conventions, enabling static boundary checks.
+In Tiny Store, bounded contexts live under \texttt{libs/modules/<context>/}, and shared primitives live under \texttt{libs/shared/}.
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \DoMark\ Do: treat \texttt{libs/modules/<context>/} as the outer boundary for G1.
+  \item \DontMark\ Don't: create ad-hoc bounded contexts inside \texttt{libs/shared/} without enforcement.
+\end{itemize}
+
+\item \emph{Step 2: Treat Package-by-Feature as Internal Organization Only:}
+Confirm that feature slices improve cohesion inside a module while the outer boundary remains
+contract-based. Feature code (for example \texttt{src/features/}) may depend on \texttt{domain/} within
+the same module, but must not import other modules’ features or domain internals.
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \DoMark\ Do: allow \texttt{features/} $\rightarrow$ \texttt{domain/} dependencies inside the same module.
+  \item \DontMark\ Don't: allow module $A$ feature code to import module $B$ feature or domain internals.
+\end{itemize}
+
+
+
+\pagebreak
+  \item \emph{Step 3: Separate Public Surface from Internal Components:}
+  Ensure cross-module usage occurs only through module entrypoints (for example \texttt{@tiny-store/modules-orders}), so internals cannot leak by import convenience.
+
+  \begin{lstlisting}[language=TypeScript,caption={Public entrypoint import (allowed)},label={lst:g1-do-public-import}]
+/**
+ * ✅ DO: import the module via its public entrypoint.
+ * The public surface should expose handlers, ports, and event contracts,
+ * not domain entities or repositories.
+ */
+import { PlaceOrderHandler } from '@tiny-store/modules-orders';
+  \end{lstlisting}
+
+The example above is correct because it imports a capability that the Orders module explicitly exposes as part of its contract. The rest of the system depends on what Orders \emph{does} (a use case handler), not on how Orders \emph{implements} its domain model. This is the preferred dependency shape: module-to-module dependencies point to stable entrypoints, and the set of exposed symbols remains small enough to be audited as the system grows.
+
+  \begin{lstlisting}[language=TypeScript,caption={Cross-module import of internals (blocked)},label={lst:g1-dont-internals-import}]
+/**
+ * ❌ DON'T: entities and repositories should remain internal to the module.
+ */
+import { Order } from '@tiny-store/modules-orders';           
+// internal entity
+import { OrderRepository } from '@tiny-store/modules-orders'; 
+// internal repository
+  \end{lstlisting}
+
+The code above is incorrect because it couples other contexts to Orders’ implementation details.
+Other modules should not construct, persist, or reason about Orders via internal entities or repositories, even if the import path appears ``official.'' Reactions to order state changes should flow through event contracts and listeners, while requests to Orders should use a use case handler exported by the public surface. When functionality is genuinely cross-cutting, promote it to \texttt{libs/shared/} as a domain-neutral primitive instead of importing or duplicating Orders’ internals. This preserves module autonomy, keeps invariants local, and prevents boundary checks from being eroded by convenience imports.
+
+\pagebreak
+  \item \emph{Step 4: Encode Explicit Declarations (Descriptor Equivalent):}
+  Keep dependency rules explicit and reviewable by expressing \emph{requires} and \emph{forbids} in a single, executable source of truth (in Tiny Store, the boundary test suite plays this role).
+
+  \begin{lstlisting}[language=TypeScript,caption={Example code-based boundary descriptor (illustrative)},label={lst:g1-descriptor}]
+/**
+ * Example only: keep a single source of truth for module boundaries.
+ * This can live near libs/shared/testing/src/module-boundaries.ts
+ * and be imported by module-boundary.spec.ts.
+ */
+export const moduleBoundaries = {
+  orders: {
+    requires: ['shared-domain', 'shared-infrastructure'],
+    forbids: ['inventory', 'payments', 'shipments'],
+  },
+  inventory: {
+    requires: ['shared-domain', 'shared-infrastructure'],
+    forbids: ['orders', 'payments', 'shipments'],
+  },
+} as const;
+  \end{lstlisting}
+
+  \item \emph{Step 5: Centralize Cross-Module Wiring in the Composition Root:}
+  Ensure cross-module collaboration is auditable by keeping listener subscription wiring in the API composition root, rather than inside module internals.
+
+\begin{lstlisting}[language=TypeScript,caption={Centralized wiring in the composition root (\texttt{apps/api/src/app/lib/register-listeners.ts})},label={lst:g1-do-wiring}]
+/**
+ * ✅ DO: keep subscriptions centralized in the composition root
+ * (apps/api/src/app/lib/register-listeners.ts) so cross-module wiring is auditable.
+ 
+ * The sub binds an event name (contract) to a handler (reaction).
+ */
+import { EventBus } from '@tiny-store/shared-infrastructure';
+import { OrderPlacedListener } from '@tiny-store/modules-inventory';
+
+const eventBus = EventBus.getInstance();
+eventBus.subscribe('OrderPlaced', (event) => {
+  return new OrderPlacedListener().handle(event);
+});
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=TypeScript,caption={Hidden wiring inside a module (avoid)},label={lst:g1-dont-hidden-wiring}]
+/**
+ * ❌ DON'T: wiring inside a module makes dependencies implicit and harder to audit.
+ * Subscriptions should be registered in the composition root instead.
+ */
+EventBus.getInstance().subscribe('OrderPlaced', handler);
+\end{lstlisting}
+
+\item \emph{Step 6: Enforce Boundary Verification as a First-Class Gate:}
+Boundary rules only protect the architecture if they run continuously. This step treats boundary verification as a mandatory gate in the local workflow and in CI, so boundary erosion is detected before it reaches runtime. In Tiny Store, the gate is \texttt{npm run test:boundary}: it encodes the allowed dependency direction between domains and fails the build whenever a module bypasses a public surface, imports forbidden internals, or introduces an unauthorized cross-context dependency.
+The key idea is to make architectural integrity measurable and non-optional, using the same feedback loop that already exists for unit and integration tests.
+
+\begin{lstlisting}[language=bash,caption={Boundary verification gate},label={lst:g1-boundary-gate}]
+npm run test:boundary
+
+❌ Boundary violation detected
+
+Source project:   libs/modules/orders
+Forbidden import: libs/modules/inventory/src/domain/Product.ts
+Importing file:   libs/modules/orders/src/features/place-order/use-case.ts
+
+Rule: Modules must import other modules only via their public entrypoint
+      (e.g., @tiny-store/modules-inventory), not internal domain files.
+
+Fix:  Replace internal import with an explicit contract:
+      - consume a public handler, or
+      - react via an event + listener, or
+      - move truly shared primitives to libs/shared/.
+\end{lstlisting}
+
+The expected signal is binary: the gate either passes (no violations) or fails with a report that pinpoints the violating dependency.
+
+In addition to the tooling-level gate, it is useful to have a focused automated test that asserts the intended public surface. The objective is not to ``test architecture'' by runtime imports alone, but to provide a readable specification of what must and must not be available through each module’s entry-point. The example below checks that internal entities are not exposed, while public handlers are available. This test is complementary to \texttt{test:boundary}: it documents expectations and protects against accidental re-exports in \texttt{src/index.ts}.
+
+\begin{lstlisting}[language=TypeScript,caption={Public surface test: internals are not exported, handlers are},label={lst:g1-boundary-spec}]
+/**
+ * libs/shared/testing/src/module-boundary.spec.ts
+ *
+ * This test asserts the module public surface (entrypoint exports).
+ * It complements test:boundary by preventing accidental re-exports of internals.
+ */
+describe('Module Public Surface', () => {
+  it('does not expose Inventory internals via the module entrypoint', async () => {
+    const inventory = await import('@tiny-store/modules-inventory');
+
+    // Internal domain types must NOT be part of the public API surface.
+    expect((inventory as any).Product).toBeUndefined();
+    expect((inventory as any).InventoryRepository).toBeUndefined();
+  });
+
+  it('exposes Orders public handlers via the module entrypoint', async () => {
+    const orders = await import('@tiny-store/modules-orders');
+
+    // Public capabilities are allowed and expected.
+    expect((orders as any).PlaceOrderHandler).toBeDefined();
+    expect((orders as any).GetOrderHandler).toBeDefined();
+  });
+});
+\end{lstlisting}
+
+When this gate is treated as first-class, the architectural rules stop being informal conventions and become enforced constraints. In practice, the boundary policy can be summarized as follows: external modules must not access another context’s entities, repositories, or internal services; they may depend on public handlers, event contracts, and listener wiring through the composition root; and they may reuse domain-neutral primitives from \texttt{libs/shared/}. This is the mechanism that keeps G1 enforceable as the codebase scales.\newline
+
+  \item \emph{Step 7: Add Module Isolation Checks to Detect Hidden Wiring:}
+  Detect coupling that does not appear as imports by running module-scoped isolation tests that load a module with only its declared dependencies available.
+
+  \begin{lstlisting}[language=TypeScript,caption={Illustrative module isolation test},label={lst:g1-isolation}]
+/**
+ * Example only: the test should fail if the Orders module tries to
+ * access undeclared modules during wiring or handler execution.
+ */
+describe('Orders module isolation', () => {
+  it('loads with declared dependencies only', async () => {
+    const module = await loadModule('orders', {
+      allowed: ['shared-domain', 'shared-infrastructure'],
+    });
+    expect(module).toBeDefined();
+  });
+});
+  \end{lstlisting}
+
+\end{itemize}
+
+\subsection*{Exercise Walkthrough: Controlled Violations and Signals}
+The exercises below intentionally break modular boundaries to demonstrate that enforcement is
+active and to make failure signals actionable. Each exercise introduces a single, controlled breach, runs the same automated gates used in day-to-day development, and observes the resulting signal. This structure serves two purposes: it confirms that the boundary rules are not merely documented, and it trains the reader to diagnose violations quickly by linking a concrete change to a predictable failure mode.
+
+To keep the summary compact, the table uses a lightweight metric notation. $C_{\bullet}$ denotes a \emph{count} of violations or disallowed references (higher is worse), while $P_{\bullet}$ denotes a \emph{pass rate} (higher is better). In particular, $C_{\mathrm{leak}}$ counts public-surface leaks (internal symbols exposed or consumed externally), $C_{\mathrm{undecl}}$ counts undeclared cross-module references, $C_{\mathrm{forbid}}$ counts references that violate an explicit forbidden
+dependency rule, $P_{\mathrm{iso}}$ captures the isolation pass rate when module-scoped tests are executed under declared dependencies only, and $C_{\mathrm{event}}$ counts boundary violations in event subscription and handling.
+
+\subsubsection*{Exercise summary}
+\small
+\noindent
+\begin{tabularx}{\linewidth}{p{0.06\linewidth} X p{0.24\linewidth} p{0.20\linewidth}}
+\textbf{Ex.} & \textbf{What you change} & \textbf{Run} & \textbf{Signal / metric} \\
+0 & Establish baseline & \texttt{test:boundary}\newline\texttt{test:integration} & pass (baseline) \\
+1 & Export internal symbols (leak) & \texttt{test:boundary} & fail, $C_{\mathrm{leak}}\uparrow$ \\
+2 & Add direct cross-module import & \texttt{test:boundary} & fail (or add rule), $C_{\mathrm{undecl}}\uparrow$ / $C_{\mathrm{forbid}}\uparrow$ \\
+3 & Subscribe inside module (hidden wiring) & \texttt{test:boundary}\newline\texttt{test:integration} & fail (rule/iso), $P_{\mathrm{iso}}\downarrow$ / $C_{\mathrm{event}}\uparrow$ \\
+\end{tabularx}
+\normalsize
+
+\subsubsection*{Exercises}
+\begin{itemize}[noitemsep,topsep=2pt]
+
+  \item \emph{Exercise 0: Confirm the Baseline:}
+  Re-run Step 0, and confirm that all checks pass.\newline
+
+  \newline\item \emph{Exercise 1: Create an Encapsulation Leak by Exporting an Internal Symbol:}
+  Demonstrate that entities and repositories must not be exposed through module entrypoints. Introduce the violation by exporting internal symbols from the Orders module entry-point (for example \texttt{libs/modules/orders/src/index.ts}).
+
+  \begin{lstlisting}[language=TypeScript,caption={Violation: exporting internal symbols},label={lst:g1-ex1-leak}]
+/**
+ * ❌ VIOLATION: exporting internal domain symbols leaks encapsulation.
+ */
+export * from './domain/entities/order';
+export * from './domain/repositories/order-repository';
+  \end{lstlisting}
+  
+Run enforcement.
+  \begin{lstlisting}[language=bash,caption={Run boundary enforcement after Exercise 1},label={lst:g1-ex1-run}]
+npm run test:boundary 
+  \end{lstlisting}
+  
+  Expected signal: a boundary test fails, and $C_{\mathrm{leak}}\uparrow$. Fix: remove these exports, and expose a contract instead (handler/port/event).\newline
+
+  \newline\item \emph{Exercise 2: Introduce a Direct Cross-Module Import (Undeclared or Forbidden):}
+  Demonstrate that bounded contexts must not couple via direct imports for convenience. Introduce the violation by adding a direct import in an Orders feature file under \texttt{libs/modules/orders/src/features/}.\newline
+
+  \begin{lstlisting}[language=TypeScript,caption={Violation: direct cross-module import},label={lst:g1-ex2-import}]
+/**
+ * ❌ VIOLATION: Orders directly imports Inventory.
+ */
+import { SomeInventoryHandler } from '@tiny-store/modules-inventory';
+  \end{lstlisting}
+
+  Run enforcement.
+
+  \begin{lstlisting}[language=bash,caption={Run boundary enforcement after Exercise 2},label={lst:g1-ex2-run}]
+npm run test:boundary
+  \end{lstlisting}
+
+  \DontMark\ Expected signal: a boundary check fails if cross-module imports are constrained by the enforcement suite.
+  If it does not fail, treat this as an enforcement coverage gap and extend \texttt{module-boundary.spec.ts} to detect forbidden \texttt{@tiny-store/modules-*} imports from within another module.\newline
+  Metric impact: $C_{\mathrm{undecl}}\uparrow$ or $C_{\mathrm{forbid}}\uparrow$.\newline
+  Fix (preferred): replace the direct import with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory, publish \texttt{InventoryReserved}).\newline
+
+  \item \emph{Exercise 3: Hide Event Wiring Inside a Module (Implicit Dependency):}
+  Demonstrate why subscription wiring must remain centralized and auditable.
+  Introduce the violation by placing a subscription call inside a module file (for example under \texttt{libs/modules/<context>/src/listeners/}).
+
+  \begin{lstlisting}[language=TypeScript,caption={Violation: hidden event wiring},label={lst:g1-ex3-hidden-wiring}]
+/**
+ * ❌ VIOLATION: hidden event wiring inside a module.
+ */
+EventBus.getInstance().subscribe('OrderPlaced', (e) => this.handle(e));
+  \end{lstlisting}
+
+\newline
+Run enforcement.
+
+ \begin{lstlisting}[language=bash,caption={Run enforcement after Exercise 3},label={lst:g1-ex3-run}]
+npm run test:boundary && npm run test:integration
+
+\end{lstlisting}
+  Expected signal: this may not fail immediately if the current enforcement suite does not scan for subscription calls outside the composition root. In that case, enforce a rule that forbids \texttt{eventBus.subscribe(} usage outside \texttt{apps/api/src/app/lib/register-listeners.ts}, and/or detect it via module isolation tests.\newline
+  Metric impact: $P_{\mathrm{iso}}\downarrow$ and potentially $C_{\mathrm{event}}\uparrow$.\newline
+  Fix: move the subscription back to \texttt{register-listeners.ts}.
+\end{itemize}
+
+\subsection*{Conclusion of the G1 Implementation}
+This section demonstrated that enforcing modular boundaries in a modular monolith is not a matter of documentation or developer discipline alone. In Tiny Store, G1 is implemented as an executable practice: bounded contexts are exposed through explicit entry-points, cross-context collaboration is expressed through contracts (events, handlers, and listener registration), and integration wiring is kept visible in the composition root. The result is that coupling becomes observable and auditable. When a boundary is violated, the failure signal is immediate and actionable, pointing to the exact dependency that must be removed or formalized.
+
+The walkthrough exercises reinforced the practical distinction between the right and wrong
+dependency shapes. The right shape is contract-based: modules depend on other modules through
+public handlers and event contracts, and subscriptions are registered centrally so that integration is reviewable. The wrong shape is convenience-based: importing another module’s internals, leaking symbols through entry-points, or hiding wiring inside modules. These shortcuts may appear productive in the short term, but they create architectural debt by turning internal implementation details into system-wide dependencies.
+
+Most importantly, the implementation showed how G1 remains enforceable over time. The boundary verification gate (\texttt{npm run test:boundary}), complemented by integration checks (\texttt{npm run test:integration}) and public-surface assertions, turns modularity into a measurable constraint. This makes boundary erosion difficult to introduce accidentally and inexpensive to fix when it occurs. As Tiny Store evolves, the same mechanisms scale with it: new modules can be added, contracts can be expanded deliberately, and the architecture can be kept stable without slowing down delivery. In this sense, G1 is not only a guideline but also the foundation that enables progressive scalability by keeping decomposition options open while the system remains a single deployable unit.
+
+With boundaries enforced and coupling kept explicit, the next constraint shifts from \emph{whether} modules can remain isolated to \emph{how} they can be evolved safely. This transition motivates Guideline G2, which focuses on maintainability: preserving clarity of change, controlling complexity growth, and ensuring that modifications remain localized, testable, and low-risk as the codebase and team scale.

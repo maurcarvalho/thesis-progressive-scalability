@@ -1,0 +1,52 @@
+\pagebreak
+\section{G3: Progressive Scalability}
+\label{sec:g3-design-progressive-scalability}
+
+In this section, we present G3, which centers on designing modular monoliths for progressive scalability. By anticipating module scale points, introducing asynchronous communication boundaries, and abstracting infrastructure early, teams can defer costly microservice migrations yet still prepare for uneven growth.
+
+\subsection*{Conceptual Overview}
+To be done during research.
+
+\subsection*{Objectives}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Anticipate module scale points:} To be done.
+  \item \emph{Introduce asynchronous boundaries:} To be done.
+  \item \emph{Abstract infrastructure:} To be done.
+\end{itemize}
+
+\subsection*{Key Principles}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Principle 1:} To be done.
+  \item \emph{Principle 2:} To be done.
+  \item \emph{Principle 3:} To be done.
+  \item \emph{Principle 4:} To be done.
+  \item \emph{Principle 5:} To be done.
+\end{itemize}
+
+\subsection*{Metrics \& Verification}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Latency under load:} To be done.
+  \item \emph{Module throughput thresholds:} To be done.
+  \item \emph{Async queue depth monitoring:} To be done.
+  \item \emph{Resource utilization variance:} To be done.
+\end{itemize}
+
+\subsection*{Documentation Guidelines}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{ADR Template:} To be done.
+  \item \emph{Module Descriptor:} To be done.
+  \item \emph{Change Log Practices:} To be done.
+\end{itemize}
+
+\subsection*{Tool Capabilities}
+Any open‐source or proprietary software tool used to support G3 should address:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Scalability point estimator:} To be done.
+  \item \emph{Async boundary enforcer:} To be done.
+  \item \emph{Infrastructure abstraction framework:} To be done.
+  \item \emph{Load testing integration:} To be done.
+  \item \emph{Performance monitoring:} To be done.
+\end{itemize}
+
+\subsection*{Literature Support Commentary}
+Scalability is often synonymous with distributed systems in both academic and practitioner literature, neglecting hybrid approaches within monoliths~\cite{deLauretis2019from, montesi2021sliceable}. Few studies model how to introduce async boundaries or isolate read/write databases proactively in a monolithic context. As a result, teams either postpone scalability concerns until crisis or prematurely split into microservices. G3 fills this void by proposing a middle path: making modules extraction-ready and infrastructure-agnostic, thereby enabling horizontal growth without immediate distribution.

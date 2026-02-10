@@ -1,0 +1,181 @@
+\pagebreak
+\section{G2: Embed Maintainability}
+\label{sec:g2-embed-maintainability}
+
+This section presents G2, which focuses on embedding maintainability as an architectural property of modular monolith applications. In this dissertation, maintainability is framed economically as a bounded cost of change: the architecture constrains the expected effort, risk, and coordination required to modify the system as it evolves. Rather than treating maintainability as an indirect outcome of refactoring or developer discipline, G2 operationalizes it through explicit design constraints, stable interaction contracts, and continuous detection of architectural drift.
+
+G2 builds directly on G1. While G1 enforces the existence of explicit modular boundaries, G2 ensures that those boundaries remain effective over time. Together, these guidelines prevent the gradual erosion that often causes traditional monoliths to regress into tightly coupled systems with monolithic change dynamics.
+
+\subsection*{Intent and Rationale}
+Empirical studies consistently show that the primary driver of maintainability degradation in monolithic systems is not system size, but the accumulation of hidden coupling, ambiguous dependency direction, and architectural drift over time \cite{gravanis2021dont,blinowski2022monolithic}. As systems evolve, convenience driven shortcuts such as deep imports, shared utilities, and implicit wiring gradually increase the blast radius of change and raise coordination costs.
+
+This dissertation treats maintainability as a preventive architectural concern. G2 preserves bounded cost of change by constraining how modules interact, how dependencies are introduced, and how responsibilities are distributed. The guideline prioritizes change locality, stable contracts, and controlled dependency growth over short term reuse. These properties ensure that most changes remain confined to a single bounded context and that the effort required to evolve the system scales sublinearly with its size.
+
+G2 extends G1 from boundary correctness to boundary sustainability. While G1 makes dependencies explicit and verifiable, G2 ensures that those dependencies remain limited in scope, stable under evolution, measurable trough specific metrics and economically manageable as the system grows \cite{arya2024beyond,berry2024isItWorth}.
+
+\pagebreak
+\subsection*{Conceptual Overview}
+Maintainability is embedded by designing modules so that change remains local and predictable:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item Each bounded context exposes a narrow and intentional public surface that represents stable capabilities rather than internal structure.
+  \item Cross module interaction occurs exclusively through explicit contracts.
+  \item Dependency direction reflects responsibility and information flow, reducing the risk of cycles and cascading change.
+  \item Architectural drift is detected early through executable and observable structural signals.
+\end{itemize}
+
+\subsection*{Applicability Conditions and Scope}
+G2 applies to systems organized as modular monoliths, where multiple bounded context modules coexist within a single codebase and are expected to evolve continuously. The guideline assumes that:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item Module boundaries are explicitly defined and at least partially enforced, as established by G1.
+  \item Each module has clear ownership and a well defined responsibility.
+  \item Architectural drift is a realistic risk during ongoing feature development.
+\end{itemize}
+
+G2 does not prescribe specific frameworks, build tools, or CI pipelines. Its scope is limited to metrics definition, design time and code level practices that directly influence long term changeability.
+
+\subsection*{Objectives}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item Bound the cost of change by limiting change propagation across modules.
+  \item Stabilize dependency direction through disciplined layering and contract first boundaries.
+  \item Constrain the growth of module public surfaces.
+  \item Detect architectural drift before it becomes structurally expensive to reverse.
+  \item Preserve the option for incremental refactoring and future decomposition.
+\end{itemize}
+
+\pagebreak
+\subsection*{Key Principles}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Encapsulation before reuse:} Cross-module reuse of internal code is treated as a maintainability risk unless mediated through an explicit contract.
+  \item \emph{Contract over structure:} Modules depend on declared interfaces or events, not on internal implementation details.
+  \item \emph{Unidirectional dependency flow:} Dependency direction reflects responsibility and information flow, and cycles are considered maintainability violations.
+  \item \emph{Change locality:} Most changes should be implementable within a single module.
+  \item \emph{Evolution over speculation:} Abstractions are introduced to support observed change, not anticipated reuse.
+\end{itemize}
+
+\subsection*{Implementation Mechanisms}
+G2 is implemented through established software engineering practices rather than framework-specific mechanisms:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Layered internal structure:} Within each bounded context, code is organized into domain, application, and infrastructure concerns, ensuring that business rules remain insulated from volatile technical details.
+  \item \emph{Explicit module entrypoints:} Each module exposes a single public surface that defines its externally visible capabilities.
+  \item \emph{Contract-oriented collaboration:} Cross-module interaction occurs through synchronous interfaces or published domain events.
+  \item \emph{Centralized composition:} Wiring between modules is visible and auditable, preventing implicit coupling.
+  \item \emph{Governed exceptions:} Deviations from dependency or layering rules require explicit justification.
+\end{itemize}
+
+\subsection*{Common Failure Modes and Anti-Patterns}
+The following failure modes are frequently observed in modular monoliths that lack explicit maintainability discipline. Each anti-pattern increases the cost of change by expanding the blast radius of modifications, weakening ownership boundaries, or introducing hidden coupling. For each anti-pattern, G2 defines one or more metrics that make the degradation observable and verifiable.
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Cross-Module Internal Reuse:} Reusing internal classes or utilities from another module instead of interacting through a declared public API tightly couples the consumer to the provider’s internal structure. Internal refactoring then forces coordinated changes across modules, undermining independent evolution. This anti-pattern is primarily detected through an increase in encapsulation leakage count ($C_{\mathrm{leak}}$) and a reduction in the API-only dependency ratio ($\rho_{\mathrm{api}}$).
+
+  \item \emph{Implicit Dependency Introduction:} Dependencies introduced through configuration, dependency injection wiring, or reflection without explicit declaration bypass architectural review. Over time, they erode the reliability of dependency models and increase the effort required to assess change impact. This failure mode is reflected by an increase in undeclared dependency references ($C_{\mathrm{undecl}}$) and by reduced module isolation test pass rates ($P_{\mathrm{iso}}$).
+
+  \item \emph{Bidirectional or Cyclic Dependencies:} Allowing modules to depend on each other directly or indirectly introduces cycles that prevent independent evolution. Cycles increase cognitive load and coordination cost and are expensive to remove once established. This anti-pattern is detected through forbidden dependency references ($C_{\mathrm{forbid}}$) and explicit cycle analysis of the module dependency graph.
+
+  \item \emph{Overloaded Module APIs:} Uncontrolled growth of a module’s public surface leads to unstable interfaces and defensive design. Refactoring becomes increasingly risky, and internal structure gradually freezes. This failure mode is indicated by a declining API-only dependency ratio ($\rho_{\mathrm{api}}$) and sustained growth of the module’s public API surface over time.
+
+  \item \emph{Feature-Centric Coupling Across Modules:} When features span multiple modules without clear ownership, features rather than modules become the primary unit of change. This pattern increases coordination cost and dilutes accountability. It is weakly visible in static dependencies but becomes evident through repeated cross-module co-changes and elevated architectural drift incidents.
+\end{itemize}
+
+These anti-patterns emerge when local convenience is prioritized over long-term change cost. G2 addresses them by enforcing explicit contracts, constraining dependency growth, and making structural erosion observable before it becomes irreversible.
+
+\subsection*{Metrics and Verification}
+Maintainability in G2 is assessed through a set of explicit, measurable structural signals that capture boundary erosion, hidden coupling, and architectural drift over time. These metrics operationalize maintainability as a bounded cost of change by making the growth of coupling, dependency instability, and encapsulation violations observable and verifiable.
+
+G2 builds directly on the enforcement model introduced in G1. While G1 establishes the correctness of modular boundaries, G2 uses quantitative signals to assess whether those boundaries remain effective as the system evolves. The quality measurement baseline derived from G1 is presented in Section~\ref{sec:g2-quality-measurement-baseline} and is reused here as the foundation for maintainability verification.
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Notation:} Let $M$ be the set of bounded-context modules. Let $R$ be the multiset of observed cross-module references, including static imports, dependency injection wiring, and event handlers. Let $D \subseteq M \times M$ be the set of declared allowed dependencies (\emph{requires}) and $F \subseteq M \times M$ be the set of explicitly forbidden dependencies (\emph{forbids}).
+\end{itemize}
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Structural maintainability metrics:} The following metrics make boundary erosion and architectural drift observable using structural signals derived from cross-module references.
+\end{itemize}
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Undeclared Dependency Reference Count:}
+  \[
+    C_{\mathrm{undecl}} = \left| \{ (A,B) \in R \mid (A,B) \notin D \} \right|
+  \]
+  \emph{Maintainability meaning:} measures hidden coupling introduced without architectural review. \\
+  \emph{Verification intent:} ensure all cross-module dependencies are explicit and reviewable.\\
+
+  \item \emph{Forbidden Dependency Reference Count:}
+  \[
+    C_{\mathrm{forbid}} = \left| \{ (A,B) \in R \mid (A,B) \in F \} \right|
+  \]
+  \emph{Maintainability meaning:} detects structurally disallowed coupling that violates architectural constraints. \\
+  \emph{Verification intent:} preserve strict isolation where required and prevent dependency cycles.\\
+
+  \item \emph{API-Only Dependency Ratio:}
+  Let $R_{\mathrm{api}} \subseteq R$ be references targeting only the provider module’s public surface:
+  \[
+    \rho_{\mathrm{api}} = \frac{|R_{\mathrm{api}}|}{|R|}
+  \]
+  \emph{Maintainability meaning:} indicates whether dependencies are routed through stable contracts rather than internal structures. \\
+  \emph{Verification intent:} constrain change propagation and stabilize interaction surfaces.\\
+
+  \item \emph{Encapsulation Leakage Count:}
+  Let $R_{\mathrm{internal}} \subseteq R$ be references to internal packages or non-exported symbols:
+  \[
+    C_{\mathrm{leak}} = |R_{\mathrm{internal}}|
+  \]
+  \emph{Maintainability meaning:} quantifies boundary bypass that increases blast radius and refactoring risk. \\
+  \emph{Verification intent:} enforce information hiding at the module boundary.
+
+  \item \emph{Module Isolation Test Pass Rate:}
+  Let $T_{\mathrm{iso}}$ be the set of module isolation tests:
+  \[
+    P_{\mathrm{iso}} = \frac{|T_{\mathrm{pass}}|}{|T_{\mathrm{iso}}|}
+  \]
+  \emph{Maintainability meaning:} detects implicit coupling not visible through static analysis alone. \\
+  \emph{Verification intent:} ensure modules can execute using only their declared dependencies.
+
+  \item \emph{Event Subscription Boundary Violations (when events are used):}
+  Let $H$ be the set of event handlers in module $A$ consuming events from module $B$:
+  \[
+    C_{\mathrm{event}} = \left| \{ (A,B) \in H \mid (A,B) \notin D \} \right|
+  \]
+  \emph{Maintainability meaning:} captures undeclared coupling introduced through event-driven integration. \\
+  \emph{Verification intent:} keep asynchronous collaboration explicit and auditable.
+
+  \item \emph{Boundary Bypass Surface Count (optional):}
+  Let $S_{\mathrm{bypass}}$ be occurrences of bypass mechanisms within cross-module interaction paths:
+  \[
+    C_{\mathrm{bypass}} = |S_{\mathrm{bypass}}|
+  \]
+  \emph{Maintainability meaning:} indicates reliance on mechanisms that evade static boundary enforcement. \\
+  \emph{Verification intent:} identify high-risk interaction paths that undermine architectural guarantees.
+\end{itemize}
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Supplementary maintainability metrics:} Some maintainability risks emerge over time and are not fully captured by static dependency analysis alone. G2 therefore defines the following supplementary metrics to detect API inflation and feature-centric coupling.
+\end{itemize}
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Public API Surface Growth Rate:}
+  \[
+    G_{\mathrm{api}}(m) = \frac{|API_m(t)| - |API_m(t - \Delta t)|}{\Delta t}
+  \]
+  \emph{Maintainability meaning:} sustained growth indicates increasing downstream obligations and reduced refactoring freedom. \\
+  \emph{Action:} consolidate contracts, remove accidental exposure, or split responsibilities.
+
+  \item \emph{Change Coupling Index (optional):}
+  Let $C(A,B)$ denote the number of commits where modules $A$ and $B$ change together within a defined time window:
+  \[
+    CCI = \frac{\sum_{A \neq B} C(A,B)}{\sum_{A} C(A)}
+  \]
+  \emph{Maintainability meaning:} high values indicate feature-centric coupling and blurred ownership boundaries. \\
+  \emph{Action:} reassign responsibilities, introduce clearer module contracts, or refactor feature orchestration logic.
+\end{itemize}
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Verification strategy and maintainability interpretation:} In G2, these metrics are treated as longitudinal signals of architectural health rather than isolated quality indicators. Increases in $C_{\mathrm{undecl}}$, $C_{\mathrm{leak}}$, or $C_{\mathrm{forbid}}$ indicate growing hidden coupling and rising cost of change. A declining $\rho_{\mathrm{api}}$ signals unstable dependency surfaces, while reductions in $P_{\mathrm{iso}}$ reveal erosion of modular isolation.
+
+  By tracking these metrics over time and enforcing thresholds where appropriate, G2 enables early detection of architectural drift and supports timely refactoring while corrective actions remain localized and economically viable. The primary objective is not to eliminate change, but to ensure that its cost remains bounded as the system evolves.
+\end{itemize}
+
+\subsection*{Literature Support Commentary}
+Although maintainability is a central topic in software engineering, much of the literature treats it either as an abstract principle or as a collection of localized code quality metrics. Recent empirical studies and systematic reviews emphasize that maintainability improvements in modular monoliths are primarily driven by boundary discipline and dependency management rather than deployment decomposition alone~\cite{gravanis2021dont,berry2024isItWorth,blinowski2022monolithic}.
+
+Evolutionary architecture research further argues that architectural properties such as maintainability must be preserved through objective, executable constraints rather than informal guidance~\cite{FordParsons2017}. G2 synthesizes these insights by framing maintainability as bounded cost of change and by providing concrete design mechanisms and measurable signals grounded in the boundary enforcement model established by G1.

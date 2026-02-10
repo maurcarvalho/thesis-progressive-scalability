@@ -1,0 +1,95 @@
+\label{sec:proposal}
+
+This chapter presents the core academic potential contribution of this research: a set of twelve architectural guidelines designed to support software startups in adopting modular monolithic architectures that preserve scalability, maintainability, and internal modularity. These guidelines are grounded in the gaps and trade-offs identified through the systematic literature review and reflect the specific architectural tensions faced by early-stage software teams operating under conditions of limited resources, rapid iteration, and evolving requirements. Rather than offering a static framework, the guidelines aim to function as decision-making heuristics, designed to be actionable principles that inform architectural evolution without prescribing a single and rigid path.
+
+The guidelines are organized according to the four analytical dimensions introduced in Chapter~\ref{sec:relatedwork}: Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation. 
+
+
+\begin{figure}[htb]
+  \centering
+  % Adjust width as needed, for example width=0.8\textwidth
+  \includegraphics[width=0.8\textwidth]{Cap4/guideline_dimensions.png}
+  \caption{Four guideline dimensions for evaluating modular monolith architectures}
+  \label{fig:guideline-dimensions}
+\end{figure}
+
+\noindent
+Figure~\ref{fig:guideline-dimensions} shows the four guideline dimensions used in this research to guide the evaluation of modular monolith architectures in startup environments:
+
+\begin{itemize}
+  \item \textbf{Architectural Design.} Covers criteria related to the software’s internal structure. Guideline G1 enforces clear module boundaries, G2 evaluates maintainability over time, and G3 assesses the system’s scalability potential.
+  
+  \item \textbf{Operational Fit.} Addresses the operational requirements needed to support production enthronements. Guideline G4 checks migration readiness (for example, transitioning toward microservices), G5 focuses on deployment strategy and automation, and G6 considers observability levels (logging, metrics, monitoring).
+  
+  \item \textbf{Organizational Alignment.} Focuses on aligning the software architecture with the organization’s structure. Guideline G7 examines team organization according to Conway’s Law, G8 evaluates DevOps maturity, and G9 assesses how easily new team members can be onboarded without technical friction.
+  
+  \item \textbf{Guideline Orientation.} Refers to high-level recommendations that steer design decisions without imposing rigid rules. Guideline G10 emphasizes practical, actionable patterns, G11 highlights the need to adapt recommendations to the specific business context, and G12 points out that trade-offs and dilemmas exist rather than unbreakable dogma.
+\end{itemize}
+
+\noindent
+Each dimension group provides a set of guidelines that, together, form the foundation for the proposal of this research. It illustrates how technical, operational, organizational, and orientation-based considerations should be integrated when selecting or evolving a modular monolith architecture in software startups. What follows is a descriptive presentation of the guidelines within each dimension and their foundation concepts, starting with those that address the architectural design of modular monoliths.
+
+\input{Cap4/guidelines/foundations-for-modular-architectural-design-dimension-block-g1-g2-g3}
+\input{Cap4/guidelines/g1_modular}
+\input{Cap4/guidelines/g2-maintainability}
+\input{Cap4/guidelines/g3-progressive-scalability}
+
+\input{Cap4/guidelines/g4-migration-readiness}
+\input{Cap4/guidelines/g5-deployment-strategy}
+\input{Cap4/guidelines/g6-observability}
+\input{Cap4/guidelines/g7-ownership}
+\input{Cap4/guidelines/g8-devops-maturity}
+\input{Cap4/guidelines/g9-onboarding}
+\input{Cap4/guidelines/g10-actionable-patterns}
+\input{Cap4/guidelines/g11-contextualize}
+\input{Cap4/guidelines/g12-guidance-dilemmas}
+
+\pagebreak
+\section{Verification Plan}
+
+To strengthen the practical and academic relevance of the architectural guidelines proposed in this chapter, a verification phase is planned as the next step in this research. At this stage, only G1: Enforce Modular Boundaries is finalized. Therefore, the first round of verification will focus exclusively on G1 before developing the remaining guidelines. As soon as each subsequent set of guidelines (Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation) is ready, a full verification will be conducted for that set. Participants will include software engineering professionals from industry as well as academic researchers in the fields of software engineering and computer science, ensuring a comprehensive view of both practice and research.
+
+All participants will receive a brief informed consent form explaining the purpose of the study, how their data will be used and their right to withdraw at any time. Interview recordings will be stored on a secure research server with restricted access. Transcripts will be anonymized before any analysis to ensure that no identifying details are exposed. Any survey responses will also be collected anonymously. This approach guarantees that practitioner data are handled in accordance with research ethics standards and Brazilian data protection regulations.
+
+\subsection*{Interview Method}
+
+The primary method of verification for G1 will consist of semi structured interviews with selected practitioners. Participants will include professionals with relevant expertise in designing or evolving monolithic and microservices systems or leading software architectural decisions in startups. Each interview will explore the perceived usefulness, feasibility and completeness of G1 as well as any limitations or omissions experts may identify. Feedback will be used to refine G1 and guide the development of subsequent guidelines.
+
+Interviews for G1 will be conducted remotely and will follow a flexible script structured around four thematic areas:
+
+\begin{enumerate}
+  \item General impressions and relevance of G1
+  \item Detailed feedback on the wording and examples for G1
+  \item Contextual challenges in applying G1 in early stage, cloud native applications
+  \item Suggestions for improving or decomposing G1 into more actionable steps
+\end{enumerate}
+
+Participants will receive a summarized description of G1 in advance to facilitate discussion. With participant consent, all interviews will be recorded and transcribed. Transcripts will be stored securely and later coded using thematic analysis. Transcription and coding may be supported by automated tools such as large language models; however, all output from such tools will be reviewed and validated by the researcher to ensure analytical accuracy and preserve contextual integrity.
+
+\subsection*{Optional Online Survey}
+
+An online survey instrument may be deployed to capture structured feedback on G1 at scale. The survey will include Likert scale ratings on the clarity and usefulness of G1 along with free text fields for additional comments. For example, one question could read: \textit{“On a scale from one to five, how feasible is G1: Enforce Modular Boundaries in your current environment?”} If implemented, this survey will complement the qualitative depth of interviews with broader quantitative insights. Survey distribution will target relevant Slack workspaces, LinkedIn groups focused on cloud native architecture and local meetup organizers. The aim is to receive at least fifteen to twenty responses from practitioners.
+
+\subsection*{Analysis Approach}
+
+All experts interview transcripts will be examined to identify recurring themes. As an example for the validation of G1, the researcher will verify:
+
+\begin{enumerate}
+  \item Viability barriers for G1 (for example tooling limitations, organizational culture misalignment, lack of time or resources)
+  \item Viability enablers for G1 (for example clear boundaries, simplicity of implementation, improved modularity)
+  \item Gaps or missing details in G1 (for example unclear terminology, need for additional examples or prerequisites)
+\end{enumerate}
+
+Feedback, in general, will be categorized according to the four evaluation dimensions defined earlier in Chapter~3: Architectural Design, Operational Fit, Organizational Alignment and Guideline Orientation. The researcher will cross reference these comments against the original literature gaps identified in the systematic review to confirm that G1 addresses underexplored needs and to inform any refinements.
+
+\section{Timeline and Milestones}
+
+\begin{itemize}
+  \item July to August 2025: Recruit six to eight expert practitioners and conduct semi structured interviews focused on G1
+  \item September 2025: Complete thematic coding of G1 transcripts and apply revisions to G1;
+  \item October 2025: Begin development of templates for G2 to G12
+  \item November 2025: Finalize templates for G2 to G12 and create an example application illustrating how these templates can be applied in a startup context
+  \item December 2025: Conduct interviews and survey for G2 to G12 based on the guidelines templates; integrate preliminary feedback and prepare full verification plan for the remaining G2 to G12 guidelines.
+\end{itemize}
+
+Once these outcomes are complete, a full verification plan will be applied to each subsequent set of guidelines as they become available.
