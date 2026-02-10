@@ -130,44 +130,157 @@ The deferred guidelines will follow the same development methodology applied to 
 \section{Verification Plan}
 \label{sec:verification-plan}
 
-To strengthen the practical and academic relevance of the architectural guidelines proposed in this chapter, a verification phase is planned as the next step in this research. The verification focuses on the six fully developed guidelines (G1--G6), covering the Architectural Design and Operational Fit dimensions. Participants will include software engineering professionals from industry as well as academic researchers in the fields of software engineering and computer science, ensuring a comprehensive view of both practice and research.
+To validate the practical relevance, clarity, and completeness of the architectural guidelines proposed in this chapter, a two-phase verification strategy is planned. The verification targets the six fully developed guidelines (G1--G6) and employs complementary methods: a hands-on usability study with software developers and a structured expert panel review. Together, these experiments assess both the \emph{executability} of the guidelines (can practitioners follow them?) and their \emph{perceived value} (do experienced architects and researchers find them useful and well-grounded?).
 
-All participants will receive a brief informed consent form explaining the purpose of the study, how their data will be used, and their right to withdraw at any time. Interview recordings will be stored on a secure research server with restricted access. Transcripts will be anonymized before any analysis to ensure that no identifying details are exposed. Any survey responses will also be collected anonymously. This approach guarantees that practitioner data are handled in accordance with research ethics standards and Brazilian data protection regulations.
+All participants will receive a brief informed consent form explaining the purpose of the study, how their data will be used, and their right to withdraw at any time. Session recordings will be stored on a secure research server with restricted access. Transcripts will be anonymized before analysis to ensure that no identifying details are exposed. Survey responses will be collected anonymously. This approach guarantees compliance with research ethics standards and Brazilian data protection regulations (LGPD).
 
-\subsection*{Interview Method}
+\subsection*{Experiment 1: Guided Usability Study (Think-Aloud Protocol)}
 
-The primary method of verification will consist of semi-structured interviews with selected practitioners. Participants will include professionals with relevant expertise in designing or evolving monolithic and microservices systems or leading software architectural decisions in startups. Each interview will explore the perceived usefulness, feasibility, and completeness of the guidelines as well as any limitations or omissions experts may identify. Feedback will be used to refine the guidelines and inform the development of the deferred guidelines (G7--G12).
+The first experiment assesses whether practitioners at different seniority levels can execute the guidelines using the Tiny Store reference implementation and whether the step-by-step structure produces actionable understanding.
 
-Interviews will be conducted remotely and will follow a flexible script structured around four thematic areas:
+\subsubsection*{Participants}
 
-\begin{enumerate}
-  \item General impressions and relevance of the guideline set (G1--G6)
-  \item Detailed feedback on the production-grade implementation approach (Kafka, Temporal, OpenTelemetry) and its applicability to real-world startup environments
-  \item Contextual challenges in applying the guidelines in early-stage, cloud-native applications
-  \item Assessment of the progressive scalability spectrum (G3) and the deployment spectrum (G5) as decision-support tools
+Six software developers will be recruited, stratified by seniority to capture a range of architectural experience:
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item 2 junior developers (1--3 years of professional experience)
+  \item 2 mid-level developers (3--6 years of professional experience)
+  \item 2 senior developers (6+ years, with architectural decision-making experience)
+\end{itemize}
+
+Inclusion criteria: participants must have professional experience with at least one monolithic or modular codebase and familiarity with TypeScript or a comparable typed language. Participants will be recruited through the researcher's professional network and startup community contacts.
+
+\subsubsection*{Protocol}
+
+Each session will be conducted remotely via screen-sharing and will follow a \emph{think-aloud protocol}~\cite{ericsson1984protocol}, a well-established method in human-computer interaction research where participants verbalize their reasoning while performing tasks. The protocol consists of three phases:
+
+\begin{enumerate}[noitemsep,topsep=2pt]
+  \item \textbf{Pre-task questionnaire} (5 minutes): Participants rate their confidence in modular architecture, familiarity with the tools in the technology stack, and prior experience with boundary enforcement practices using a 5-point Likert scale.
+
+  \item \textbf{Guided task execution} (60--90 minutes): Participants execute a structured subset of the guideline tutorials and exercises using the Tiny Store repository. Tasks are organized as a progression through the guidelines:
+  \begin{itemize}[noitemsep,topsep=2pt]
+    \item \emph{G1 task:} Run boundary enforcement, introduce a controlled violation (Exercise 1), observe the signal, and fix the violation.
+    \item \emph{G2 task:} Compute maintainability metrics from the codebase, introduce a convenience re-export chain (Exercise 1), and verify that G1 passes but G2 metrics degrade.
+    \item \emph{G3 task:} Identify the current scalability level (L0--L3) of a module and describe what changes would be needed to progress to the next level.
+    \item \emph{G4 task:} Trace an event-driven flow from order placement through Kafka to inventory reservation, identifying the saga orchestration pattern.
+    \item \emph{G5 task:} Run the Docker Compose infrastructure and verify that all 13 services start correctly.
+    \item \emph{G6 task:} Generate a distributed trace in Jaeger for a cross-module operation and identify the module boundaries in the trace.
+  \end{itemize}
+  Throughout execution, participants verbalize their understanding, confusion points, and reactions. The researcher observes without intervening except to clarify task instructions.
+
+  \item \textbf{Post-task interview} (15--20 minutes): A semi-structured interview explores perceived value, clarity of the guidelines, difficulty of each task, and suggestions for improvement. Participants also complete a post-task questionnaire rating the usefulness of each guideline (G1--G6) individually on a 5-point Likert scale.
 \end{enumerate}
 
-Participants will receive summarized descriptions of the guidelines and access to the Tiny Store reference implementation in advance to facilitate discussion. With participant consent, all interviews will be recorded and transcribed. Transcripts will be stored securely and later coded using thematic analysis.
+All sessions will be recorded (screen and audio) with participant consent and transcribed for analysis.
+
+\subsubsection*{Metrics Collected}
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Task completion rate:} Proportion of tasks successfully completed per guideline and per seniority level.
+  \item \emph{Time-on-task:} Duration of each guideline task, segmented by seniority level.
+  \item \emph{Error count:} Number of incorrect steps or misinterpretations per task.
+  \item \emph{Confidence delta:} Change in self-reported confidence between pre-task and post-task questionnaires.
+  \item \emph{Perceived usefulness:} Post-task Likert ratings per guideline.
+  \item \emph{Qualitative observations:} Think-aloud transcripts coded for confusion points, positive reactions, and improvement suggestions.
+\end{itemize}
+
+\subsection*{Experiment 2: Expert Panel Review (Modified Delphi Method)}
+
+The second experiment collects structured feedback from experienced software architects and academic researchers to assess the guidelines' theoretical soundness, practical relevance, and completeness.
+
+\subsubsection*{Participants}
+
+A panel of 8--12 experts will be assembled, combining academic and industry perspectives:
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item 4--5 academic researchers (PhD holders or doctoral candidates in software engineering, software architecture, or distributed systems)
+  \item 4--5 industry practitioners (Staff Engineers, Principal Engineers, or Engineering Directors with experience in architectural decisions at scale)
+\end{itemize}
+
+The researcher will actively seek participants from organizations known for modular monolith adoption (e.g., Shopify, GitLab, GitHub) and from academic groups publishing in software architecture venues (e.g., ICSA, ECSA, ESEM). Inclusion criteria: participants must have at least 8 years of professional experience or a doctoral degree in a relevant field, and demonstrated expertise in software architecture through publications, conference talks, or architectural leadership roles.
+
+\subsubsection*{Protocol}
+
+The expert review follows a \emph{modified Delphi method}~\cite{linstone1975delphi}, an iterative consensus-building technique widely used in software engineering research for guideline and framework validation. The method proceeds in two rounds:
+
+\textbf{Round 1 --- Individual Assessment:}
+Each expert receives a structured review package containing:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item A summary document describing the research context, SLR findings, and the G1--G6 guideline set
+  \item Access to the Tiny Store repository and its documentation
+  \item A structured evaluation form with the following sections:
+\end{itemize}
+
+\begin{enumerate}[noitemsep,topsep=2pt]
+  \item \emph{Per-guideline assessment} (G1--G6): For each guideline, rate on a 5-point Likert scale:
+  \begin{itemize}[noitemsep,topsep=2pt]
+    \item Clarity of intent and rationale
+    \item Practical applicability in real-world projects
+    \item Completeness of the implementation guidance
+    \item Relevance to startup and early-stage contexts
+    \item Quality of the reference implementation examples
+  \end{itemize}
+
+  \item \emph{Overall guideline set assessment:}
+  \begin{itemize}[noitemsep,topsep=2pt]
+    \item Does the G1$\rightarrow$G6 progression form a coherent scalability pathway?
+    \item Is the progressive scalability concept (L0--L3) a meaningful contribution?
+    \item Would you recommend these guidelines to engineering teams? Under what conditions?
+    \item What is missing that would strengthen the guideline set?
+  \end{itemize}
+
+  \item \emph{Future research directions:}
+  \begin{itemize}[noitemsep,topsep=2pt]
+    \item Which deferred guidelines (G7--G12) should be prioritized?
+    \item What value would an AI-powered coding agent or modularity framework bring to industry projects?
+    \item What additional validation methods would strengthen the research?
+  \end{itemize}
+
+  \item \emph{Open-ended feedback:} Free-form comments on strengths, weaknesses, omissions, and suggestions.
+\end{enumerate}
+
+Experts complete the form independently within a two-week window.
+
+\textbf{Round 2 --- Feedback Review and Convergence:}
+The researcher compiles and anonymizes Round 1 responses, producing a summary report with:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item Aggregated Likert scores per guideline and per dimension
+  \item Thematic summary of qualitative feedback
+  \item Points of divergence where experts disagreed
+\end{itemize}
+
+This summary is shared with all panelists, who are invited to revise their assessments in light of the aggregated feedback. A brief follow-up form captures revised ratings and additional comments. This second round promotes convergence while preserving minority viewpoints. If significant divergence persists on specific guidelines, targeted follow-up interviews (15--20 minutes) will be conducted with dissenting experts to explore the underlying reasoning.
 
 \subsection*{Analysis Approach}
 
-All expert interview transcripts will be examined to identify recurring themes. The researcher will verify:
+\subsubsection*{Quantitative Analysis}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Experiment 1:} Descriptive statistics (mean, median, standard deviation) for task completion rates, time-on-task, and Likert scores, segmented by seniority level. Non-parametric tests (Mann-Whitney U or Kruskal-Wallis) will be applied if sample sizes permit meaningful comparison across seniority groups.
+  \item \emph{Experiment 2:} Aggregated Likert scores per guideline and per evaluation dimension, with inter-rater agreement measured using Kendall's coefficient of concordance (W). Round 1 vs.\ Round 2 score changes will be reported to document convergence.
+\end{itemize}
 
-\begin{enumerate}
-  \item Viability barriers (e.g., tooling limitations, organizational culture misalignment, infrastructure cost concerns)
-  \item Viability enablers (e.g., clear boundaries, production-grade tooling, progressive adoption path)
-  \item Gaps or missing details (e.g., unclear terminology, need for additional examples, missing prerequisites)
+\subsubsection*{Qualitative Analysis}
+All transcripts (think-aloud sessions, post-task interviews, and open-ended form responses) will be analyzed using \emph{thematic analysis}~\cite{braun2006using}. The researcher will:
+\begin{enumerate}[noitemsep,topsep=2pt]
+  \item Generate initial codes from the transcripts
+  \item Organize codes into themes aligned with the four evaluation dimensions (Architectural Design, Operational Fit, Organizational Alignment, Guideline Orientation)
+  \item Cross-reference themes against the SLR gap analysis to confirm that the guidelines address identified needs
+  \item Identify recurring barriers, enablers, and gaps reported by participants
 \end{enumerate}
 
-Feedback will be categorized according to the four evaluation dimensions defined in Chapter~\ref{sec:relatedwork}: Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation. The researcher will cross-reference these comments against the original literature gaps identified in the systematic review to confirm that the guidelines address underexplored needs and to inform any refinements.
+\subsubsection*{Triangulation}
+Results from both experiments will be triangulated to identify convergent and divergent findings. Where usability study participants struggle with a specific guideline and experts independently flag the same guideline as unclear, the evidence for revision is strengthened. Where experts rate a guideline highly but junior developers struggle to execute it, the revision may target documentation clarity rather than conceptual content.
 
 \section{Timeline and Milestones}
 
 \begin{itemize}
   \item March 2026: Qualification defense (\emph{defesa de qualificação}) presenting G1--G6 and the Tiny Store reference implementation
-  \item April to May 2026: Recruit six to eight expert practitioners and conduct semi-structured interviews focused on G1--G6 and the Tiny Store reference implementation
-  \item June 2026: Complete thematic coding of interview transcripts and apply revisions to G1--G6
-  \item July 2026: Prepare and distribute optional online survey for broader practitioner feedback
-  \item August to September 2026: Finalize G1--G6 and document verification findings
-  \item October to December 2026: Begin development of deferred guidelines (G7--G12) based on practitioner feedback and empirical investigation
+  \item April 2026: Recruit participants for both experiments; prepare review packages, task scripts, and evaluation forms
+  \item May 2026: Conduct Experiment 1 (usability study sessions with 6 developers, ~2 weeks)
+  \item May--June 2026: Distribute Experiment 2 Round 1 forms to expert panel (2-week response window)
+  \item June 2026: Complete thematic coding of Experiment 1 transcripts; compile and distribute Round 2 summary
+  \item July 2026: Collect Round 2 responses; conduct targeted follow-up interviews if needed
+  \item August 2026: Integrate findings from both experiments; apply revisions to G1--G6
+  \item September 2026: Finalize G1--G6; document verification methodology and findings
+  \item October--December 2026: Begin development of deferred guidelines (G7--G12) informed by practitioner and expert feedback
 \end{itemize}
