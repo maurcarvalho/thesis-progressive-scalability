@@ -123,7 +123,7 @@ Any open-source or proprietary tool used to enforce modular boundaries should su
 \end{itemize}
 
 \subsection*{Literature Support Commentary}
-Although modularity is widely recognized as essential, much of the research treats it as an outcome of refactoring rather than a design criterion. Few works propose proactive structural mechanisms for enforcing modularity in monoliths, and those that do often lack empirical validation. This gap motivates G1 as a guideline that operationalizes modular boundaries through explicit declarations and automated verification.
+Although modularity is widely recognized as essential, much of the research treats it as an outcome of refactoring rather than a design criterion. Few works propose proactive structural mechanisms for enforcing modularity in monoliths, and those that do often lack empirical validation. This gap motivates G1 as a guideline that operationalizes modular boundaries through explicit declarations and automated verification. Industry experience reports reinforce this need: Shopify's engineering team documented how their large-scale monolith was restructured around enforced modular boundaries to sustain development velocity~\cite{shopify2020monolith,shopify2022}, and Jovanovic~\cite{jovanovic2024rewriting} reports similar findings from rewriting a legacy system as a modular monolith, noting that boundary enforcement was the decisive factor in controlling complexity.
 
 \pagebreak
 \section{G1 Applied: The Modular Tiny Store Example}
