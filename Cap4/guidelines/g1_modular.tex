@@ -63,7 +63,22 @@ This research proposes implementing G1 through a combination of (i) structural e
   \item \emph{Automated verification:} Fail the build when undeclared cross-module references are detected, and optionally verify event subscriptions and command usage against declared dependencies.
 \end{itemize}
 
-\subsection*{Metrics}
+\subsection*{Common Failure Modes and Anti-Patterns}
+The following failure modes are frequently observed in codebases that lack explicit boundary enforcement. Each anti-pattern weakens modular isolation and increases the cost of future architectural change.
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Convenience-Driven Imports:} Developers import internal classes from another module because the path is shorter or the type is already available. Over time, these imports create a web of hidden coupling that boundary checks cannot detect if enforcement is absent. This anti-pattern is captured by an increase in $C_{\mathrm{leak}}$ and a decrease in $\rho_{\mathrm{api}}$.
+
+  \item \emph{Shared Utility Creep:} A \texttt{shared/} or \texttt{common/} package grows to include domain-specific logic that belongs inside a bounded context. Modules become coupled through this shared layer rather than through explicit contracts. This is reflected in rising $C_{\mathrm{undecl}}$ when shared utilities reference module internals.
+
+  \item \emph{Implicit Wiring via Framework Magic:} Dependency injection containers, auto-configuration, or classpath scanning silently wire modules together without any declared dependency. Boundary checks based on import analysis miss these couplings entirely. This failure mode surfaces through declining $P_{\mathrm{iso}}$ when module isolation tests fail due to undeclared runtime dependencies.
+
+  \item \emph{Event Handlers Registered Outside the Composition Root:} When event subscriptions are scattered across module initializers rather than centralized in a single wiring location, the integration surface becomes invisible to architectural review. This increases $C_{\mathrm{event}}$ and makes the system's collaboration topology difficult to audit.
+
+  \item \emph{Boundary Enforcement Treated as Optional:} When boundary verification gates are not part of the mandatory CI pipeline, violations accumulate silently. Teams discover the erosion only when a refactoring or extraction attempt reveals that modules are far more coupled than the architecture documentation suggests.
+\end{itemize}
+
+\subsection*{Metrics and Verification}
 \begin{itemize}[noitemsep,topsep=2pt]
   \item \emph{Undeclared Dependency Reference Count:}
   Number of static references from module $A$ to module $B$ where $A \rightarrow B$ is not declared in the module descriptor.
@@ -120,7 +135,7 @@ The objective is to show how G1 is applied as an engineering practice, not only 
 The tutorial is written from the perspective of an engineer evolving a monolithic application that contains multiple business capabilities. The goal is to keep bounded contexts isolated, to ensure that any cross-module dependency is intentional and reviewable, and to prevent accidental coupling from accumulating into a refactoring bottleneck.
 
 Two complementary feedback loops are used throughout the steps. The first is \texttt{npm run test:boundary}, which validates structural rules and fails when a module imports
-forbidden internals or bypasses the public surface of another context. The second is \texttt{npm run test:integration}, which exercises cross-module behavior end to end and confirms that the system remains correct after boundaries are tightened or contracts are introduced. Together, these targets support a workflow that is both practical and repeatable: make a change, observe the result immediately, and keep architectural integrity measurable as the system evolves.
+forbidden internals or bypasses the public surface of another context. The second is \texttt{npm run test:integration}, which exercises cross-module behavior end-to-end and confirms that the system remains correct after boundaries are tightened or contracts are introduced. Together, these targets support a workflow that is both practical and repeatable: make a change, observe the result immediately, and keep architectural integrity measurable as the system evolves.
 
 \subsection*{Reader map}
 This tutorial is designed to be completed in a single sitting. It assumes you can run the repository’s boundary and integration targets locally, and it keeps the steps intentionally hands-on. You will first trigger a boundary failure on demand, then locate the exact import or export that caused the violation, and finally fix it by introducing an explicit modular contract rather than importing another context’s internals. The expected time investment is 20--30 minutes, and the outcome is a concrete, reproducible ability to detect and remediate boundary erosion using the same mechanisms that can be embedded into a continuous integration pipeline.
@@ -137,7 +152,7 @@ REST endpoints under \texttt{apps/api/src/app/api/} act as thin adapters that tr
 
 Cross-module integration is intentionally made visible. Listener subscription wiring is centralized in \texttt{apps/api/src/app/lib/register-listeners.ts}, which serves as an auditable map of event choreography: which events are subscribed to, which handlers react, and which dependencies exist at the system level. Centralizing subscriptions avoids hidden side effects (for example, listeners registered implicitly during import time) and makes integration decisions reviewable and testable.
 
-Initially, domain behavior were divided into four bounded contexts under \texttt{libs/modules/}: \texttt{orders}, \texttt{inventory}, \texttt{payments}, and \texttt{shipments}. Each context is an Nx library structured around three concerns. The \texttt{domain/} subtree holds aggregates, entities, value objects, domain events, and repository abstractions. The \texttt{features/} subtree holds application use cases organized as vertical slices. The \texttt{listeners/} subtree reacts to published
+Initially, domain behavior was divided into four bounded contexts under \texttt{libs/modules/}: \texttt{orders}, \texttt{inventory}, \texttt{payments}, and \texttt{shipments}. Each context is an Nx library structured around three concerns. The \texttt{domain/} subtree holds aggregates, entities, value objects, domain events, and repository abstractions. The \texttt{features/} subtree holds application use cases organized as vertical slices. The \texttt{listeners/} subtree reacts to published
 events and invokes local features, enabling collaboration without direct access to another context’s internals.
 
 Modules are consumed through a deliberate public API surface. Each bounded context exposes an entrypoint, typically \texttt{modules/<context>/src/index.ts}.
@@ -182,7 +197,7 @@ Shared code is intentionally constrained under \texttt{libs/shared/}. The \textt
   \label{fig:repo-orientation-diagram}
 \end{figure}
 
-Architecture is enforced as executable checks. The \texttt{npm run test:boundary} target validates module dependency rules and detects coupling regressions, while \texttt{npm run test:integration} exercises cross-module flows end to end. Together, they provide fast feedback on both structural correctness and runtime behavior.
+Architecture is enforced as executable checks. The \texttt{npm run test:boundary} target validates module dependency rules and detects coupling regressions, while \texttt{npm run test:integration} exercises cross-module flows end-to-end. Together, they provide fast feedback on both structural correctness and runtime behavior.
 
 A practical reading order follows the enforced dependency direction: begin at \texttt{apps/api/} to see system assembly, then
 inspect \texttt{register-listeners.ts} to identify cross-context collaboration points. Next, enter a bounded context through its \texttt{src/index.ts} public surface and trace inward from

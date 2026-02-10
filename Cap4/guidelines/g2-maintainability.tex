@@ -7,18 +7,18 @@ This section presents G2, which focuses on embedding maintainability as an archi
 G2 builds directly on G1. While G1 enforces the existence of explicit modular boundaries, G2 ensures that those boundaries remain effective over time. Together, these guidelines prevent the gradual erosion that often causes traditional monoliths to regress into tightly coupled systems with monolithic change dynamics.
 
 \subsection*{Intent and Rationale}
-Empirical studies consistently show that the primary driver of maintainability degradation in monolithic systems is not system size, but the accumulation of hidden coupling, ambiguous dependency direction, and architectural drift over time \cite{gravanis2021dont,blinowski2022monolithic}. As systems evolve, convenience driven shortcuts such as deep imports, shared utilities, and implicit wiring gradually increase the blast radius of change and raise coordination costs.
+Empirical studies consistently show that the primary driver of maintainability degradation in monolithic systems is not system size, but the accumulation of hidden coupling, ambiguous dependency direction, and architectural drift over time \cite{gravanis2021dont,blinowski2022monolithic}. As systems evolve, convenience-driven shortcuts such as deep imports, shared utilities, and implicit wiring gradually increase the blast radius of change and raise coordination costs.
 
-This dissertation treats maintainability as a preventive architectural concern. G2 preserves bounded cost of change by constraining how modules interact, how dependencies are introduced, and how responsibilities are distributed. The guideline prioritizes change locality, stable contracts, and controlled dependency growth over short term reuse. These properties ensure that most changes remain confined to a single bounded context and that the effort required to evolve the system scales sublinearly with its size.
+This dissertation treats maintainability as a preventive architectural concern. G2 preserves bounded cost of change by constraining how modules interact, how dependencies are introduced, and how responsibilities are distributed. The guideline prioritizes change locality, stable contracts, and controlled dependency growth over short-term reuse. These properties ensure that most changes remain confined to a single bounded context and that the effort required to evolve the system scales sublinearly with its size.
 
-G2 extends G1 from boundary correctness to boundary sustainability. While G1 makes dependencies explicit and verifiable, G2 ensures that those dependencies remain limited in scope, stable under evolution, measurable trough specific metrics and economically manageable as the system grows \cite{arya2024beyond,berry2024isItWorth}.
+G2 extends G1 from boundary correctness to boundary sustainability. While G1 makes dependencies explicit and verifiable, G2 ensures that those dependencies remain limited in scope, stable under evolution, measurable through specific metrics and economically manageable as the system grows \cite{arya2024beyond,berry2024isItWorth}.
 
 \pagebreak
 \subsection*{Conceptual Overview}
 Maintainability is embedded by designing modules so that change remains local and predictable:
 \begin{itemize}[noitemsep,topsep=2pt]
   \item Each bounded context exposes a narrow and intentional public surface that represents stable capabilities rather than internal structure.
-  \item Cross module interaction occurs exclusively through explicit contracts.
+  \item Cross-module interaction occurs exclusively through explicit contracts.
   \item Dependency direction reflects responsibility and information flow, reducing the risk of cycles and cascading change.
   \item Architectural drift is detected early through executable and observable structural signals.
 \end{itemize}
@@ -27,11 +27,11 @@ Maintainability is embedded by designing modules so that change remains local an
 G2 applies to systems organized as modular monoliths, where multiple bounded context modules coexist within a single codebase and are expected to evolve continuously. The guideline assumes that:
 \begin{itemize}[noitemsep,topsep=2pt]
   \item Module boundaries are explicitly defined and at least partially enforced, as established by G1.
-  \item Each module has clear ownership and a well defined responsibility.
+  \item Each module has clear ownership and a well-defined responsibility.
   \item Architectural drift is a realistic risk during ongoing feature development.
 \end{itemize}
 
-G2 does not prescribe specific frameworks, build tools, or CI pipelines. Its scope is limited to metrics definition, design time and code level practices that directly influence long term changeability.
+G2 does not prescribe specific frameworks, build tools, or CI pipelines. Its scope is limited to metrics definition, design-time and code-level practices that directly influence long-term changeability.
 
 \subsection*{Objectives}
 \begin{itemize}[noitemsep,topsep=2pt]
@@ -173,6 +173,37 @@ G2 builds directly on the enforcement model introduced in G1. While G1 establish
   \item \emph{Verification strategy and maintainability interpretation:} In G2, these metrics are treated as longitudinal signals of architectural health rather than isolated quality indicators. Increases in $C_{\mathrm{undecl}}$, $C_{\mathrm{leak}}$, or $C_{\mathrm{forbid}}$ indicate growing hidden coupling and rising cost of change. A declining $\rho_{\mathrm{api}}$ signals unstable dependency surfaces, while reductions in $P_{\mathrm{iso}}$ reveal erosion of modular isolation.
 
   By tracking these metrics over time and enforcing thresholds where appropriate, G2 enables early detection of architectural drift and supports timely refactoring while corrective actions remain localized and economically viable. The primary objective is not to eliminate change, but to ensure that its cost remains bounded as the system evolves.
+\end{itemize}
+
+\subsection*{Documentation Guidelines}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Dependency Direction Map:}
+  Maintain a visual or textual map of the allowed dependency direction between modules. This map complements G1's module descriptor by making the intended information flow explicit and reviewable during architectural discussions.
+
+  \item \emph{Contract Change Log:}
+  Whenever a module's public surface changes (new handler, modified event schema, deprecated endpoint), record the change with version metadata. This log supports backward-compatibility analysis and informs downstream consumers of evolving contracts.
+
+  \item \emph{Architectural Drift Incidents:}
+  When a metric threshold is crossed (e.g., $C_{\mathrm{undecl}} > 0$ or $\rho_{\mathrm{api}}$ drops below target), record the incident, root cause, and resolution. This creates a traceable history of maintainability interventions.
+\end{itemize}
+
+\subsection*{Tooling Capabilities Checklist}
+Any open-source or proprietary tool used to support maintainability should address:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Dependency Graph Visualization:} Generate and display the module dependency graph, highlighting cycles, undeclared dependencies, and forbidden references.
+  \item \emph{API Surface Analysis:} Track the size and growth rate of each module's public surface over time ($G_{\mathrm{api}}$).
+  \item \emph{Change Coupling Detection:} Identify modules that frequently change together across commits ($CCI$), signaling feature-centric coupling or blurred ownership.
+  \item \emph{Longitudinal Metric Tracking:} Store and visualize G2 metrics over time, enabling trend analysis and early detection of architectural drift.
+  \item \emph{Contract Compatibility Checking:} Verify that changes to a module's public surface do not break downstream consumers, ideally integrated into the CI pipeline.
+\end{itemize}
+
+\subsection*{Reference Implementation}
+G2's maintainability principles are demonstrated through the same Tiny Store reference implementation used in G1. The relevant structural artifacts are:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \texttt{libs/modules/*/src/index.ts} --- Module entrypoints that define the public surface for each bounded context
+  \item \texttt{libs/shared/testing/src/module-boundary.spec.ts} --- Boundary verification tests that enforce dependency direction and detect encapsulation leakage
+  \item \texttt{apps/api/src/app/lib/register-listeners.ts} --- Centralized event wiring that makes cross-module collaboration auditable
+  \item \texttt{nx.json} and \texttt{.eslintrc.json} --- Nx workspace configuration with \texttt{@nx/enforce-module-boundaries} rules
 \end{itemize}
 
 \subsection*{Literature Support Commentary}

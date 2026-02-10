@@ -35,7 +35,7 @@ In parallel, packaging strategies evolved from technical layers to feature slice
 
 Cost of change is often dominated by dependency structure rather than by local code complexity. As Russell L. Ackoff argues, \textit{"A system is never the sum of its parts, it's the product of their interactions."} This perspective motivates treating coupling patterns as first order architectural concerns, because interactions are where change propagates, coordination increases, and unintended side effects emerge.
 
-When introducing coupling and cohesion, this research proposal explicitly draws on the structured design foundations of Edward Yourdon and Larry Constantine, whose work provides a rigorous vocabulary for understanding how dependency structure shapes maintainability and change amplification \cite{yourdon1979structured}. Their framing is used here to examine three claims that are central to the Architectural Design Dimension (G1-G3):
+When introducing coupling and cohesion, this research proposal explicitly draws on the structured design foundations of Edward Yourdon and Larry Constantine, whose work provides a rigorous vocabulary for understanding how dependency structure shapes maintainability and change amplification \cite{yourdon1979structured}. Their framing is used here to examine three claims that are central to the Architectural Design Dimension (G1--G3):
 
 \begin{itemize}
     \item \textbf{Not all coupling is born equal.} Some dependencies are stabilizing and intentional, particularly inside a coherent boundary, while others are accidental and create ripple effects across unrelated areas.
@@ -43,7 +43,7 @@ When introducing coupling and cohesion, this research proposal explicitly draws 
     \item \textbf{Cohesion is coupling in the right places.} Coupling is not eliminated, it is relocated into cohesive units so that change remains localized.
 \end{itemize}
 
-These claims motivate a baseline definition of what \textit{"good modularity"} is aimed at in this research. Software design can be treated as the act of modeling units of \textbf{strong cohesion, loosely coupled} to each other. The Architectural Design Dimension (G1-G3) operationalizes this by proposing guidelines that make coupling explicit, constrain it through boundary rules, and preserve cohesion by aligning modules with business capabilities rather than technical utilities.
+These claims motivate a baseline definition of what \textit{"good modularity"} is aimed at in this research. Software design can be treated as the act of modeling units of \textbf{strong cohesion, loosely coupled} to each other. The Architectural Design Dimension (G1--G3) operationalizes this by proposing guidelines that make coupling explicit, constrain it through boundary rules, and preserve cohesion by aligning modules with business capabilities rather than technical utilities.
 
 This framing also clarifies why domain centric modularity is emphasized. Functional decomposition is generally preferred over technical decomposition when the goal is to reduce change amplification, because it tends to localize business evolution inside a bounded unit. This directly relates to the distinction between intrinsic complexity, which comes from the domain and requirements, and accidental complexity, which comes from architectural and organizational choices. A recurring risk in modularization is mistaking organization for encapsulation, because directory structure alone does not enforce boundaries unless it is backed by interface contracts and dependency rules.
 
@@ -146,13 +146,15 @@ The intent is to reduce coupling to volatile infrastructure by inverting depende
 
 
 \subsection*{Packaging and Slicing Strategy}
-Packaging strategy determines what coupling is easy and what coupling is discouraged. This section compares three strategies using consistent terminology, because the Architectural Design Dimension (G1-G3) depends on understanding what each strategy optimizes for and where it tends to fail.
+Packaging strategy determines what coupling is easy and what coupling is discouraged. This section compares three strategies using consistent terminology, because the Architectural Design Dimension (G1--G3) depends on understanding what each strategy optimizes for and where it tends to fail.
 
 Package by layer is a horizontal slicing where code is organized by what it does from a technical perspective, such as controllers, services, repositories, and shared models. Traditional MVC architectures typically follow this approach, grouping responsibilities according to technical roles rather than business capabilities.
 
 The primary failure mode is that business changes often span multiple technical packages, increasing coordination and regression risk. In layered architectures, even localized changes typically propagate across presentation, application, and persistence layers, amplifying the cost of change. This approach is closely associated with the model-code gap, since domain boundaries may be articulated in documentation while the code structure instead emphasizes technical layers.
 
-This failure mode is reinforced by delivery-driven optimization, where short-term convenience encourages cross-layer shortcuts and shared abstractions. As business behavior evolves, conceptually narrow changes tend to trigger multi-layer modifications, increasing change amplification and obscuring architectural intent. Because domain boundaries remain implicit and unenforced in the code, the system gradually reflects technical decomposition rather than business capability, widening the model-code gap and weakening the sustainability of modular reasoning.
+This failure mode is reinforced by delivery-driven optimization, where short-term convenience encourages cross-layer shortcuts and shared abstractions. As business behavior evolves, conceptually narrow changes tend to trigger multi-layer modifications, increasing change amplification and obscuring architectural intent.
+
+Because domain boundaries remain implicit and unenforced in the code, the system gradually reflects technical decomposition rather than business capability, widening the model-code gap and weakening the sustainability of modular reasoning.
 
 \begin{figure}[H]
   \centering
@@ -163,7 +165,9 @@ Package by feature is a vertical slicing where code is organized by what it does
 
 A common failure mode is turning features into an unstructured set of folders without stable interfaces, which can reintroduce hidden coupling through shared utilities and unrestricted imports. In such cases, vertical structure exists superficially, but architectural boundaries remain unenforced.
 
-Another side-effect failure arises when nominal module boundaries are introduced without corresponding ownership of data and behavior. In these cases, modules expose internal state through shared data models, common persistence schemas, or cross-module service calls that bypass defined interfaces. Although the codebase may appear modular at the directory level, effective encapsulation is absent, allowing changes in one module to ripple unpredictably into others. This pattern undermines substitutability and independent evolution, and it often emerges when modularization is treated as a structural refactoring exercise rather than as an architectural commitment enforced through explicit contracts and dependency constraints.
+Another side-effect failure arises when nominal module boundaries are introduced without corresponding ownership of data and behavior. In these cases, modules expose internal state through shared data models, common persistence schemas, or cross-module service calls that bypass defined interfaces. Although the codebase may appear modular at the directory level, effective encapsulation is absent, allowing changes in one module to ripple unpredictably into others.
+
+This pattern undermines substitutability and independent evolution, and it often emerges when modularization is treated as a structural refactoring exercise rather than as an architectural commitment enforced through explicit contracts and dependency constraints.
 
 \begin{figure}[H]
   \centering
@@ -184,11 +188,11 @@ A common failure mode arises when components are defined without a clear domain 
 
 \subsection*{Modularity as an Enforceable Principle}
 
-Modularity is treated at this research as an enforceable property rather than as a folder convention. Encapsulation and information hiding remain core mechanisms, because they minimize the number of potential dependencies by reducing what other modules can see and use \cite{parnas1972informationhiding}. This implies several practical principles that the Architectural Design Dimension (G1-G3) later operationalizes:
+Modularity is treated in this research as an enforceable property rather than as a folder convention. Encapsulation and information hiding remain core mechanisms, because they minimize the number of potential dependencies by reducing what other modules can see and use \cite{parnas1972informationhiding}. This implies several practical principles that the Architectural Design Dimension (G1--G3) later operationalizes:
 
 \begin{itemize}
     \item Separating interface from implementation. Modules should expose a small public API and keep internal details private.
-    \item Using encapsulation to minimize dependencies. Fewer public types and fewer cross module imports reduce change propagation paths.
+    \item Using encapsulation to minimize dependencies. Fewer public types and fewer cross-module imports reduce change propagation paths.
     \item Matching public surface area to architectural intent. The surface area of internal public APIs and event listeners should reflect intended coupling and allowed integration points.
     \item Splitting the source code tree into multiple parts. Organizing the codebase into explicit module roots, for example /modules, helps architectural visibility and makes boundary enforcement feasible, because module ownership and dependency direction can be checked.
 \end{itemize}
@@ -197,12 +201,12 @@ This view also reinforces the earlier distinction between organization and encap
 
 Tiny Store's code repository \footnote{\url{https://github.com/maurcarvalho/tiny-store}} reflects the architectural hypothesis of modular boundaries and serves as a concrete artifact grounding the concepts introduced in this chapter. The project is publicly available and maintained as a reference implementation for this research, providing an auditable codebase in which packaging strategies and boundary enforcement mechanisms can be inspected directly.
 
-The codebase is split into multiple parts that make architectural boundaries explicit, including a dedicated API layer and bounded context modules, with clearly defined locations for feature slices and for cross module integration through domain events. Although this chapter does not yet rely on detailed implementation examples, the repository is introduced here to ensure that the vocabulary and architectural constructs discussed in the Architectural Design Dimension (G1-G3) are mapped to concrete verifiable structures instead of remaining purely conceptual.
+The codebase is split into multiple parts that make architectural boundaries explicit, including a dedicated API layer and bounded context modules, with clearly defined locations for feature slices and for cross-module integration through domain events. Although this chapter does not yet rely on detailed implementation examples, the repository is introduced here to ensure that the vocabulary and architectural constructs discussed in the Architectural Design Dimension (G1--G3) are mapped to concrete verifiable structures instead of remaining purely conceptual.
 
 
 \subsection*{Definition of Module Quality}
 
-The Architectural Design Dimension (G1-G3) treats module quality as a measurable architectural objective. Modules are therefore expected to satisfy the following properties:
+The Architectural Design Dimension (G1--G3) treats module quality as a measurable architectural objective. Modules are therefore expected to satisfy the following properties:
 
 \begin{itemize}
     \item High cohesion and Low coupling
@@ -215,10 +219,10 @@ The Architectural Design Dimension (G1-G3) treats module quality as a measurable
 
 This checklist is used later as the baseline for designing boundaries, for defining public APIs and events, and for evaluating whether a proposed module decomposition is likely to reduce change cost rather than merely reshuffle code.
 
-\subsection*{Practical Evaluation for the Architectural Design Dimension (G1-G3)}
+\subsection*{Practical Evaluation for the Architectural Design Dimension (G1--G3)}
 
 This foundations chapter establishes a causal chain that the guideline templates and their verification plans will later operationalize. Coupling patterns dominate change cost, cohesion localizes change, separation of concerns reduces dependency on volatile infrastructure, and packaging strategy determines whether the code structure screams domain intent or technical layers. Modularity becomes sustainable only when interfaces, dependency direction, and enforcement mechanisms make boundaries explicit and verifiable.
 
-In the next sections, the Architectural Design Dimension (G1-G3) will translate these foundations into guideline templates that specify intent, rationale, applicability conditions, supported by Tiny Store codebase as a reference artifact for reproducibility of examples and auditability convenience.
+In the next sections, the Architectural Design Dimension (G1--G3) will translate these foundations into guideline templates that specify intent, rationale, applicability conditions, supported by Tiny Store codebase as a reference artifact for reproducibility of examples and auditability convenience.
 
 % Note: fairbanks2010justenough and fowler2015presentationdomaindatalayering are in referencias.bib
