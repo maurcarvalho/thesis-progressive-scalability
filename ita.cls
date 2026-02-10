@@ -141,7 +141,7 @@
    \input{\itaclassfile{itabr.babel}}
  \fi
 
-\RequirePackage[latin1,utf8]{inputenc} % latin -> utf . Modification to use idiomatic ascents directly: âáìõ
+% \RequirePackage[latin1,utf8]{inputenc} % disabled for XeTeX/LuaTeX compatibility
 \RequirePackage{setspace}
 \RequirePackage{fancyhdr}
 \RequirePackage{amsfonts}                 % Fontes p/ conjuntos: R,Z,H,...
@@ -158,7 +158,7 @@
 %%% Glossário
 \RequirePackage{csquotes}
 \RequirePackage[acronym, toc, nogroupskip, sanitizesort]{glossaries}
-\RequirePackage{xcolor}
+\RequirePackage[table]{xcolor}
 \glsenablehyper
 \colorlet{currenttext}{.} % get current color with xcolor pkg
 \renewcommand*{\glstextformat}[1]{\textcolor{currenttext}{#1}} % making link color same as text
@@ -183,7 +183,6 @@
 %% LINKS ALTERADOS PARA COR PRETA
 \RequirePackage[
   debug,
-  a4paper,
   pagebackref=false,
   breaklinks,
   bookmarksopen=true,

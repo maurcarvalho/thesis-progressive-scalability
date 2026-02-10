@@ -107,20 +107,20 @@ An example of what a screaming architecture looks like in practice is illustrate
 }
 
 \begin{lstlisting}
-├── /modules/                  # Bounded contexts represented in Modules
-│   ├── orders/
-│   │   ├── domain/
-│   │   │   ├── entities/          # Order aggregate
-│   │   │   ├── value-objects/     # OrderItem, CustomerId
-│   │   │   ├── events/            # Domain events
-│   │   │   └── repositories/      # OrderRepository (database operations)
-│   │   ├── features/             # Use cases (vertical slices)
-│   │   │   ├── place-order/           # Place Order services/use-cases
-│   │   │   └── cancel-order/          # Cancel Order services/use-cases
-│   │   └── listeners/             # Event handlers of Orders
-│   ├── inventory/                # Inventory module
-│   ├── payments/                 # Payments module
-│   └── shipments/                # Shipments module
+|-- /modules/                  # Bounded contexts represented in Modules
+|   |-- orders/
+|   |   |-- domain/
+|   |   |   |-- entities/          # Order aggregate
+|   |   |   |-- value-objects/     # OrderItem, CustomerId
+|   |   |   |-- events/            # Domain events
+|   |   |   +-- repositories/      # OrderRepository (database operations)
+|   |   |-- features/             # Use cases (vertical slices)
+|   |   |   |-- place-order/           # Place Order services/use-cases
+|   |   |   +-- cancel-order/          # Cancel Order services/use-cases
+|   |   +-- listeners/             # Event handlers of Orders
+|   |-- inventory/                # Inventory module
+|   |-- payments/                 # Payments module
+|   +-- shipments/                # Shipments module
 \end{lstlisting}
 
 At this level, the architecture already ``\textit{screams}'' business capabilities such as orders, inventory, payments, and shipments, rather than technical layers or framework concerns. This structure makes domain boundaries, use cases, and integration points visible by construction, reducing the model--code gap before any implementation details are examined.

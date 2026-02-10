@@ -376,7 +376,7 @@ describe('Module Public Surface', () => {
 });
 \end{lstlisting}
 
-When this gate is treated as first-class, the architectural rules stop being informal conventions and become enforced constraints. In practice, the boundary policy can be summarized as follows: external modules must not access another context’s entities, repositories, or internal services; they may depend on public handlers, event contracts, and listener wiring through the composition root; and they may reuse domain-neutral primitives from \texttt{libs/shared/}. This is the mechanism that keeps G1 enforceable as the codebase scales.\newline
+When this gate is treated as first-class, the architectural rules stop being informal conventions and become enforced constraints. In practice, the boundary policy can be summarized as follows: external modules must not access another context’s entities, repositories, or internal services; they may depend on public handlers, event contracts, and listener wiring through the composition root; and they may reuse domain-neutral primitives from \texttt{libs/shared/}. This is the mechanism that keeps G1 enforceable as the codebase scales.
 
   \item \emph{Step 7: Add Module Isolation Checks to Detect Hidden Wiring:}
   Detect coupling that does not appear as imports by running module-scoped isolation tests that load a module with only its declared dependencies available.
@@ -421,9 +421,9 @@ dependency rule, $P_{\mathrm{iso}}$ captures the isolation pass rate when module
 \begin{itemize}[noitemsep,topsep=2pt]
 
   \item \emph{Exercise 0: Confirm the Baseline:}
-  Re-run Step 0, and confirm that all checks pass.\newline
+  Re-run Step 0, and confirm that all checks pass.
 
-  \newline\item \emph{Exercise 1: Create an Encapsulation Leak by Exporting an Internal Symbol:}
+  \item \emph{Exercise 1: Create an Encapsulation Leak by Exporting an Internal Symbol:}
   Demonstrate that entities and repositories must not be exposed through module entrypoints. Introduce the violation by exporting internal symbols from the Orders module entry-point (for example \texttt{libs/modules/orders/src/index.ts}).
 
   \begin{lstlisting}[language=TypeScript,caption={Violation: exporting internal symbols},label={lst:g1-ex1-leak}]
@@ -439,10 +439,10 @@ Run enforcement.
 npm run test:boundary 
   \end{lstlisting}
   
-  Expected signal: a boundary test fails, and $C_{\mathrm{leak}}\uparrow$. Fix: remove these exports, and expose a contract instead (handler/port/event).\newline
+  Expected signal: a boundary test fails, and $C_{\mathrm{leak}}\uparrow$. Fix: remove these exports, and expose a contract instead (handler/port/event).
 
-  \newline\item \emph{Exercise 2: Introduce a Direct Cross-Module Import (Undeclared or Forbidden):}
-  Demonstrate that bounded contexts must not couple via direct imports for convenience. Introduce the violation by adding a direct import in an Orders feature file under \texttt{libs/modules/orders/src/features/}.\newline
+  \item \emph{Exercise 2: Introduce a Direct Cross-Module Import (Undeclared or Forbidden):}
+  Demonstrate that bounded contexts must not couple via direct imports for convenience. Introduce the violation by adding a direct import in an Orders feature file under \texttt{libs/modules/orders/src/features/}.
 
   \begin{lstlisting}[language=TypeScript,caption={Violation: direct cross-module import},label={lst:g1-ex2-import}]
 /**
@@ -458,9 +458,9 @@ npm run test:boundary
   \end{lstlisting}
 
   \DontMark\ Expected signal: a boundary check fails if cross-module imports are constrained by the enforcement suite.
-  If it does not fail, treat this as an enforcement coverage gap and extend \texttt{module-boundary.spec.ts} to detect forbidden \texttt{@tiny-store/modules-*} imports from within another module.\newline
-  Metric impact: $C_{\mathrm{undecl}}\uparrow$ or $C_{\mathrm{forbid}}\uparrow$.\newline
-  Fix (preferred): replace the direct import with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory, publish \texttt{InventoryReserved}).\newline
+  If it does not fail, treat this as an enforcement coverage gap and extend \texttt{module-boundary.spec.ts} to detect forbidden \texttt{@tiny-store/modules-*} imports from within another module.
+  Metric impact: $C_{\mathrm{undecl}}\uparrow$ or $C_{\mathrm{forbid}}\uparrow$.
+  Fix (preferred): replace the direct import with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory, publish \texttt{InventoryReserved}).
 
   \item \emph{Exercise 3: Hide Event Wiring Inside a Module (Implicit Dependency):}
   Demonstrate why subscription wiring must remain centralized and auditable.
@@ -473,15 +473,15 @@ npm run test:boundary
 EventBus.getInstance().subscribe('OrderPlaced', (e) => this.handle(e));
   \end{lstlisting}
 
-\newline
+
 Run enforcement.
 
  \begin{lstlisting}[language=bash,caption={Run enforcement after Exercise 3},label={lst:g1-ex3-run}]
 npm run test:boundary && npm run test:integration
 
 \end{lstlisting}
-  Expected signal: this may not fail immediately if the current enforcement suite does not scan for subscription calls outside the composition root. In that case, enforce a rule that forbids \texttt{eventBus.subscribe(} usage outside \texttt{apps/api/src/app/lib/register-listeners.ts}, and/or detect it via module isolation tests.\newline
-  Metric impact: $P_{\mathrm{iso}}\downarrow$ and potentially $C_{\mathrm{event}}\uparrow$.\newline
+  Expected signal: this may not fail immediately if the current enforcement suite does not scan for subscription calls outside the composition root. In that case, enforce a rule that forbids \texttt{eventBus.subscribe(} usage outside \texttt{apps/api/src/app/lib/register-listeners.ts}, and/or detect it via module isolation tests.
+  Metric impact: $P_{\mathrm{iso}}\downarrow$ and potentially $C_{\mathrm{event}}\uparrow$.
   Fix: move the subscription back to \texttt{register-listeners.ts}.
 \end{itemize}
 
