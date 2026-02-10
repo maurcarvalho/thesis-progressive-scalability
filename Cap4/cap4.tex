@@ -190,7 +190,7 @@ The second experiment collects structured feedback from experienced software arc
 
 \subsubsection*{Participants}
 
-A panel of 6--8 experts will be assembled, combining academic and industry perspectives with a deliberate emphasis on practitioners whose daily work involves the architectural trade-offs addressed by the guidelines:
+A minimum panel of 6 experts (target: 8) will be assembled, combining academic and industry perspectives with a deliberate emphasis on practitioners whose daily work involves the architectural trade-offs addressed by the guidelines. This minimum threshold ensures statistical validity for inter-rater agreement analysis (Kendall's W) while remaining feasible for a master's research timeline. Additional experts beyond the minimum will be included if recruitment permits.
 
 \begin{itemize}[noitemsep,topsep=2pt]
   \item 2 academic researchers (PhD holders or doctoral candidates in software engineering, software architecture, or distributed systems)
@@ -198,6 +198,45 @@ A panel of 6--8 experts will be assembled, combining academic and industry persp
 \end{itemize}
 
 The researcher will actively seek participants from organizations known for modular monolith adoption (e.g., Shopify, GitLab, GitHub) and from academic groups publishing in software architecture venues (e.g., ICSA, ECSA, ESEM). Inclusion criteria: participants must have at least 8 years of professional experience or a doctoral degree in a relevant field, and demonstrated expertise in software architecture through publications, conference talks, or architectural leadership roles.
+
+\subsubsection*{Panel Characterization}
+
+To ensure transparency and allow assessment of panel credibility, Table~\ref{tab:panel-characterization} will be populated after recruitment with anonymized participant profiles. The characterization captures the dimensions most relevant to evaluating architectural guidelines for modular monoliths.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Expert panel characterization (to be populated after recruitment)}
+\label{tab:panel-characterization}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{p{0.06\linewidth} p{0.12\linewidth} p{0.10\linewidth} X p{0.10\linewidth} p{0.10\linewidth} p{0.10\linewidth}}
+\hline
+\rowcolor{gray!30}
+\textbf{ID} & \textbf{Role} & \textbf{Exp. (yrs)} & \textbf{Domain / Industry} & \textbf{DDD / Modularity} & \textbf{Monolith exp.} & \textbf{MSA exp.} \\
+\hline
+E1 & \emph{TBD} & -- & -- & -- & -- & -- \\
+E2 & \emph{TBD} & -- & -- & -- & -- & -- \\
+E3 & \emph{TBD} & -- & -- & -- & -- & -- \\
+E4 & \emph{TBD} & -- & -- & -- & -- & -- \\
+E5 & \emph{TBD} & -- & -- & -- & -- & -- \\
+E6 & \emph{TBD} & -- & -- & -- & -- & -- \\
+\hline
+\end{tabularx}
+\end{table}
+
+\noindent
+Each expert will be assigned an anonymous identifier (E1--E\emph{n}). The characterization dimensions are:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Role:} Current professional role (e.g., Staff Engineer, PhD Researcher, Engineering Director).
+  \item \emph{Experience:} Total years of professional software engineering experience.
+  \item \emph{Domain / Industry:} Primary industry sector (e.g., fintech, e-commerce, SaaS, academia) and company size category (startup, mid-size, enterprise).
+  \item \emph{DDD / Modularity:} Years of experience with Domain-Driven Design, bounded contexts, or explicit modular architecture practices.
+  \item \emph{Monolith experience:} Self-reported experience level with monolithic or modular monolith systems (none / limited / significant / primary).
+  \item \emph{MSA experience:} Self-reported experience level with microservices architectures (none / limited / significant / primary).
+\end{itemize}
+
+\noindent
+This characterization serves two purposes: it allows the researcher to verify that the panel meets the diversity and expertise criteria, and it enables readers of the final dissertation to assess the credibility and representativeness of the validation results.
 
 \subsubsection*{Protocol}
 
