@@ -1,12 +1,18 @@
-\newglossaryentry{comprimento}{name=\ensuremath{\alpha}, description={Comprimento}, sort={a}}
+%%%%%%%% Symbols and Notation %%%%%%%%
 
-\newglossaryentry{altura}{name=\ensuremath{\beta}, description={Altura}, sort={b}}
+% ── Progressive Scalability Spectrum (G3) ──
+\newglossaryentry{L0}{name={\ensuremath{L_0}}, description={Vertical Optimization: single-process performance tuning (caching, query optimization, connection pooling)}, sort={L0}}
+\newglossaryentry{L1}{name={\ensuremath{L_1}}, description={Asynchronous Decoupling: event-driven communication and background job queues within the monolith}, sort={L1}}
+\newglossaryentry{L2}{name={\ensuremath{L_2}}, description={Data Isolation: per-module schema separation, independent connection pools, schema-scoped migrations}, sort={L2}}
+\newglossaryentry{L3}{name={\ensuremath{L_3}}, description={Selective Extraction: deployment of individual modules as independent services when evidence justifies}, sort={L3}}
 
-\newglossaryentry{velocidade}{name=\ensuremath{v}, description={Velocidade}, sort={v}}
+% ── Deployment Spectrum (G5) ──
+\newglossaryentry{D0}{name={\ensuremath{D_0}}, description={Single Artifact: one Docker image from the monorepo; all modules ship together as a standard monolith deployment}, sort={D0}}
+\newglossaryentry{D1}{name={\ensuremath{D_1}}, description={Module-Aware CI: Nx \texttt{affected} scopes tests and builds to changed modules; still produces one artifact, but CI is faster and module-scoped}, sort={D1}}
+\newglossaryentry{D2}{name={\ensuremath{D_2}}, description={Multi-Artifact: the monorepo produces multiple Docker images (e.g., \texttt{api} + \texttt{orders-service}); shared libraries remain in the repo; each image has its own deployment pipeline}, sort={D2}}
 
-\newglossaryentry{vet_distancia}{name=\ensuremath{\textbf{a}}, description={Vetor de distâncias}, sort={a_bold}}
+% ── Metrics ──
+\newglossaryentry{ERS}{name={\ensuremath{ERS}}, description={Extraction Readiness Score: composite metric (0--100) assessing a module's readiness for independent deployment, based on coupling, cohesion, and data isolation criteria}, sort={ERS}}
 
-\newglossaryentry{vet_unitario}{name=\ensuremath{\textbf{e}_{j}}, description={Vetor unitário de dimensão $n$ e com o $j$-ésimo componente igual a $1$}, sort={e_j}}
-
-\newglossaryentry{delta_kro}{name=\ensuremath{\delta_{k-k_f}}, description={Delta de Kronecker no instante $k_f$}, sort={d_k}}
-
+% ── Guideline Identifiers ──
+\newglossaryentry{Gn}{name={\ensuremath{G_n}}, description={Guideline identifier, where \ensuremath{n \in \{1, \ldots, 12\}}. $G_1$--$G_6$ are detailed in this work; $G_7$--$G_{12}$ are deferred to future research}, sort={Gn}}
