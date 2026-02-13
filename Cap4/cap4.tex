@@ -1,8 +1,8 @@
 \label{sec:proposal}
 
-This chapter presents the core academic potential contribution of this research: a set of twelve architectural guidelines designed to support software startups in adopting modular monolithic architectures that preserve scalability, maintainability, and internal modularity. These guidelines are grounded in the gaps and trade-offs identified through the systematic literature review and reflect the specific architectural tensions faced by early-stage software teams operating under conditions of limited resources, rapid iteration, and evolving requirements. Rather than offering a static framework, the guidelines aim to function as decision-making heuristics, designed to be actionable principles that inform architectural evolution without prescribing a single and rigid path.
+This chapter presents the core academic potential contribution of this research: a set of architectural guidelines designed to support software startups in adopting modular monolithic architectures that preserve scalability, maintainability, and internal modularity. These guidelines are grounded in the gaps and trade-offs identified through the systematic literature review and reflect the specific architectural tensions faced by early-stage software teams operating under conditions of limited resources, rapid iteration, and evolving requirements. Rather than offering a static framework, the guidelines aim to function as decision-making heuristics, designed to be actionable principles that inform architectural evolution without prescribing a single and rigid path.
 
-The guidelines are organized according to the four analytical dimensions introduced in Chapter~\ref{sec:relatedwork}: Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation. 
+The original research design identifies twelve guidelines organized across four analytical dimensions introduced in Chapter~\ref{sec:relatedwork}: Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation. This dissertation fully develops the first six guidelines, G1 through G6, covering the Architectural Design and Operational Fit dimensions. These six guidelines form a complete, self-contained guideline set that addresses module boundaries, maintainability, progressive scalability, migration readiness, deployment strategy, and observability. The remaining six guidelines (G7--G12), spanning the Organizational Alignment and Guideline Orientation dimensions, are identified and scoped but deferred to future research (Section~\ref{sec:future-guidelines}).
 
 
 \begin{figure}[htb]
@@ -17,79 +17,309 @@ The guidelines are organized according to the four analytical dimensions introdu
 Figure~\ref{fig:guideline-dimensions} shows the four guideline dimensions used in this research to guide the evaluation of modular monolith architectures in startup environments:
 
 \begin{itemize}
-  \item \textbf{Architectural Design.} Covers criteria related to the software’s internal structure. Guideline G1 enforces clear module boundaries, G2 evaluates maintainability over time, and G3 assesses the system’s scalability potential.
-  
-  \item \textbf{Operational Fit.} Addresses the operational requirements needed to support production enthronements. Guideline G4 checks migration readiness (for example, transitioning toward microservices), G5 focuses on deployment strategy and automation, and G6 considers observability levels (logging, metrics, monitoring).
-  
-  \item \textbf{Organizational Alignment.} Focuses on aligning the software architecture with the organization’s structure. Guideline G7 examines team organization according to Conway’s Law, G8 evaluates DevOps maturity, and G9 assesses how easily new team members can be onboarded without technical friction.
-  
-  \item \textbf{Guideline Orientation.} Refers to high-level recommendations that steer design decisions without imposing rigid rules. Guideline G10 emphasizes practical, actionable patterns, G11 highlights the need to adapt recommendations to the specific business context, and G12 points out that trade-offs and dilemmas exist rather than unbreakable dogma.
+  \item \textbf{Architectural Design.} Covers criteria related to the software's internal structure. Guideline G1 enforces clear module boundaries, G2 evaluates maintainability over time, and G3 assesses the system's scalability potential.
+
+  \item \textbf{Operational Fit.} Addresses the operational requirements needed to support production environments. Guideline G4 checks migration readiness (for example, transitioning toward microservices), G5 focuses on deployment strategy and automation, and G6 considers observability levels (logging, metrics, monitoring).
+
+  \item \textbf{Organizational Alignment.} Focuses on aligning the software architecture with the organization's structure. Guideline G7 examines team organization according to Conway's Law, G8 evaluates DevOps maturity, and G9 assesses how easily new team members can be onboarded without technical friction. These guidelines are identified and scoped in this dissertation but deferred to future research (Section~\ref{sec:future-guidelines}).
+
+  \item \textbf{Guideline Orientation.} Refers to high-level recommendations that steer design decisions without imposing rigid rules. Guideline G10 emphasizes practical, actionable patterns, G11 highlights the need to adapt recommendations to the specific business context, and G12 points out that trade-offs and dilemmas exist rather than unbreakable dogma. These guidelines are identified and scoped in this dissertation but deferred to future research (Section~\ref{sec:future-guidelines}).
 \end{itemize}
 
 \noindent
 Each dimension group provides a set of guidelines that, together, form the foundation for the proposal of this research. It illustrates how technical, operational, organizational, and orientation-based considerations should be integrated when selecting or evolving a modular monolith architecture in software startups. What follows is a descriptive presentation of the guidelines within each dimension and their foundation concepts, starting with those that address the architectural design of modular monoliths.
+
+\section{Reference Implementation and Technology Stack}
+\label{sec:tech-stack}
+
+The guidelines proposed in this chapter are grounded in a reference implementation called \textbf{Tiny Store}\footnote{\url{https://github.com/maurcarvalho/tiny-store}}, an Nx monorepo e-commerce application with four domain modules: orders, inventory, payments, and shipments. All code examples, exercises, and verification scenarios reference this implementation. Table~\ref{tab:tech-stack} summarizes the production-grade technology stack used across the guidelines.
+
+\begin{table}[htb]
+\centering
+\caption{Technology stack used in the Tiny Store reference implementation}
+\label{tab:tech-stack}
+\small
+\begin{tabularx}{\linewidth}{p{0.28\linewidth} X p{0.08\linewidth}}
+\hline
+\textbf{Tool} & \textbf{Purpose} & \textbf{GL} \\
+\hline
+Nx & Monorepo management, dependency graph, affected CI & G1, G5 \\
+ESLint + @nx/enforce-module-boundaries & Boundary enforcement at lint time & G1 \\
+KafkaJS + Apache Kafka & Event-driven communication, topic-per-aggregate & G4 \\
+Temporal & Durable workflows, saga orchestration, compensation & G4 \\
+Redis + ioredis & Caching layer (L1 vertical optimization) & G3 \\
+BullMQ & Async job queues (L2 async decoupling) & G3 \\
+TypeORM + PostgreSQL & ORM with per-module schema isolation & G3 \\
+OpenTelemetry & Distributed traces, metrics, structured logging & G6 \\
+Jaeger & Trace visualization and analysis & G6 \\
+Prometheus + Grafana & Metrics collection, dashboards, alerting & G6 \\
+Docker + Docker Compose & Local development, D0 baseline deployment & G5 \\
+Kamal & Production deployment, zero-downtime, SSL & G5 \\
+GitHub Actions & Module-aware CI with Nx affected & G5 \\
+\hline
+\end{tabularx}
+\end{table}
+
+The deliberate choice of production-grade tooling from day one is central to the thesis argument: by embedding infrastructure such as Kafka, Temporal, and OpenTelemetry inside the monolith before any extraction occurs, the system is operationally ready for distribution while retaining the simplicity of a single deployable unit. These tools are not migration prerequisites to be added later; they are architectural requirements that make progressive scalability achievable.
 
 \input{Cap4/guidelines/foundations-for-modular-architectural-design-dimension-block-g1-g2-g3}
 \input{Cap4/guidelines/g1_modular}
 \input{Cap4/guidelines/g2-maintainability}
 \input{Cap4/guidelines/g3-progressive-scalability}
 
+\noindent
+Having established the scalability spectrum and progression criteria, the next guideline addresses how individual modules can be prepared for extraction when evidence warrants it.
+
 \input{Cap4/guidelines/g4-migration-readiness}
+
+\noindent
+With extraction-ready module patterns in place, the deployment strategy must evolve to support both the monolithic deployment and any extracted services without disrupting the development workflow.
+
 \input{Cap4/guidelines/g5-deployment-strategy}
+
+\noindent
+The deployment pipeline provides the delivery mechanism, but informed scaling decisions require continuous feedback. The final guideline in the Operational Fit dimension introduces the observability infrastructure that closes this loop.
+
 \input{Cap4/guidelines/g6-observability}
-\input{Cap4/guidelines/g7-ownership}
-\input{Cap4/guidelines/g8-devops-maturity}
-\input{Cap4/guidelines/g9-onboarding}
-\input{Cap4/guidelines/g10-actionable-patterns}
-\input{Cap4/guidelines/g11-contextualize}
-\input{Cap4/guidelines/g12-guidance-dilemmas}
+\pagebreak
+\section{Guidelines Deferred to Future Research}
+\label{sec:future-guidelines}
+
+The original research design proposed twelve guidelines organized across four dimensions. This dissertation fully develops the first six guidelines, covering the Architectural Design Dimension (G1--G3) and the Operational Fit Dimension (G4--G6). Together, these six guidelines form a complete, self-contained guideline set: G1 enforces modular boundaries, G2 embeds maintainability, G3 defines the progressive scalability spectrum, G4 prepares modules for extraction with production-grade infrastructure (Kafka, Temporal), G5 establishes the deployment pipeline, and G6 provides module-scoped observability. The Tiny Store reference implementation demonstrates all six guidelines as executable practices.
+
+The remaining six guidelines, spanning the Organizational Alignment Dimension (G7--G9) and the Guideline Orientation Dimension (G10--G12), are deferred to future research. These guidelines address concerns that, while architecturally relevant, require empirical investigation beyond the scope of the current work. This section summarizes the intent of each deferred guideline and its anticipated contribution.
+
+\subsection*{Organizational Alignment Dimension}
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \textbf{G7: Map Ownership to Teams (Conway's Law).} Focuses on aligning module ownership with team structure, leveraging Conway's Law~\cite{fowler2003} intentionally so that communication structures reinforce module boundaries rather than degrade them. Future research should investigate how ownership models evolve in startups as teams grow from single-digit to multi-team organizations, and whether explicit ownership assignment reduces boundary erosion over time~\cite{vitharana2024challenges}.
+
+  \item \textbf{G8: Assess DevOps Maturity.} Addresses the operational readiness of the team to support the infrastructure introduced by G4--G6 (Kafka, Temporal, OpenTelemetry). A team that lacks experience with distributed event streaming or durable workflow orchestration may struggle to operate these systems effectively, regardless of how well the architecture is designed. Future research should develop a maturity model that maps DevOps capabilities to the scalability spectrum levels (L0--L3), helping teams assess whether they are operationally ready for each progression.
+
+  \item \textbf{G9: Treat Onboarding as a First-Class Concern.} Treats developer onboarding as an architectural property. A modular monolith's unified codebase offers onboarding advantages over microservices (one repository, one build, one local environment), but these advantages are realized only when module documentation, test environments, and contribution workflows are deliberately designed. Future research should measure onboarding time across architectural styles and identify which structural properties (module READMEs, guided test fixtures, composition root walkthroughs) have the greatest impact on ramp-up speed~\cite{montesi2021sliceable}.
+\end{itemize}
+
+\subsection*{Guideline Orientation Dimension}
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \textbf{G10: Favor Actionable Patterns.} Champions reusable implementation artifacts, such as code templates, example repositories, and Architecture Decision Record (ADR) snippets, over abstract principles. The Tiny Store repository already serves this purpose for G1--G6; future research should generalize this approach into a pattern library that covers the full guideline set, validated through practitioner adoption studies~\cite{abgaz2023decomposition}.
+
+  \item \textbf{G11: Contextualize to Constraints.} Focuses on adapting architectural decisions to startup-specific constraints such as team size, funding stage, and operational maturity. Future research should develop a constraint assessment framework that maps organizational parameters to recommended guideline configurations, enabling teams to prioritize which guidelines to adopt first based on their specific context~\cite{su2024from, prakash2024systematic}.
+
+  \item \textbf{G12: Structure Guidance Around Dilemmas.} Advocates framing architectural guidance around trade-off dilemmas rather than prescriptive rules. Future research should catalog the most common dilemmas encountered during modular monolith adoption (e.g., ``boundary strictness vs.\ development velocity,'' ``infrastructure investment vs.\ team capacity'') and provide decision criteria grounded in empirical evidence from practitioner interviews and case studies.
+\end{itemize}
+
+\subsection*{Tooling Evolution: AI-Assisted Modularity Enforcement}
+
+Beyond the deferred guidelines, this research identifies two complementary tooling directions that could operationalize the guideline set at the developer workflow level:
+
+\begin{enumerate}[noitemsep,topsep=2pt]
+  \item \textbf{AI Coding Agent for Modular Monoliths.} An AI-powered pair programming agent that can be integrated into any existing codebase and provides real-time guidance on module boundary enforcement, dependency direction, scalability-level assessment, and migration readiness. The agent would internalize the guidelines (G1--G12) as its knowledge base and offer contextual suggestions during development, code review, and refactoring. This approach lowers the adoption barrier by embedding architectural guidance directly into the developer's workflow rather than requiring teams to study and memorize the guideline set.
+
+  \item \textbf{Modularity Framework or Plugin.} An evolution of the AI agent into a language-specific framework or plugin (e.g., a Node.js module, a Ruby gem, or an Elixir library) that provides programmatic tooling for modularity enforcement. Such a package would offer build-time boundary checks, dependency graph visualization, scalability-level metrics computation, and extraction readiness scoring as first-class library features. By packaging the guidelines as executable tooling, the framework would make progressive scalability a reproducible engineering practice rather than an architectural aspiration.
+\end{enumerate}
+
+\noindent
+Both directions represent natural extensions of the Tiny Store reference implementation and the production-grade tooling stack (Kafka, Temporal, OpenTelemetry, Nx) introduced in this dissertation. Their development and validation are deferred to future research.
+
+\subsection*{Research Approach for Deferred Guidelines}
+
+The deferred guidelines will follow the same development methodology applied to G1--G6: literature-grounded design, operationalization through Tiny Store as a reference implementation where applicable, metric definition for verification, and practitioner validation through semi-structured interviews. The Organizational Alignment guidelines (G7--G9) will require empirical methods beyond code-level analysis, including team surveys, onboarding time measurements, and organizational case studies. The Guideline Orientation guidelines (G10--G12) will require meta-level validation, assessing whether the guidelines themselves are usable, contextualizable, and effective as decision-support tools.
 
 \pagebreak
 \section{Verification Plan}
+\label{sec:verification-plan}
 
-To strengthen the practical and academic relevance of the architectural guidelines proposed in this chapter, a verification phase is planned as the next step in this research. At this stage, only G1: Enforce Modular Boundaries is finalized. Therefore, the first round of verification will focus exclusively on G1 before developing the remaining guidelines. As soon as each subsequent set of guidelines (Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation) is ready, a full verification will be conducted for that set. Participants will include software engineering professionals from industry as well as academic researchers in the fields of software engineering and computer science, ensuring a comprehensive view of both practice and research.
+To validate the practical relevance, clarity, and completeness of the architectural guidelines proposed in this chapter, a two-phase verification strategy is planned. The verification targets the six fully developed guidelines (G1--G6) and employs complementary methods: a hands-on usability study with software developers and a structured expert panel review. Together, these experiments assess both the \emph{executability} of the guidelines (can practitioners follow them?) and their \emph{perceived value} (do experienced architects and researchers find them useful and well-grounded?).
 
-All participants will receive a brief informed consent form explaining the purpose of the study, how their data will be used and their right to withdraw at any time. Interview recordings will be stored on a secure research server with restricted access. Transcripts will be anonymized before any analysis to ensure that no identifying details are exposed. Any survey responses will also be collected anonymously. This approach guarantees that practitioner data are handled in accordance with research ethics standards and Brazilian data protection regulations.
+All participants will receive a brief informed consent form explaining the purpose of the study, how their data will be used, and their right to withdraw at any time. Session recordings will be stored on a secure research server with restricted access. Transcripts will be anonymized before analysis to ensure that no identifying details are exposed. Survey responses will be collected anonymously. This approach guarantees compliance with research ethics standards and Brazilian data protection regulations (LGPD).
 
-\subsection*{Interview Method}
+\subsection*{Experiment 1: Guided Usability Study (Think-Aloud Protocol)}
 
-The primary method of verification for G1 will consist of semi structured interviews with selected practitioners. Participants will include professionals with relevant expertise in designing or evolving monolithic and microservices systems or leading software architectural decisions in startups. Each interview will explore the perceived usefulness, feasibility and completeness of G1 as well as any limitations or omissions experts may identify. Feedback will be used to refine G1 and guide the development of subsequent guidelines.
+The first experiment assesses whether practitioners at different seniority levels can execute the guidelines using the Tiny Store reference implementation and whether the step-by-step structure produces actionable understanding.
 
-Interviews for G1 will be conducted remotely and will follow a flexible script structured around four thematic areas:
+\subsubsection*{Participants}
 
-\begin{enumerate}
-  \item General impressions and relevance of G1
-  \item Detailed feedback on the wording and examples for G1
-  \item Contextual challenges in applying G1 in early stage, cloud native applications
-  \item Suggestions for improving or decomposing G1 into more actionable steps
+Six software developers will be recruited, stratified by seniority to capture a range of architectural experience:
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item 2 junior developers (1--3 years of professional experience)
+  \item 2 mid-level developers (3--6 years of professional experience)
+  \item 2 senior developers (6+ years, with architectural decision-making experience)
+\end{itemize}
+
+Inclusion criteria: participants must have professional experience with at least one monolithic or modular codebase and familiarity with TypeScript or a comparable typed language. Participants will be recruited through the researcher's professional network and startup community contacts.
+
+\subsubsection*{Protocol}
+
+Each session will be conducted remotely via screen-sharing and will follow a \emph{think-aloud protocol}~\cite{ericsson1984protocol}, a well-established method in human-computer interaction research where participants verbalize their reasoning while performing tasks. The protocol consists of three phases:
+
+\begin{enumerate}[noitemsep,topsep=2pt]
+  \item \textbf{Pre-task questionnaire} (5 minutes): Participants rate their confidence in modular architecture, familiarity with the tools in the technology stack, and prior experience with boundary enforcement practices using a 5-point Likert scale.
+
+  \item \textbf{Guided task execution} (60--90 minutes): Participants execute a structured subset of the guideline tutorials and exercises using the Tiny Store repository. Tasks are organized as a progression through the guidelines:
+  \begin{itemize}[noitemsep,topsep=2pt]
+    \item \emph{G1 task:} Run boundary enforcement, introduce a controlled violation (Exercise 1), observe the signal, and fix the violation.
+    \item \emph{G2 task:} Compute maintainability metrics from the codebase, introduce a convenience re-export chain (Exercise 1), and verify that G1 passes but G2 metrics degrade.
+    \item \emph{G3 task:} Identify the current scalability level (L0--L3) of a module and describe what changes would be needed to progress to the next level.
+    \item \emph{G4 task:} Trace an event-driven flow from order placement through Kafka to inventory reservation, identifying the saga orchestration pattern.
+    \item \emph{G5 task:} Run the Docker Compose infrastructure and verify that all 13 services start correctly.
+    \item \emph{G6 task:} Generate a distributed trace in Jaeger for a cross-module operation and identify the module boundaries in the trace.
+  \end{itemize}
+  Throughout execution, participants verbalize their understanding, confusion points, and reactions. The researcher observes without intervening except to clarify task instructions.
+
+  \item \textbf{Post-task interview} (15--20 minutes): A semi-structured interview explores perceived value, clarity of the guidelines, difficulty of each task, and suggestions for improvement. Participants also complete a post-task questionnaire rating the usefulness of each guideline (G1--G6) individually on a 5-point Likert scale.
 \end{enumerate}
 
-Participants will receive a summarized description of G1 in advance to facilitate discussion. With participant consent, all interviews will be recorded and transcribed. Transcripts will be stored securely and later coded using thematic analysis. Transcription and coding may be supported by automated tools such as large language models; however, all output from such tools will be reviewed and validated by the researcher to ensure analytical accuracy and preserve contextual integrity.
+All sessions will be recorded (screen and audio) with participant consent and transcribed for analysis.
 
-\subsection*{Optional Online Survey}
+\subsubsection*{Metrics Collected}
 
-An online survey instrument may be deployed to capture structured feedback on G1 at scale. The survey will include Likert scale ratings on the clarity and usefulness of G1 along with free text fields for additional comments. For example, one question could read: \textit{“On a scale from one to five, how feasible is G1: Enforce Modular Boundaries in your current environment?”} If implemented, this survey will complement the qualitative depth of interviews with broader quantitative insights. Survey distribution will target relevant Slack workspaces, LinkedIn groups focused on cloud native architecture and local meetup organizers. The aim is to receive at least fifteen to twenty responses from practitioners.
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Task completion rate:} Proportion of tasks successfully completed per guideline and per seniority level.
+  \item \emph{Time-on-task:} Duration of each guideline task, segmented by seniority level.
+  \item \emph{Error count:} Number of incorrect steps or misinterpretations per task.
+  \item \emph{Confidence delta:} Change in self-reported confidence between pre-task and post-task questionnaires.
+  \item \emph{Perceived usefulness:} Post-task Likert ratings per guideline.
+  \item \emph{Qualitative observations:} Think-aloud transcripts coded for confusion points, positive reactions, and improvement suggestions.
+\end{itemize}
+
+\subsection*{Experiment 2: Expert Panel Review (Modified Delphi Method)}
+
+The second experiment collects structured feedback from experienced software architects and academic researchers to assess the guidelines' theoretical soundness, practical relevance, and completeness.
+
+\subsubsection*{Participants}
+
+A minimum panel of 6 experts (target: 8) will be assembled, combining academic and industry perspectives with a deliberate emphasis on practitioners whose daily work involves the architectural trade-offs addressed by the guidelines. This minimum threshold ensures statistical validity for inter-rater agreement analysis (Kendall's W) while remaining feasible for a master's research timeline. Additional experts beyond the minimum will be included if recruitment permits.
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item 2 academic researchers (PhD holders or doctoral candidates in software engineering, software architecture, or distributed systems)
+  \item 4--6 industry practitioners (Staff Engineers, Principal Engineers, or Engineering Directors with experience in architectural decisions at scale)
+\end{itemize}
+
+The researcher will actively seek participants from organizations known for modular monolith adoption (e.g., Shopify, GitLab, GitHub) and from academic groups publishing in software architecture venues (e.g., ICSA, ECSA, ESEM). Inclusion criteria: participants must have at least 8 years of professional experience or a doctoral degree in a relevant field, and demonstrated expertise in software architecture through publications, conference talks, or architectural leadership roles.
+
+\subsubsection*{Panel Characterization}
+
+To ensure transparency and allow assessment of panel credibility, Table~\ref{tab:panel-characterization} will be populated after recruitment with anonymized participant profiles. The characterization captures the dimensions most relevant to evaluating architectural guidelines for modular monoliths.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Expert panel characterization (to be populated after recruitment)}
+\label{tab:panel-characterization}
+\rowcolors{2}{gray!5}{white}
+\begin{tabularx}{\linewidth}{p{0.06\linewidth} p{0.12\linewidth} p{0.10\linewidth} X p{0.10\linewidth} p{0.10\linewidth} p{0.10\linewidth}}
+\hline
+\rowcolor{gray!30}
+\textbf{ID} & \textbf{Role} & \textbf{Exp. (yrs)} & \textbf{Domain / Industry} & \textbf{DDD / Modularity} & \textbf{Monolith exp.} & \textbf{MSA exp.} \\
+\hline
+E1 & \emph{TBD} & -- & -- & -- & -- & -- \\
+E2 & \emph{TBD} & -- & -- & -- & -- & -- \\
+E3 & \emph{TBD} & -- & -- & -- & -- & -- \\
+E4 & \emph{TBD} & -- & -- & -- & -- & -- \\
+E5 & \emph{TBD} & -- & -- & -- & -- & -- \\
+E6 & \emph{TBD} & -- & -- & -- & -- & -- \\
+\hline
+\end{tabularx}
+\end{table}
+
+\noindent
+Each expert will be assigned an anonymous identifier (E1--E\emph{n}). The characterization dimensions are:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Role:} Current professional role (e.g., Staff Engineer, PhD Researcher, Engineering Director).
+  \item \emph{Experience:} Total years of professional software engineering experience.
+  \item \emph{Domain / Industry:} Primary industry sector (e.g., fintech, e-commerce, SaaS, academia) and company size category (startup, mid-size, enterprise).
+  \item \emph{DDD / Modularity:} Years of experience with Domain-Driven Design, bounded contexts, or explicit modular architecture practices.
+  \item \emph{Monolith experience:} Self-reported experience level with monolithic or modular monolith systems (none / limited / significant / primary).
+  \item \emph{MSA experience:} Self-reported experience level with microservices architectures (none / limited / significant / primary).
+\end{itemize}
+
+\noindent
+This characterization serves two purposes: it allows the researcher to verify that the panel meets the diversity and expertise criteria, and it enables readers of the final dissertation to assess the credibility and representativeness of the validation results.
+
+\subsubsection*{Protocol}
+
+The expert review follows a \emph{modified Delphi method}~\cite{linstone1975delphi}, an iterative consensus-building technique widely used in software engineering research for guideline and framework validation. The method proceeds in two rounds:
+
+\textbf{Round 1: Individual Assessment}
+Each expert receives a structured review package containing:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item A summary document describing the research context, SLR findings, and the G1--G6 guideline set
+  \item Access to the Tiny Store repository and its documentation
+  \item A structured evaluation form with the following sections:
+\end{itemize}
+
+\begin{enumerate}[noitemsep,topsep=2pt]
+  \item \emph{Per-guideline assessment} (G1--G6): For each guideline, rate on a 5-point Likert scale:
+  \begin{itemize}[noitemsep,topsep=2pt]
+    \item Clarity of intent and rationale
+    \item Practical applicability in real-world projects
+    \item Completeness of the implementation guidance
+    \item Relevance to startup and early-stage contexts
+    \item Quality of the reference implementation examples
+  \end{itemize}
+
+  \item \emph{Overall guideline set assessment:}
+  \begin{itemize}[noitemsep,topsep=2pt]
+    \item Does the G1$\rightarrow$G6 progression form a coherent scalability pathway?
+    \item Is the progressive scalability concept (L0--L3) a meaningful contribution?
+    \item Would you recommend these guidelines to engineering teams? Under what conditions?
+    \item What is missing that would strengthen the guideline set?
+  \end{itemize}
+
+  \item \emph{Future research directions:}
+  \begin{itemize}[noitemsep,topsep=2pt]
+    \item Which deferred guidelines (G7--G12) should be prioritized?
+    \item What value would an AI-powered coding agent or modularity framework bring to industry projects?
+    \item What additional validation methods would strengthen the research?
+  \end{itemize}
+
+  \item \emph{Open-ended feedback:} Free-form comments on strengths, weaknesses, omissions, and suggestions.
+\end{enumerate}
+
+Experts complete the form independently within a two-week window.
+
+\textbf{Round 2: Feedback Review and Convergence}
+The researcher compiles and anonymizes Round 1 responses, producing a summary report with:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item Aggregated Likert scores per guideline and per dimension
+  \item Thematic summary of qualitative feedback
+  \item Points of divergence where experts disagreed
+\end{itemize}
+
+This summary is shared with all panelists, who are invited to revise their assessments in light of the aggregated feedback. A brief follow-up form captures revised ratings and additional comments. This second round promotes convergence while preserving minority viewpoints. If significant divergence persists on specific guidelines, targeted follow-up interviews (15--20 minutes) will be conducted with dissenting experts to explore the underlying reasoning.
 
 \subsection*{Analysis Approach}
 
-All experts interview transcripts will be examined to identify recurring themes. As an example for the validation of G1, the researcher will verify:
+\subsubsection*{Quantitative Analysis}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Experiment 1:} Descriptive statistics (mean, median, standard deviation) for task completion rates, time-on-task, and Likert scores, segmented by seniority level. Non-parametric tests (Mann-Whitney U or Kruskal-Wallis) will be applied if sample sizes permit meaningful comparison across seniority groups.
+  \item \emph{Experiment 2:} Aggregated Likert scores per guideline and per evaluation dimension, with inter-rater agreement measured using Kendall's coefficient of concordance (W). Round 1 vs.\ Round 2 score changes will be reported to document convergence.
+\end{itemize}
 
-\begin{enumerate}
-  \item Viability barriers for G1 (for example tooling limitations, organizational culture misalignment, lack of time or resources)
-  \item Viability enablers for G1 (for example clear boundaries, simplicity of implementation, improved modularity)
-  \item Gaps or missing details in G1 (for example unclear terminology, need for additional examples or prerequisites)
+\subsubsection*{Qualitative Analysis}
+All transcripts (think-aloud sessions, post-task interviews, and open-ended form responses) will be analyzed using \emph{thematic analysis}~\cite{braun2006using}. The researcher will:
+\begin{enumerate}[noitemsep,topsep=2pt]
+  \item Generate initial codes from the transcripts
+  \item Organize codes into themes aligned with the four evaluation dimensions (Architectural Design, Operational Fit, Organizational Alignment, Guideline Orientation)
+  \item Cross-reference themes against the SLR gap analysis to confirm that the guidelines address identified needs
+  \item Identify recurring barriers, enablers, and gaps reported by participants
 \end{enumerate}
 
-Feedback, in general, will be categorized according to the four evaluation dimensions defined earlier in Chapter~3: Architectural Design, Operational Fit, Organizational Alignment and Guideline Orientation. The researcher will cross reference these comments against the original literature gaps identified in the systematic review to confirm that G1 addresses underexplored needs and to inform any refinements.
+\subsubsection*{Triangulation}
+Results from both experiments will be triangulated to identify convergent and divergent findings. Where usability study participants struggle with a specific guideline and experts independently flag the same guideline as unclear, the evidence for revision is strengthened. Where experts rate a guideline highly but junior developers struggle to execute it, the revision may target documentation clarity rather than conceptual content.
 
 \section{Timeline and Milestones}
 
 \begin{itemize}
-  \item July to August 2025: Recruit six to eight expert practitioners and conduct semi structured interviews focused on G1
-  \item September 2025: Complete thematic coding of G1 transcripts and apply revisions to G1;
-  \item October 2025: Begin development of templates for G2 to G12
-  \item November 2025: Finalize templates for G2 to G12 and create an example application illustrating how these templates can be applied in a startup context
-  \item December 2025: Conduct interviews and survey for G2 to G12 based on the guidelines templates; integrate preliminary feedback and prepare full verification plan for the remaining G2 to G12 guidelines.
+  \item March 2026: Qualification defense (\emph{defesa de qualificação}) presenting G1--G6 and the Tiny Store reference implementation
+  \item April 2026: Recruit participants for both experiments; prepare review packages, task scripts, and evaluation forms
+  \item May 2026: Conduct Experiment 1 (usability study sessions with 6 developers, ~2 weeks)
+  \item May--June 2026: Distribute Experiment 2 Round 1 forms to expert panel (2-week response window)
+  \item June 2026: Complete thematic coding of Experiment 1 transcripts; compile and distribute Round 2 summary
+  \item July 2026: Collect Round 2 responses; conduct targeted follow-up interviews if needed
+  \item August 2026: Integrate findings from both experiments; apply revisions to G1--G6
+  \item September 2026: Finalize G1--G6; document verification methodology and findings
+  \item October--December 2026: Begin development of deferred guidelines (G7--G12) informed by practitioner and expert feedback
 \end{itemize}
-
-Once these outcomes are complete, a full verification plan will be applied to each subsequent set of guidelines as they become available.
