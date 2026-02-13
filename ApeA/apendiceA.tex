@@ -1,18 +1,147 @@
-\section{Uma Primeira Seção para o Apêndice}
+This appendix provides definitions for key technologies, frameworks, and architectural patterns referenced throughout this thesis.
 
+\section{Infrastructure and Data}
 
-% EXEMPLO DE EQUACAO
-%\begin{equation}
-%M=\left[ \begin{array}{ccc}
-%M_{11} & M_{12} & M_{13} \\
-%M_{21} & M_{22} & M_{23} \\
-%M_{31} & M_{32} & M_{33}
-%\end{array} \right]
-%\end{equation}
+\begin{longtable}{>{\bfseries}p{0.20\linewidth} p{0.72\linewidth}}
+\toprule
+Term & Definition \\
+\midrule
+\endfirsthead
+\toprule
+Term & Definition \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
 
-% EXEMPLO DE FIGURA
-%\begin{figure}[h]
-%\centering
-%\includegraphics[height=5cm, width=5cm]%%%%%{ApeA/pragas_ciclo_cupim}
-%\caption{Uma figura que está no apêndice}\label{FD}
-%\end{figure}
+Apache Kafka &
+A distributed event-streaming platform that provides high-throughput, fault-tolerant publish-subscribe messaging. In this work, Kafka serves as the event bus for inter-module communication, with per-module topics and consumer groups. Version: KRaft 3.7 (Zookeeper-free). \\
+
+PostgreSQL &
+An open-source object-relational database system. In the proposed architecture, each module owns an isolated schema within a shared PostgreSQL instance, enforced through database roles that deny cross-schema access. Version: 16.x. \\
+
+Redis &
+An in-memory key-value data store used for caching and request deduplication. Cache patterns include product catalog (TTL 5 min), order status (write-through, TTL 1 hr), and idempotency keys (TTL 24 hr). Version: 7.2. \\
+
+\end{longtable}
+
+\section{Orchestration and Observability}
+
+\begin{longtable}{>{\bfseries}p{0.20\linewidth} p{0.72\linewidth}}
+\toprule
+Term & Definition \\
+\midrule
+\endfirsthead
+\toprule
+Term & Definition \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+Temporal &
+A durable workflow execution engine for orchestrating long-running processes. In this work, Temporal manages the saga pattern via \texttt{orderFulfillmentWorkflow}, coordinating compensating actions (e.g., \texttt{releaseStock}, \texttt{refundPayment}) upon failure. Version: 1.24. \\
+
+OpenTelemetry &
+A vendor-neutral observability framework providing APIs and SDKs for collecting distributed traces, metrics, and logs. The proposed architecture scopes telemetry per module using module-specific tracers and metric prefixes, with W3C TraceContext propagation across Kafka headers. \\
+
+Jaeger &
+An open-source distributed tracing backend. Receives spans via the OpenTelemetry OTLP gRPC exporter and provides a web UI for trace visualization. Used in Guideline~6 (Observability Patterns) to inspect cross-module request flows. Version: 1.53. \\
+
+\end{longtable}
+
+\section{Build and Deployment}
+
+\begin{longtable}{>{\bfseries}p{0.20\linewidth} p{0.72\linewidth}}
+\toprule
+Term & Definition \\
+\midrule
+\endfirsthead
+\toprule
+Term & Definition \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+Docker &
+A container platform that packages applications and their dependencies into lightweight, portable images. The deployment spectrum ($D_0$--$D_2$) relies on Docker for both the monolith and extracted service artifacts. \\
+
+Nx &
+A monorepo build system by Nrwl that provides module-aware task scheduling. The \texttt{nx affected} command runs only the tests and builds impacted by a given change, enabling efficient CI pipelines without splitting the repository. \\
+
+Docker Compose &
+A tool for defining multi-container applications. The reference architecture uses a single \texttt{docker-compose.yml} that provisions PostgreSQL, Kafka, Temporal, Jaeger, and Redis from day one, regardless of the current deployment level ($D_0$--$D_2$). \\
+
+Kubernetes &
+A container orchestration platform for automating deployment, scaling, and management. Referenced as the target runtime for $D_2$ deployments when horizontal scaling of extracted modules is required. \\
+
+\end{longtable}
+
+\section{Architectural Patterns}
+
+\begin{longtable}{>{\bfseries}p{0.20\linewidth} p{0.72\linewidth}}
+\toprule
+Term & Definition \\
+\midrule
+\endfirsthead
+\toprule
+Term & Definition \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+Modular Monolith (Modulith) &
+An architectural style in which a single deployable unit is decomposed into well-defined, loosely coupled modules with explicit boundaries. Modules communicate through in-process interfaces and share a deployment artifact but maintain independent data ownership. \\
+
+Saga Pattern &
+A sequence of local transactions coordinated to maintain data consistency across module boundaries without distributed locks. Each step has a compensating action that undoes its effect in case of downstream failure (backward recovery). \\
+
+Strangler Fig &
+A migration pattern in which new functionality is incrementally built alongside the legacy system, gradually routing traffic to the new implementation until the old code can be removed. Referenced in the context of progressive module extraction ($L_3$). \\
+
+Anti-Corruption Layer (ACL) &
+A translation boundary that prevents the domain model of one module from being corrupted by the models of adjacent modules or external systems. Implemented as versioned event contracts and DTOs at module boundaries. \\
+
+Bounded Context &
+A Domain-Driven Design concept defining the boundary within which a particular domain model is consistent and valid. In the modulith architecture, each module corresponds to one bounded context with its own schema and ubiquitous language. \\
+
+Event Sourcing &
+A pattern in which state changes are persisted as an append-only sequence of domain events rather than mutable records. Referenced as a complementary technique for audit trails and temporal queries within individual modules. \\
+
+Change Data Capture (CDC) &
+A technique that detects and propagates data changes from a database to downstream consumers (e.g., via Debezium and Kafka Connect). Referenced as an alternative to application-level event publishing for $L_2$/$L_3$ data isolation. \\
+
+CQRS &
+Command Query Responsibility Segregation, a pattern that separates the write model (commands) from the read model (queries), allowing each to be optimized independently. Often paired with event sourcing in module boundaries. \\
+
+\end{longtable}
+
+\section{Languages and Frameworks}
+
+\begin{longtable}{>{\bfseries}p{0.20\linewidth} p{0.72\linewidth}}
+\toprule
+Term & Definition \\
+\midrule
+\endfirsthead
+\toprule
+Term & Definition \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+Ruby on Rails &
+A server-side web application framework written in Ruby, following convention-over-configuration. Referenced as a representative monolith framework in the industry context. \\
+
+Elixir &
+A functional programming language built on the Erlang VM (BEAM), known for fault-tolerant, concurrent systems. Referenced as an example of a platform with built-in modularity primitives (OTP applications). \\
+
+Node.js &
+A JavaScript runtime built on Chrome's V8 engine. The reference implementation (Tiny Store) uses Node.js with TypeScript for all module handlers and Kafka consumers. \\
+
+TypeScript &
+A statically typed superset of JavaScript. Used in code listings throughout the thesis for guideline implementations, workflow definitions, and configuration examples. \\
+
+\end{longtable}
