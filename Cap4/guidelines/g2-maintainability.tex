@@ -7,18 +7,18 @@ This section presents G2, which focuses on embedding maintainability as an archi
 G2 builds directly on G1. While G1 enforces the existence of explicit modular boundaries, G2 ensures that those boundaries remain effective over time. Together, these guidelines prevent the gradual erosion that often causes traditional monoliths to regress into tightly coupled systems with monolithic change dynamics.
 
 \subsection*{Intent and Rationale}
-Empirical studies consistently show that the primary driver of maintainability degradation in monolithic systems is not system size, but the accumulation of hidden coupling, ambiguous dependency direction, and architectural drift over time \cite{gravanis2021dont,blinowski2022monolithic}. As systems evolve, convenience driven shortcuts such as deep imports, shared utilities, and implicit wiring gradually increase the blast radius of change and raise coordination costs.
+Empirical studies consistently show that the primary driver of maintainability degradation in monolithic systems is not system size, but the accumulation of hidden coupling, ambiguous dependency direction, and architectural drift over time \cite{gravanis2021dont,blinowski2022monolithic}. As systems evolve, convenience-driven shortcuts such as deep imports, shared utilities, and implicit wiring gradually increase the blast radius of change and raise coordination costs.
 
-This dissertation treats maintainability as a preventive architectural concern. G2 preserves bounded cost of change by constraining how modules interact, how dependencies are introduced, and how responsibilities are distributed. The guideline prioritizes change locality, stable contracts, and controlled dependency growth over short term reuse. These properties ensure that most changes remain confined to a single bounded context and that the effort required to evolve the system scales sublinearly with its size.
+This dissertation treats maintainability as a preventive architectural concern. G2 preserves bounded cost of change by constraining how modules interact, how dependencies are introduced, and how responsibilities are distributed. The guideline prioritizes change locality, stable contracts, and controlled dependency growth over short-term reuse. These properties ensure that most changes remain confined to a single bounded context and that the effort required to evolve the system scales sublinearly with its size.
 
-G2 extends G1 from boundary correctness to boundary sustainability. While G1 makes dependencies explicit and verifiable, G2 ensures that those dependencies remain limited in scope, stable under evolution, measurable trough specific metrics and economically manageable as the system grows \cite{arya2024beyond,berry2024isItWorth}.
+G2 extends G1 from boundary correctness to boundary sustainability. While G1 makes dependencies explicit and verifiable, G2 ensures that those dependencies remain limited in scope, stable under evolution, measurable through specific metrics and economically manageable as the system grows \cite{arya2024beyond,berry2024isItWorth}.
 
 \pagebreak
 \subsection*{Conceptual Overview}
 Maintainability is embedded by designing modules so that change remains local and predictable:
 \begin{itemize}[noitemsep,topsep=2pt]
   \item Each bounded context exposes a narrow and intentional public surface that represents stable capabilities rather than internal structure.
-  \item Cross module interaction occurs exclusively through explicit contracts.
+  \item Cross-module interaction occurs exclusively through explicit contracts.
   \item Dependency direction reflects responsibility and information flow, reducing the risk of cycles and cascading change.
   \item Architectural drift is detected early through executable and observable structural signals.
 \end{itemize}
@@ -27,11 +27,11 @@ Maintainability is embedded by designing modules so that change remains local an
 G2 applies to systems organized as modular monoliths, where multiple bounded context modules coexist within a single codebase and are expected to evolve continuously. The guideline assumes that:
 \begin{itemize}[noitemsep,topsep=2pt]
   \item Module boundaries are explicitly defined and at least partially enforced, as established by G1.
-  \item Each module has clear ownership and a well defined responsibility.
+  \item Each module has clear ownership and a well-defined responsibility.
   \item Architectural drift is a realistic risk during ongoing feature development.
 \end{itemize}
 
-G2 does not prescribe specific frameworks, build tools, or CI pipelines. Its scope is limited to metrics definition, design time and code level practices that directly influence long term changeability.
+G2 does not prescribe specific frameworks, build tools, or CI pipelines. Its scope is limited to metrics definition, design-time and code-level practices that directly influence long-term changeability.
 
 \subsection*{Objectives}
 \begin{itemize}[noitemsep,topsep=2pt]
@@ -82,7 +82,7 @@ These anti-patterns emerge when local convenience is prioritized over long-term 
 \subsection*{Metrics and Verification}
 Maintainability in G2 is assessed through a set of explicit, measurable structural signals that capture boundary erosion, hidden coupling, and architectural drift over time. These metrics operationalize maintainability as a bounded cost of change by making the growth of coupling, dependency instability, and encapsulation violations observable and verifiable.
 
-G2 builds directly on the enforcement model introduced in G1. While G1 establishes the correctness of modular boundaries, G2 uses quantitative signals to assess whether those boundaries remain effective as the system evolves. The quality measurement baseline derived from G1 is presented in Section~\ref{sec:g2-quality-measurement-baseline} and is reused here as the foundation for maintainability verification.
+G2 builds directly on the enforcement model introduced in G1. While G1 establishes the correctness of modular boundaries, G2 uses quantitative signals to assess whether those boundaries remain effective as the system evolves. The quality measurement baseline derived from G1 (Section~\ref{sec:g1-enforce-modular-boundaries}) is reused here as the foundation for maintainability verification.
 
 \begin{itemize}[noitemsep,topsep=2pt]
   \item \emph{Notation:} Let $M$ be the set of bounded-context modules. Let $R$ be the multiset of observed cross-module references, including static imports, dependency injection wiring, and event handlers. Let $D \subseteq M \times M$ be the set of declared allowed dependencies (\emph{requires}) and $F \subseteq M \times M$ be the set of explicitly forbidden dependencies (\emph{forbids}).
@@ -175,7 +175,351 @@ G2 builds directly on the enforcement model introduced in G1. While G1 establish
   By tracking these metrics over time and enforcing thresholds where appropriate, G2 enables early detection of architectural drift and supports timely refactoring while corrective actions remain localized and economically viable. The primary objective is not to eliminate change, but to ensure that its cost remains bounded as the system evolves.
 \end{itemize}
 
+\subsection*{Documentation Guidelines}
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Dependency Direction Map:}
+  Maintain a visual or textual map of the allowed dependency direction between modules. This map complements G1's module descriptor by making the intended information flow explicit and reviewable during architectural discussions.
+
+  \item \emph{Contract Change Log:}
+  Whenever a module's public surface changes (new handler, modified event schema, deprecated endpoint), record the change with version metadata. This log supports backward-compatibility analysis and informs downstream consumers of evolving contracts.
+
+  \item \emph{Architectural Drift Incidents:}
+  When a metric threshold is crossed (e.g., $C_{\mathrm{undecl}} > 0$ or $\rho_{\mathrm{api}}$ drops below target), record the incident, root cause, and resolution. This creates a traceable history of maintainability interventions.
+\end{itemize}
+
+\subsection*{Tooling Capabilities Checklist}
+Any open-source or proprietary tool used to support maintainability should address:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Dependency Graph Visualization:} Generate and display the module dependency graph, highlighting cycles, undeclared dependencies, and forbidden references.
+  \item \emph{API Surface Analysis:} Track the size and growth rate of each module's public surface over time ($G_{\mathrm{api}}$).
+  \item \emph{Change Coupling Detection:} Identify modules that frequently change together across commits ($CCI$), signaling feature-centric coupling or blurred ownership.
+  \item \emph{Longitudinal Metric Tracking:} Store and visualize G2 metrics over time, enabling trend analysis and early detection of architectural drift.
+  \item \emph{Contract Compatibility Checking:} Verify that changes to a module's public surface do not break downstream consumers, ideally integrated into the CI pipeline.
+\end{itemize}
+
+\subsection*{Reference Implementation}
+G2's maintainability principles are demonstrated through the same Tiny Store reference implementation used in G1. The relevant structural artifacts are:
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \texttt{libs/modules/*/src/index.ts}: Module entrypoints that define the public surface for each bounded context
+  \item \texttt{libs/shared/testing/src/module-boundary.spec.ts}: Boundary verification tests that enforce dependency direction and detect encapsulation leakage
+  \item \texttt{apps/api/src/app/lib/register-listeners.ts}: Centralized event wiring that makes cross-module collaboration auditable
+  \item \texttt{nx.json} and \texttt{.eslintrc.json}: Nx workspace configuration with \texttt{@nx/enforce-module-boundaries} rules
+\end{itemize}
+
 \subsection*{Literature Support Commentary}
 Although maintainability is a central topic in software engineering, much of the literature treats it either as an abstract principle or as a collection of localized code quality metrics. Recent empirical studies and systematic reviews emphasize that maintainability improvements in modular monoliths are primarily driven by boundary discipline and dependency management rather than deployment decomposition alone~\cite{gravanis2021dont,berry2024isItWorth,blinowski2022monolithic}.
 
-Evolutionary architecture research further argues that architectural properties such as maintainability must be preserved through objective, executable constraints rather than informal guidance~\cite{FordParsons2017}. G2 synthesizes these insights by framing maintainability as bounded cost of change and by providing concrete design mechanisms and measurable signals grounded in the boundary enforcement model established by G1.
+Evolutionary architecture research further argues that architectural properties such as maintainability must be preserved through objective, executable constraints rather than informal guidance~\cite{FordParsons2017}. The concept of \emph{architectural fitness functions}, as popularized by ThoughtWorks~\cite{thoughtworks2017fitnessfunction}, operationalizes this perspective by defining automated checks that continuously verify whether the architecture satisfies its intended properties. G2 synthesizes these insights by framing maintainability as bounded cost of change and by providing concrete design mechanisms and measurable signals grounded in the boundary enforcement model established by G1.
+
+%% ============================================================
+%% G2 APPLIED
+
+%% ============================================================
+%% G2 APPLIED
+%% ============================================================
+\pagebreak
+\subsection*{G2 Applied: Maintainability in the Tiny Store}
+\label{sec:g2-applied}
+
+G1 answers a binary question: \emph{are boundaries enforced right now?} A single failing boundary test is enough to detect and fix a violation. G2 asks a fundamentally different question: \emph{are boundaries sustainable over time?} The answer is not binary but longitudinal; it emerges from tracking how dependency structure, API surface size, and change coupling evolve across commits, sprints, and releases. A system can pass every G1 check and still degrade in maintainability if convenience-driven shortcuts accumulate, public surfaces inflate, or dependency direction drifts silently.
+
+This section operationalizes G2 using the Tiny Store reference implementation. Where G1's tutorial focused on the Orders--Inventory boundary, G2 shifts attention to the Payments and Shipments contexts, smaller modules whose evolution patterns reveal maintainability risks that are invisible to boundary checks alone. The tutorial introduces dependency graph analysis, API surface measurement, and change coupling detection as G2-specific tooling. The exercises demonstrate failure modes that \emph{pass all G1 gates} yet degrade the longitudinal health metrics defined in G2.
+
+\subsection*{Reader Map}
+This tutorial assumes the G1 baseline is passing and takes approximately 30 minutes. You will first learn to extract a dependency direction map and compute API surface metrics from the live codebase. Then you will run three exercises, each introducing a maintainability anti-pattern that is technically valid under G1 but produces a measurable signal under G2. The exercises use the Payments and Shipments modules exclusively, so there is no overlap with G1's Orders--Inventory walkthrough.
+
+\pagebreak
+\subsection*{Tutorial: Step-by-Step Application}
+
+\subsubsection*{Step 1: Extract the Dependency Direction Map}
+G2 requires that dependency direction reflects responsibility and information flow. The first maintainability-specific action is to extract and visualize the actual dependency graph, then compare it against the intended architecture.
+
+\begin{lstlisting}[language=bash,caption={Extract the module dependency graph},label={lst:g2-dep-graph}]
+# Generate the Nx dependency graph (opens in browser)
+npx nx graph
+
+# For CI or scripted analysis, export as JSON:
+npx nx graph --file=dep-graph.json
+cat dep-graph.json | python3 -c "
+import json, sys
+g = json.load(sys.stdin)['graph']
+for src, data in g['dependencies'].items():
+    if 'modules-' in src:
+        for dep in data:
+            tgt = dep['target']
+            if 'modules-' in tgt or 'shared-' in tgt:
+                print(f'  {src} -> {tgt}')
+"
+\end{lstlisting}
+
+In a healthy Tiny Store baseline, the output shows that every bounded-context module depends only on shared libraries. No module-to-module edge exists at the library level:
+
+\begin{lstlisting}[language=bash,caption={Expected dependency direction (baseline)},label={lst:g2-dep-baseline}]
+  modules-orders    -> shared-domain
+  modules-orders    -> shared-infrastructure
+  modules-inventory -> shared-domain
+  modules-inventory -> shared-infrastructure
+  modules-payments  -> shared-domain
+  modules-payments  -> shared-infrastructure
+  modules-shipments -> shared-domain
+  modules-shipments -> shared-infrastructure
+\end{lstlisting}
+
+Cross-module coupling exists only in the composition root (\texttt{register-listeners.ts}), which lives in \texttt{apps/api}, not inside any module. This is a G2 invariant: if a module-to-module edge appears in the dependency graph, it signals that coupling has migrated from the auditable composition root into module internals, violating unidirectional dependency flow.
+
+\subsubsection*{Step 2: Measure the API Surface per Module}
+G2 tracks the public API surface size ($|API_m|$) and its growth rate ($G_{\mathrm{api}}$) as longitudinal health signals. A growing surface creates downstream obligations and reduces refactoring freedom. Measure the current baseline:
+
+\begin{lstlisting}[language=bash,caption={Count exported symbols per module},label={lst:g2-api-surface}]
+for mod in orders inventory payments shipments; do
+  count=$(grep -c "^export" \
+    libs/modules/$mod/src/index.ts 2>/dev/null || echo 0)
+  echo "$mod: $count exports"
+done
+\end{lstlisting}
+
+Expected baseline output:
+
+\begin{lstlisting}[language=bash,caption={API surface baseline},label={lst:g2-api-baseline}]
+orders:    9 exports   (4 handlers + 5 listeners)
+inventory: 7 exports   (4 handlers + 3 listeners)
+payments:  3 exports   (2 handlers + 1 listener)
+shipments: 3 exports   (2 handlers + 1 listener)
+\end{lstlisting}
+
+These numbers form the $t_0$ snapshot for $G_{\mathrm{api}}$. In a CI pipeline, this count would be recorded per commit so that sustained growth triggers a review. Notice that Payments and Shipments have the smallest surfaces (3 exports each); they are lean contracts. G2's objective is to keep them that way as the system evolves.
+
+\subsubsection*{Step 3: Audit Cross-Module Wiring Density}
+G1 established that \texttt{register-listeners.ts} centralizes event subscriptions. G2 goes further by treating this file as a \emph{coupling density indicator}: the number of cross-module subscription lines reflects the coordination cost of the system. Count them:
+
+\begin{lstlisting}[language=bash,caption={Count cross-module subscriptions},label={lst:g2-wiring-density}]
+grep -c "eventBus.subscribe" \
+  apps/api/src/app/lib/register-listeners.ts
+# Baseline: ~19 subscriptions (13 event-store + 6 listener wiring)
+\end{lstlisting}
+
+This number is not inherently good or bad; it reflects the system's current collaboration complexity. The G2 concern is \emph{growth rate}: if this count doubles after adding one feature, the wiring is likely feature-centric rather than bounded-context-oriented, signaling the ``Feature-Centric Coupling'' anti-pattern described in the failure modes section.
+
+\subsubsection*{Step 4: Compute $\rho_{\mathrm{api}}$ from the Composition Root}
+The API-only dependency ratio ($\rho_{\mathrm{api}}$) measures whether cross-module references target public entrypoints or internal paths. In Tiny Store, all imports in \texttt{register-listeners.ts} use the public path \texttt{@tiny-store/modules-*}:
+
+\begin{lstlisting}[language=TypeScript,caption={All composition root imports use public entrypoints},label={lst:g2-rho-api}]
+import { OrderPlacedListener } from '@tiny-store/modules-inventory';
+import { InventoryReservedListener } from '@tiny-store/modules-orders';
+import { OrderConfirmedListener } from '@tiny-store/modules-payments';
+import { OrderPaidListener } from '@tiny-store/modules-shipments';
+\end{lstlisting}
+
+None of these imports target internal paths (e.g., \texttt{@tiny-store/modules-payments/src/domain/...}). With all cross-module references routing through public surfaces, $\rho_{\mathrm{api}} = 1.0$. Any deviation from 1.0 means an internal path has leaked into the composition root, a maintainability regression that G1's boundary tests may not catch if the import resolves correctly at runtime.
+
+\subsubsection*{Step 5: Detect Change Coupling via Co-Change Analysis}
+G2 defines the Change Coupling Index ($CCI$) as a supplementary metric that captures modules changing together across commits. This is not detectable by static analysis; it requires commit history:
+
+\begin{lstlisting}[language=bash,caption={Detect co-changing modules in recent commits},label={lst:g2-cci}]
+# List modules touched per commit, flag co-changes
+git log --oneline -50 --name-only | \
+  awk '/^[a-f0-9]/{commit=$1; next}
+       /^libs\/modules\//{split($0,a,"/"); mods[commit][a[3]]}
+       END{for(c in mods) if(length(mods[c])>1)
+         print c, ":", length(mods[c]), "modules"}'
+\end{lstlisting}
+
+In a healthy codebase, most commits touch a single module. When Payments and Shipments consistently change together (e.g., every shipment feature also modifies payment logic), it indicates that responsibility boundaries are blurred, even if no import violations exist. This is precisely the kind of degradation G2 is designed to surface: structurally valid code with economically unsustainable change patterns.
+
+\subsubsection*{Step 6: Understand the Longitudinal Perspective}
+The key distinction between G1 and G2 enforcement is \emph{when} degradation becomes visible. G1 catches violations at the moment they are introduced (a failing test, a lint error). G2 catches degradation that accumulates over time: a public surface that grows by one export per sprint, a $\rho_{\mathrm{api}}$ that drops from 1.0 to 0.95 to 0.87 across releases, a $CCI$ that rises as features span more modules.
+
+This means G2 metrics must be \emph{tracked}, not just \emph{checked}. The recommended practice is to record the following values at each release milestone:
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item $|API_m|$ per module (from Step 2)
+  \item $\rho_{\mathrm{api}}$ (from Step 4)
+  \item Wiring density in \texttt{register-listeners.ts} (from Step 3)
+  \item $CCI$ over the most recent $N$ commits (from Step 5)
+\end{itemize}
+
+A single anomalous value is not alarming. A sustained trend (three consecutive sprints where Payments' surface grows, or $\rho_{\mathrm{api}}$ declines monotonically) triggers an architectural review. This longitudinal framing is what separates G2 from G1: boundaries are not just correct, but \emph{economically sustainable}.
+
+\pagebreak
+\subsection*{Exercise Walkthrough: Controlled Maintainability Degradation}
+The exercises below differ fundamentally from G1's exercises. G1 introduced violations that immediately fail a boundary check (binary signal). G2 introduces changes that \emph{pass all G1 gates} but degrade maintainability metrics over time (longitudinal signal). Each exercise uses the Payments or Shipments module to avoid overlap with G1's Orders--Inventory examples.
+
+\subsubsection*{Exercise 0: Establish the G2 Maintainability Baseline}
+Record the starting values for all G2 metrics. These form the $t_0$ reference against which degradation is measured.
+
+\begin{lstlisting}[language=bash,caption={G2 maintainability baseline},label={lst:g2-ex0}]
+# 1. Confirm G1 gates still pass
+npm run test:boundary && npm run test:integration
+
+# 2. Record API surface sizes
+for mod in orders inventory payments shipments; do
+  echo "$mod: $(grep -c '^export' \
+    libs/modules/$mod/src/index.ts) exports"
+done
+# payments: 3, shipments: 3
+
+# 3. Record rho_api
+grep -c "@tiny-store/modules-" \
+  apps/api/src/app/lib/register-listeners.ts
+# All via public entrypoints -> rho_api = 1.0
+
+# 4. Record dependency graph (no module-to-module edges)
+npx nx graph --file=dep-graph.json
+\end{lstlisting}
+
+Baseline: $|API_{\mathrm{payments}}| = 3$, $|API_{\mathrm{shipments}}| = 3$, $\rho_{\mathrm{api}} = 1.0$, $C_{\mathrm{forbid}} = 0$, zero module-to-module edges.
+
+\subsubsection*{Exercise 1: Convenience Shortcut That Passes G1 ($\rho_{\mathrm{api}}\downarrow$, $C_{\mathrm{undecl}}\uparrow$)}
+A developer working on the Shipments module needs the \texttt{PaymentStatus} enum to decide whether to hold a shipment. Instead of enriching the event payload or introducing a query contract, they take a shortcut that \emph{technically passes G1's boundary tests} because it imports from Payments' \texttt{index.ts}, but the imported symbol should never have been exported (it was added ``temporarily'' in an earlier commit).
+
+\emph{What you change:}
+
+First, in \texttt{libs/modules/payments/src/index.ts}, add a seemingly harmless re-export:
+\begin{lstlisting}[language=TypeScript,caption={Step 1: Payments exports an internal enum},label={lst:g2-ex1-step1}]
+// "Temporary" export added for cross-module convenience
+export * from './domain/enums/payment-status.enum';
+\end{lstlisting}
+
+Then, in \texttt{libs/modules/shipments/src/features/create-shipment/service.ts}, consume it:
+\begin{lstlisting}[language=TypeScript,caption={Step 2: Shipments depends on Payments' internal type},label={lst:g2-ex1-step2}]
+import { PaymentStatus } from '@tiny-store/modules-payments';
+
+// Now create-shipment logic checks payment status directly
+if (paymentStatus !== PaymentStatus.SUCCEEDED) {
+  throw new Error('Cannot ship unpaid order');
+}
+\end{lstlisting}
+
+\emph{What you run:}
+\begin{lstlisting}[language=bash,caption={Verify G1 passes but G2 degrades},label={lst:g2-ex1-run}]
+# G1 gate: PASSES (import uses public entrypoint)
+npm run test:boundary
+# All green -- G1 sees no violation
+
+# G2 metrics: DEGRADED
+# 1. API surface grew
+grep -c "^export" libs/modules/payments/src/index.ts
+# Was 3, now 4 -> G_api(payments) = +1
+
+# 2. Dependency graph gained a module-to-module edge
+npx nx graph --file=dep-graph.json
+# New edge: modules-shipments -> modules-payments
+# This edge did NOT exist at baseline
+
+# 3. rho_api still 1.0 (import uses public path)
+# BUT the dependency is structurally new and undeclared
+# C_undecl rises from 0 to 1
+\end{lstlisting}
+
+\emph{Why this matters for G2:} The Nx dependency graph now shows \texttt{modules-shipments $\rightarrow$ modules-payments}, a direct module-to-module edge that did not exist at baseline. G1 does not flag this because the import resolves through a public entrypoint. But G2 detects it as architectural drift: Shipments can no longer evolve independently of Payments' domain model. A refactoring of \texttt{PaymentStatus} now forces a coordinated change across two bounded contexts. The cost of change has increased, even though no boundary test failed.
+
+\emph{Fix:} Remove the enum export from Payments' \texttt{index.ts}. If Shipments needs payment-readiness information, enrich the \texttt{OrderPaid} event payload to include the relevant status, keeping the interaction contract-based rather than type-coupled.
+
+\subsubsection*{Exercise 2: Transitive Orchestration in the Composition Root ($C_{\mathrm{forbid}}\uparrow$, blast radius)}
+The composition root in \texttt{register-listeners.ts} already contains a pattern where the \texttt{OrderPaid} handler queries Orders for the shipping address before invoking Shipments' \texttt{CreateShipmentHandler}. A developer extends this pattern by also querying Payments to check whether the payment was refunded before creating the shipment. This creates a transitive coupling chain that spans three modules in a single event handler.
+
+\emph{What you change:} In \texttt{register-listeners.ts}, modify the \texttt{OrderPaid} subscription to query Payments before creating a shipment:
+
+\begin{lstlisting}[language=TypeScript,caption={Violation: three-module orchestration in one handler},label={lst:g2-ex2-violation}]
+import { GetPaymentHandler } from '@tiny-store/modules-payments';
+
+// In registerListeners():
+const getPaymentHandler = new GetPaymentHandler(dataSource);
+
+eventBus.subscribe('OrderPaid', async (event) => {
+  const { orderId } = event.payload;
+  // Query Payments to verify payment is not refunded
+  const payment = await getPaymentHandler.handle(orderId);
+  if (payment.status === 'REFUNDED') return;
+  // Then query Orders for shipping address
+  const order = await getOrderHandler.handle(orderId);
+  await createShipmentHandler.handle({
+    orderId,
+    shippingAddress: order.shippingAddress,
+  });
+});
+\end{lstlisting}
+
+\emph{What you run:}
+\begin{lstlisting}[language=bash,caption={Detect coupling density increase},label={lst:g2-ex2-run}]
+# G1 gate: PASSES (composition root may import any public surface)
+npm run test:boundary
+# All green
+
+# G2 analysis: coupling density and direction
+# Count handler instantiations in composition root:
+grep -c "new.*Handler" \
+  apps/api/src/app/lib/register-listeners.ts
+# Was 4, now 5 -> wiring density increased
+
+# Trace the transitive dependency chain:
+# OrderPaid -> getPaymentHandler (Payments)
+#           -> getOrderHandler (Orders)
+#           -> createShipmentHandler (Shipments)
+# Three modules are now coupled in a single event handler
+\end{lstlisting}
+
+\emph{Why this matters for G2:} No boundary test fails. But the \texttt{OrderPaid} handler now orchestrates three modules in sequence, creating a transitive dependency chain. If any of the three handlers changes its return type, the composition root breaks, and because the logic is interleaved in a single subscription, the blast radius spans Payments, Orders, and Shipments simultaneously. This violates G2's \emph{change locality} principle: a modification in Payments' response shape forces changes in code that nominally belongs to the Shipments workflow. The wiring density metric captures the growth, and a $C_{\mathrm{forbid}}$ increment is warranted if peer modules are declared as forbidden transitive dependencies.
+
+\emph{Fix:} Enrich the \texttt{OrderPaid} event payload to include all data Shipments needs (shipping address, payment status). The composition root should wire events to handlers, not orchestrate multi-module queries. If orchestration is necessary, extract it into a dedicated saga or process manager with explicit ownership.
+
+\subsubsection*{Exercise 3: Gradual Public Surface Bloat ($G_{\mathrm{api}}\uparrow$)}
+Demonstrate how a module's public surface can inflate with \emph{legitimate} exports (valid handlers, not internal entities) while every G1 check remains green. The danger is not \emph{what kind} of symbol is exported, but \emph{how many}: each new public symbol is a downstream obligation that freezes internal design choices.
+
+\emph{What you change:} In \texttt{libs/modules/payments/src/index.ts}, add five new handlers that are perfectly valid public capabilities:
+
+\begin{lstlisting}[language=TypeScript,caption={Surface bloat: valid but excessive exports},label={lst:g2-ex3-violation}]
+// libs/modules/payments/src/index.ts
+// --- existing exports (3 symbols) ---
+export * from './features/process-payment/handler';
+export * from './features/get-payment/handler';
+export * from './listeners/order-confirmed.listener';
+
+// --- NEW: 5 additional query handlers in one sprint ---
+export * from './features/get-payments-by-order/handler';
+export * from './features/get-payments-by-status/handler';
+export * from './features/get-payments-by-date/handler';
+export * from './features/refund-payment/handler';
+export * from './features/retry-payment/handler';
+\end{lstlisting}
+
+\emph{What you run:}
+\begin{lstlisting}[language=bash,caption={Measure surface inflation},label={lst:g2-ex3-run}]
+# G1 gate: PASSES (all exports are handlers, not internals)
+npm run test:boundary
+# All green -- no encapsulation leak, no forbidden import
+
+# G2 metric: API surface
+grep -c "^export" libs/modules/payments/src/index.ts
+# Was 3, now 8 -> G_api(payments) = +5 in one sprint
+# |API_payments| grew from 3 to 8 (167% increase)
+\end{lstlisting}
+
+\emph{Why this matters for G2:} The Payments module went from a lean 3-symbol contract to an 8-symbol surface in a single sprint. Every exported handler is a contract that downstream consumers may depend on. Once another module or the composition root begins using \texttt{GetPaymentsByStatusHandler}, Payments can no longer rename, restructure, or remove that handler without coordinating a cross-module change. The module's internal refactoring freedom shrinks with each export. Over three sprints, if each adds 2 exports, $G_{\mathrm{api}}(\mathrm{payments}) \approx 2/\mathrm{sprint}$, a sustained growth rate that warrants consolidation.
+
+G1 cannot detect this: every exported symbol is a handler (not an entity or repository), so $C_{\mathrm{leak}} = 0$. The issue is purely quantitative (\emph{how much} surface, not \emph{what kind}) and requires the longitudinal $G_{\mathrm{api}}$ metric to become visible.
+
+\emph{Fix:} Remove exports that are consumed only within the module's own HTTP adapter or feature code. Expose only handlers that external modules actually invoke through the composition root. Set a $G_{\mathrm{api}}$ threshold (e.g., $\leq 5$ for lean modules like Payments) in CI to catch surface inflation early.
+
+\pagebreak
+\subsubsection*{Exercise Summary}
+\small
+\noindent
+\begin{tabularx}{\linewidth}{p{0.04\linewidth} X p{0.22\linewidth} p{0.18\linewidth} p{0.10\linewidth}}
+\textbf{Ex.} & \textbf{What you change} & \textbf{Run} & \textbf{G2 signal} & \textbf{G1 status} \\
+0 & Record baseline metrics & API count, \texttt{nx graph}, CCI & $t_0$ snapshot & \checkmark{} pass \\
+1 & Payments exports enum, Shipments consumes it & \texttt{nx graph}, API count & $C_{\mathrm{undecl}}\uparrow$, new edge & \checkmark{} pass \\
+2 & Composition root orchestrates 3 modules & wiring density, chain trace & blast radius $\times 3$ & \checkmark{} pass \\
+3 & Payments exports 5 valid handlers & API count & $G_{\mathrm{api}}\uparrow$ (3$\to$8) & \checkmark{} pass \\
+\end{tabularx}
+\normalsize
+
+\vspace{0.5em}
+\noindent\emph{Key observation:} All three exercises pass G1's \texttt{test:boundary} gate. The degradation is only visible through G2's longitudinal metrics: dependency graph edges, API surface counts, wiring density, and change coupling analysis. This confirms that boundary correctness (G1) and boundary sustainability (G2) are complementary but distinct architectural concerns.
+
+\subsection*{Conclusion of the G2 Implementation}
+This section demonstrated that maintainability in a modular monolith cannot be reduced to boundary enforcement alone. G1 ensures that boundaries are \emph{correct} at any given moment; G2 ensures that they remain \emph{economically sustainable} over time. The distinction is practical: a system can pass every boundary test while accumulating convenience-driven type coupling, inflated API surfaces, and feature-centric wiring that progressively raises the cost of change.
+
+The tutorial introduced maintainability-specific tooling (dependency graph extraction, API surface counting, wiring density measurement, and co-change analysis) that operationalizes G2's metrics on a real codebase. The exercises showed that each failure mode produces a specific, measurable signal: a new module-to-module edge that did not exist at baseline ($C_{\mathrm{undecl}}$), a transitive orchestration chain that expands the blast radius of composition root changes, and a growing public surface that creates contractual obligations faster than the module can absorb them ($G_{\mathrm{api}}$). None of these violations were caught by G1's boundary tests; they required longitudinal tracking to become visible.
+
+Together, G1 and G2 establish a layered defense for progressive scalability. G1 provides the immediate, binary gate that prevents structural violations. G2 provides the longitudinal, quantitative signals that detect gradual erosion before it becomes irreversible. With both guidelines in place, the architecture retains the option to evolve incrementally (adding modules, extracting services, or scaling selectively) while keeping the cost of change bounded and predictable as the system grows.
