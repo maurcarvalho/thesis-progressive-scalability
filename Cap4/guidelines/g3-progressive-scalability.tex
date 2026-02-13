@@ -21,7 +21,7 @@ G3 therefore treats scalability as a \emph{gradient} rather than a binary switch
   \item \emph{Selective extraction of bounded contexts:} deploying individual modules as independent services only when the preceding interventions are insufficient and the operational cost is justified.
 \end{enumerate}
 
-This spectrum makes the migration to microservices an \emph{option}, not an obligation. Each step is proportional to observed need, reversible if conditions change, and grounded in the boundary enforcement (G1) and maintainability discipline (G2) already established. The key insight is that a system with enforced modular boundaries and stable contracts is \emph{already extraction-ready}; what G3 adds is the deliberate preparation of infrastructure seams---established from project inception---that make extraction low-risk when evidence warrants it.
+This spectrum makes the migration to microservices an \emph{option}, not an obligation. Each step is proportional to observed need, reversible if conditions change, and grounded in the boundary enforcement (G1) and maintainability discipline (G2) already established. The key insight is that a system with enforced modular boundaries and stable contracts is \emph{already extraction-ready}; what G3 adds is the deliberate preparation of infrastructure seams, established from project inception, that make extraction low-risk when evidence warrants it.
 
 \subsection*{Conceptual Overview}
 
@@ -105,7 +105,7 @@ The spectrum is not strictly linear: a team may apply L2 (data isolation) to one
 
 The Tiny Store reference implementation demonstrates that progressive scalability infrastructure is embedded from day one as an architectural requirement, not added later as a scaling patch. The following code listings show the actual production code that ships with the initial deployment.
 
-\subsubsection*{L0: Vertical Optimization --- Module-Scoped Caching}
+\subsubsection*{L0: Vertical Optimization: Module-Scoped Caching}
 
 Tiny Store includes a Redis-backed caching layer from day one, not as an optimization added under pressure. The \texttt{CacheService} enforces module-namespaced keys, ensuring that cache entries are isolated per bounded context and can be invalidated independently.
 
@@ -166,9 +166,9 @@ export function Cacheable(
 \end{lstlisting}
 
 \noindent
-The key design decision is that the cache layer exists from the first deployment. When vertical optimization becomes necessary (L0 trigger), the team enables caching on specific queries by adding a decorator---no infrastructure provisioning or architectural change is required.
+The key design decision is that the cache layer exists from the first deployment. When vertical optimization becomes necessary (L0 trigger), the team enables caching on specific queries by adding a decorator; no infrastructure provisioning or architectural change is required.
 
-\subsubsection*{L1: Async Decoupling --- Module-Scoped Queues}
+\subsubsection*{L1: Async Decoupling: Module-Scoped Queues}
 
 Asynchronous processing is an architectural requirement, not a scaling patch. The \texttt{QueueService} provides module-scoped BullMQ queues following the convention \texttt{module:purpose}:
 
@@ -233,9 +233,9 @@ export async function enqueueOrderConfirmation(
 \end{lstlisting}
 
 \noindent
-Because BullMQ and Redis are present from day one, the team can introduce async decoupling for any inter-module interaction by defining a new queue---no infrastructure migration is required.
+Because BullMQ and Redis are present from day one, the team can introduce async decoupling for any inter-module interaction by defining a new queue; no infrastructure migration is required.
 
-\subsubsection*{L2: Data Isolation --- Per-Module PostgreSQL Schemas}
+\subsubsection*{L2: Data Isolation: Per-Module PostgreSQL Schemas}
 
 Schema isolation is a design decision made at project inception. Each module owns its data from the first deployment, ensuring that extraction never requires data migration. The \texttt{schema-isolation.ts} module creates per-module PostgreSQL schemas and provides module-scoped \texttt{DataSource} connections with isolated \texttt{search\_path}:
 
@@ -276,7 +276,7 @@ export async function getModuleConnection(
 \end{lstlisting}
 
 \noindent
-Each module operates within its own PostgreSQL schema from the first \texttt{docker-compose up}. Cross-module data access is mediated through published contracts (events or API calls), never through direct table queries. When L3 extraction occurs, the module's schema migrates to a dedicated database instance---a deployment topology change, not a data migration.
+Each module operates within its own PostgreSQL schema from the first \texttt{docker-compose up}. Cross-module data access is mediated through published contracts (events or API calls), never through direct table queries. When L3 extraction occurs, the module's schema migrates to a dedicated database instance, a deployment topology change, not a data migration.
 
 \subsubsection*{Extraction Readiness Score}
 
@@ -447,10 +447,10 @@ The scalability levels defined here provide the trigger criteria for G4 (Migrati
 The code listings in this section are drawn from the Tiny Store reference implementation. The relevant source files are:
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \texttt{libs/shared/infrastructure/src/cache/cache.service.ts} --- Module-namespaced Redis caching (L0)
-  \item \texttt{libs/shared/infrastructure/src/cache/cache.decorator.ts} --- Read-through caching decorator (L0)
-  \item \texttt{libs/shared/infrastructure/src/queue/queue.service.ts} --- Module-scoped BullMQ queues (L1)
-  \item \texttt{libs/modules/orders/src/jobs/order-confirmation-email.job.ts} --- Async email decoupling (L1)
-  \item \texttt{libs/shared/infrastructure/src/database/schema-isolation.ts} --- Per-module PostgreSQL schemas (L2)
-  \item \texttt{tools/metrics/extraction-readiness.ts} --- Extraction readiness score calculator ($\varepsilon_m$)
+  \item \texttt{libs/shared/infrastructure/src/cache/cache.service.ts}: Module-namespaced Redis caching (L0)
+  \item \texttt{libs/shared/infrastructure/src/cache/cache.decorator.ts}: Read-through caching decorator (L0)
+  \item \texttt{libs/shared/infrastructure/src/queue/queue.service.ts}: Module-scoped BullMQ queues (L1)
+  \item \texttt{libs/modules/orders/src/jobs/order-confirmation-email.job.ts}: Async email decoupling (L1)
+  \item \texttt{libs/shared/infrastructure/src/database/schema-isolation.ts}: Per-module PostgreSQL schemas (L2)
+  \item \texttt{tools/metrics/extraction-readiness.ts}: Extraction readiness score calculator ($\varepsilon_m$)
 \end{itemize}

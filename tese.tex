@@ -163,6 +163,11 @@
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 \onehalfspacing
 
+% Allow slightly looser line breaking to prevent overfull hbox from long \texttt paths
+\tolerance=2000
+\emergencystretch=2em
+\hyphenpenalty=50
+
 %singlespacing Para um espaçamento simples
 %onehalfspacing Para um espaçamento de 1,5
 %doublespacing Para um espaçamento duplo
@@ -217,7 +222,7 @@
 %\cdu{???.??}
 
 % Glossario
-% \makenoidxglossaries % glossaries not currently used
+\makenoidxglossaries
 \frontmatter
 
 % TODO:ABREV E SIMBOLOS
@@ -249,11 +254,10 @@
 \renewcommand\bibname{\itareferencesnamebabel} %renomear título do capítulo referências
 \printbibliography
 
-% ----- TODO ANEXOS E APENDICES --------
-% Apendices
-%\appendix
-%\chapter{Exemplo de Apendice} %opcional
-%\input{ApeA/apendiceA}
+% ----- APPENDICES --------
+\appendix
+\chapter{Glossary of Technologies and Patterns}
+\input{ApeA/apendiceA}
 
 % Anexos
 %\annex

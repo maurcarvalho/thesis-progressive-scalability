@@ -380,8 +380,8 @@ These alerts feed directly into G3's trigger conditions: \texttt{HighErrorRate} 
 The reference implementation includes a pre-configured Grafana dashboard (\texttt{infra/grafana/dashboards/module-overview.json}) with four panels that provide the observability surface required by G3 and G4:
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Request Rate per Module:} \texttt{sum(rate(\{\_\_name\_\_=\textasciitilde".+\_requests\_total"\}[5m])) by (module)} --- visualizes $\Theta_m$ from G3.
-  \item \emph{P95 Latency per Module:} \texttt{histogram\_quantile(0.95, ...)} --- tracks $\sigma^2_{L,m}$ and triggers L0/L1 interventions.
+  \item \emph{Request Rate per Module:} \texttt{sum(rate(\{\_\_name\_\_=\textasciitilde".+\_requests\_total"\}[5m])) by (module)}: visualizes $\Theta_m$ from G3.
+  \item \emph{P95 Latency per Module:} \texttt{histogram\_quantile(0.95, ...)}: tracks $\sigma^2_{L,m}$ and triggers L0/L1 interventions.
   \item \emph{Error Rate per Module:} per-module error rate for alert correlation.
   \item \emph{Kafka Consumer Lag:} consumer group lag by topic, signaling cross-module backpressure.
 \end{itemize}
@@ -497,7 +497,7 @@ Table~\ref{tab:observability-maturity} defines the observability maturity levels
 \hline
 \textbf{Level} & \textbf{Traces} & \textbf{Metrics} & \textbf{Logs} & \textbf{Dashboard} \\
 \hline
-O0 (None) & --- & --- & --- & --- \\
+O0 (None) & None & None & None & None \\
 O1 (Application) & App-wide & Global counters & Unstructured & Single overview \\
 O2 (Module-scoped) & Per-module spans & Module counters & Structured, tagged & Per-module \\
 O3 (Cross-boundary) & Cross-module correlation & $\Theta_m$, $\kappa_m$ & Trace-linked & Per-module + flow \\

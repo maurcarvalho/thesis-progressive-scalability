@@ -276,7 +276,7 @@ Note that the Docker Compose configuration in Listing~\ref{lst:g5-docker-compose
 
 While Docker Compose serves local development, production deployment requires a tool that manages zero-downtime deploys, SSL termination, rolling restarts, and infrastructure provisioning on remote servers. Tiny Store uses Kamal~\cite{kamal2024}, a deployment tool from 37signals that deploys containerized applications to bare-metal or VPS servers via SSH, without requiring Kubernetes.
 
-Kamal is chosen because it matches the progressive scalability philosophy: deploy the simplest topology that meets current needs, and evolve when evidence warrants it. A single \$20/month Hetzner VPS running Kamal can serve the monolith with all its infrastructure (Postgres, Kafka, Temporal, Redis, Jaeger), while a comparable managed Kubernetes setup would cost \$200+/month before accounting for operational complexity. When scaling pressure arrives (G3, Level L3), Kamal scales horizontally by adding servers to the configuration---without changing the deployment tool.
+Kamal is chosen because it matches the progressive scalability philosophy: deploy the simplest topology that meets current needs, and evolve when evidence warrants it. A single \$20/month Hetzner VPS running Kamal can serve the monolith with all its infrastructure (Postgres, Kafka, Temporal, Redis, Jaeger), while a comparable managed Kubernetes setup would cost \$200+/month before accounting for operational complexity. When scaling pressure arrives (G3, Level L3), Kamal scales horizontally by adding servers to the configuration, without changing the deployment tool.
 
 \paragraph{D0: Monolith deployment.} The primary Kamal configuration (\texttt{config/deploy.yml}) deploys the monolith with all infrastructure managed as Kamal \emph{accessories}:
 
@@ -332,7 +332,7 @@ The accessories pattern is central to progressive deployment: Postgres, Kafka, T
 
 \paragraph{D2: Adding the extracted orders service.} A separate Kamal destination configuration (\texttt{config/deploy.orders-service.yml}) deploys the orders service alongside the monolith. Traefik, Kamal's built-in reverse proxy, routes requests based on path prefix:
 
-\begin{lstlisting}[language=bash,caption={Kamal D2 configuration for orders service ({\ttfamily config/deploy.orders-service.yml}, trimmed)},label={lst:g5-kamal-d1}]
+\begin{lstlisting}[language=bash,caption={Kamal D2 configuration for orders service ({\ttfamily config/deploy.orders-service.yml}, trimmed)},label={lst:g5-kamal-d2}]
 # config/deploy.orders-service.yml
 service: tiny-store-orders
 image: maurcarvalho/tiny-store-orders
@@ -359,11 +359,11 @@ env:
 # Accessories shared with main deploy.yml -- no redeclaration needed
 \end{lstlisting}
 
-\paragraph{Deployment scripts.} Two shell scripts operationalize the D0 and D1 topologies:
+\paragraph{Deployment scripts.} Two shell scripts operationalize the D0 and D2 topologies:
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \texttt{bin/deploy} --- Deploys the monolith only (\texttt{kamal deploy}). First-time usage: \texttt{bin/deploy setup} provisions all accessories.
-  \item \texttt{bin/deploy-d2} --- Deploys both the monolith and the orders service. Executes \texttt{kamal deploy} followed by \texttt{kamal deploy -d orders-service}.
+  \item \texttt{bin/deploy}: Deploys the monolith only (\texttt{kamal deploy}). First-time usage: \texttt{bin/deploy setup} provisions all accessories.
+  \item \texttt{bin/deploy-d2}: Deploys both the monolith and the orders service. Executes \texttt{kamal deploy} followed by \texttt{kamal deploy -d orders-service}.
 \end{itemize}
 
 \noindent
@@ -463,14 +463,14 @@ All code listings in this section correspond to files in the Tiny Store referenc
 
 \small
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \texttt{apps/api/Dockerfile} --- Monolith multi-stage Docker build
-  \item \texttt{docker-compose.yml} --- Full local development environment with all infrastructure
-  \item \texttt{.github/workflows/ci.yml} --- Module-aware CI with Nx affected
-  \item \texttt{config/deploy.yml} --- Kamal D0 configuration (monolith + accessories)
-  \item \texttt{config/deploy.orders-service.yml} --- Kamal D1 configuration (extracted orders)
-  \item \texttt{bin/deploy} --- D0 deployment script
-  \item \texttt{bin/deploy-d2} --- D2 deployment script (monolith + orders service)
-  \item \texttt{nx.json} --- Nx workspace configuration with caching and affected defaults
+  \item \texttt{apps/api/Dockerfile}: Monolith multi-stage Docker build
+  \item \texttt{docker-compose.yml}: Full local development environment with all infrastructure
+  \item \texttt{.github/workflows/ci.yml}: Module-aware CI with Nx affected
+  \item \texttt{config/deploy.yml}: Kamal D0 configuration (monolith + accessories)
+  \item \texttt{config/deploy.orders-service.yml}: Kamal D2 configuration (extracted orders)
+  \item \texttt{bin/deploy}: D0 deployment script
+  \item \texttt{bin/deploy-d2}: D2 deployment script (monolith + orders service)
+  \item \texttt{nx.json}: Nx workspace configuration with caching and affected defaults
 \end{itemize}
 \normalsize
 
