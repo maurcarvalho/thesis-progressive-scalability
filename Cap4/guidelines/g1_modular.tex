@@ -97,6 +97,18 @@ The following failure modes are frequently observed in codebases that lack expli
 \subsubsection*{SOLID as Boundary Discipline}
 
 \noindent
+\subsubsection*{The Enforcement Gap}
+
+\noindent
+Most anti-patterns described here are well known by the software industry. Experienced engineers recognize them on sight during code reviews and design discussions. Yet recognition alone does not prevent them. The gap between conceptual knowledge and daily practice persists because these principles are rarely operationalized as measurable, automated constraints. They exist as shared understanding in the team's collective memory, not as executable checks in the CI pipeline.
+
+This gap compounds with growth. A single convenience import is harmless; hundreds of locally reasonable shortcuts across months of fast-paced delivery by multiple engineers and teams produce systemic architectural drift that no amount of documentation or periodic review can reverse. By the time the drift becomes visible, typically during an extraction attempt or a major refactoring, the cost of correction dwarfs the cost of prevention.
+
+The metrics and enforcement gates introduced in this guideline (and extended throughout G2 through G6) represent a deliberate attempt to close this gap: translating what engineers already know into what the build system can verify on every commit.
+
+\subsubsection*{SOLID as Boundary Discipline}
+
+\noindent
 These anti-patterns share a common root: they treat modularity as an organizational convenience rather than as an enforceable architectural property. The SOLID principles, when applied with discipline, address many of these failure modes directly. The Single Responsibility Principle prevents god modules and extreme granularity by requiring that each module encapsulates one cohesive business capability. The Open-Closed Principle, properly understood, means modules are open for extension through published contracts (events, handlers) rather than through speculative abstractions. The Dependency Inversion Principle ensures that modules depend on stable interfaces rather than on volatile internals from other bounded contexts. The misapplication of SOLID, however, is itself a common failure mode: teams interpret these principles as mandates for complex abstractions (deep inheritance hierarchies, excessive interfaces, premature generalization) rather than as guidelines for simpler, more stable boundaries. In a modular monolith, SOLID serves boundary discipline, not architectural ornamentation.
 
 \subsection*{Metrics and Verification}
