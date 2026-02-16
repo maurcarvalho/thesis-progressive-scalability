@@ -69,7 +69,7 @@ The following failure modes are frequently observed in codebases that lack expli
 \subsubsection*{Structural Anti-Patterns}
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Convenience-Driven Imports:} Developers import internal classes from another module because the path is shorter or the type is already available. Over time, these imports create a web of hidden coupling that boundary checks cannot detect if enforcement is absent~\cite{parnas1972informationhiding}. This anti-pattern is captured by an increase in $C_{\mathrm{leak}}$ and a decrease in $\rho_{\mathrm{api}}$.
+  \item \emph{Convenience-Driven Imports:} Developers import internal classes from another module because the path is shorter or the type is already available. Over time, these imports create a web of hidden coupling that boundary checks cannot detect if enforcement is absent~\cite{parnas1972informationhiding}. This anti-pattern is captured by an increase in $C_{\mathrm{leak}}$.
 
   \item \emph{Shared Utility Creep:} A \texttt{shared/} or \texttt{common/} package grows to include domain-specific logic that belongs inside a bounded context~\cite{martin2012clean}. Modules become coupled through this shared layer rather than through explicit contracts. This is reflected in rising $C_{\mathrm{undecl}}$ when shared utilities reference module internals.
 
