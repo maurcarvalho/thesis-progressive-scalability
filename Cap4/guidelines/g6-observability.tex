@@ -17,7 +17,7 @@ Microservices solve this problem by default, because each service is a separate 
 \subsection*{Conceptual Overview}
 
 Module-scoped observability is embedded through three complementary pillars, each applied at the module boundary:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Structured logging with module context:} Every log entry carries the originating module name, a correlation ID that tracks requests across module boundaries, and structured fields (JSON) that enable programmatic querying. Log aggregation tools (e.g., Loki, Elasticsearch) can filter by module without code changes after extraction.
   \item \emph{Module-scoped metrics via OpenTelemetry:} Each module emits latency, throughput, and error rate metrics tagged with the module name. These metrics feed directly into G3's trigger conditions ($\Theta_m$, $\sigma^2_{L,m}$) and G4's extraction readiness assessment. Prometheus scrapes the metrics endpoint; Grafana visualizes them. The same setup works before and after extraction.
   \item \emph{Distributed tracing inside the monolith:} OpenTelemetry spans are created for each module handler invocation, each Temporal workflow and activity execution, and each Kafka producer/consumer interaction. A single trace visualizes the full order fulfillment flow across module boundaries, making cross-module latency and failure propagation observable. Jaeger (or any OpenTelemetry-compatible backend) displays the traces. After extraction, the trace context propagates over the network automatically via OpenTelemetry's context propagation.
@@ -26,7 +26,7 @@ Module-scoped observability is embedded through three complementary pillars, eac
 \subsection*{Applicability Conditions and Scope}
 
 G6 applies to modular monolith systems where:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Module boundaries are enforced (G1) and modules are identifiable as distinct units within the codebase.
   \item The team needs evidence-based input for scaling decisions (G3) and extraction readiness assessments (G4).
   \item Production infrastructure (Kafka, Temporal) is already in place (G4/G5), providing natural instrumentation points for tracing and metrics.
@@ -36,7 +36,7 @@ G6 does not prescribe specific observability vendors or platforms. It is grounde
 
 
 \subsection*{Objectives}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Module-level attribution:} Every metric, log entry, and trace span is attributable to a specific module, enabling per-module dashboards, alerts, and performance baselines.
   \item \emph{Cross-module interaction visibility:} Traces show the full request path across module boundaries, including synchronous handler calls, Temporal workflow and activity executions, and Kafka produce/consume cycles.
   \item \emph{Baseline establishment:} Before any extraction, module-level performance baselines (latency distributions, throughput profiles, error rates) are recorded, enabling before/after comparison when extraction occurs.
@@ -47,7 +47,7 @@ G6 does not prescribe specific observability vendors or platforms. It is grounde
 
 \subsection*{Key Principles}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Instrument at the module boundary, not inside it:}
   Observability instrumentation is placed at the module's public surface: handler entry points, event publisher calls, event listener invocations, and Temporal activity boundaries. Internal method calls within a module are not instrumented unless they represent distinct domain operations. This keeps instrumentation overhead low and ensures that module-level metrics remain meaningful after extraction (when internal calls become invisible to external traces).
 
@@ -279,7 +279,7 @@ This trace is identical whether modules run in-process or as separate services. 
 
 G4 and G5 introduced Temporal and Kafka as production infrastructure. G6 leverages their built-in observability capabilities without additional instrumentation:
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Temporal Web UI:} Displays every workflow execution, including: workflow ID, current state, activity history (start, complete, fail, retry), compensation events, and execution duration. For the order fulfillment saga, this means the team can inspect any order's fulfillment progress, identify which activity failed, and see whether compensation executed correctly, all without custom logging.
   \item \emph{Temporal metrics:} Temporal's SDK emits OpenTelemetry-compatible metrics including workflow start rate, activity execution latency, retry count per activity, and workflow failure rate. These metrics are exported to the same Prometheus instance used by the application, enabling unified dashboards.
   \item \emph{Kafka consumer lag:} The lag between the latest produced offset and the latest consumed offset for each consumer group indicates backpressure between modules. If the inventory consumer group falls behind on the \texttt{orders.events} topic, it signals that inventory processing cannot keep up with order volume, which is a direct input to G3's scalability assessment.
@@ -379,7 +379,7 @@ These alerts feed directly into G3's trigger conditions: \texttt{HighErrorRate} 
 
 The reference implementation includes a pre-configured Grafana dashboard (\texttt{infra/grafana/dashboards/module-overview.json}) with four panels that provide the observability surface required by G3 and G4:
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Request Rate per Module:} \texttt{sum(rate(\{\_\_name\_\_=\textasciitilde".+\_requests\_total"\}[5m])) by (module)}: visualizes $\Theta_m$ from G3.
   \item \emph{P95 Latency per Module:} \texttt{histogram\_quantile(0.95, ...)}: tracks $\sigma^2_{L,m}$ and triggers L0/L1 interventions.
   \item \emph{Error Rate per Module:} per-module error rate for alert correlation.
@@ -392,7 +392,7 @@ Because all metrics are tagged with \texttt{module} labels from inception, the s
 
 \subsection*{Common Failure Modes and Anti-Patterns}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Aggregate-only monitoring (the black box monolith):}
   Monitoring only application-level metrics (total latency, total errors) without module attribution. When a performance issue arises, the team cannot isolate which module is responsible, leading to unfocused investigation and delayed resolution.
 
@@ -414,7 +414,7 @@ Because all metrics are tagged with \texttt{module} labels from inception, the s
 
 G6 metrics assess the completeness and effectiveness of the observability implementation across modules.
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{Trace Completeness Rate ($\tau$):}
   Incomplete traces represent critical observability gaps that leave teams debugging in the dark when issues cross module boundaries \cite{FordParsons2017}. When a request flows through multiple modules but some spans are missing, the causal chain breaks down, making it impossible to identify where latency accumulates or where errors originate. This metric quantifies how reliably the distributed tracing infrastructure captures complete execution paths across module boundaries, directly impacting the team's ability to maintain system health after extraction.
   \[
@@ -472,7 +472,7 @@ G6 metrics assess the completeness and effectiveness of the observability implem
 
 
 \subsection*{Documentation Guidelines}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Observability Runbook:}
   For each module, document the available dashboards, the metric names and their meaning, the expected alert thresholds, and the debugging workflow (``when this alert fires, check this dashboard, then look at this trace''). This runbook is part of the module's operational documentation and should be reviewed during G4's extraction readiness assessment.
 
@@ -486,7 +486,7 @@ G6 metrics assess the completeness and effectiveness of the observability implem
 
 \subsection*{Tooling Capabilities Checklist}
 Any open-source or proprietary tool used to support module-scoped observability should address:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Vendor-neutral instrumentation:} OpenTelemetry SDK for traces, metrics, and logs. Vendor-neutral instrumentation ensures portability and avoids lock-in.
   \item \emph{Metrics collection and visualization:} Prometheus for metrics scraping and storage; Grafana for per-module dashboards. OpenTelemetry's Prometheus exporter bridges the two.
   \item \emph{Distributed trace collection:} Jaeger (or any OpenTelemetry-compatible backend) for trace visualization. Trace context propagation via OpenTelemetry ensures traces span module boundaries, Kafka messages, and Temporal activities.
