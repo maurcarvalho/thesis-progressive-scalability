@@ -362,51 +362,62 @@ G3 is implemented through the following architectural mechanisms, all establishe
 G3 metrics are designed to make scaling pressure observable at the module level and to verify that the architectural preparation for progressive scalability is in place. They complement the structural metrics defined in G1 and G2 by adding resource, throughput, and isolation dimensions.
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Module Throughput Profile ($\Theta_m$):}
-  For each module $m$, the sustained request rate (operations per second) under normal and peak conditions. Divergence between modules indicates candidates for async decoupling (L1).
+  \item \textbf{Module Throughput Profile ($\Theta_m$):}
+  In modular monoliths, load distribution is rarely uniform across bounded contexts. Some modules handle high-frequency operations while others manage occasional administrative tasks \cite{richardson2018microservices}. When modules with significantly different throughput requirements are connected through synchronous calls, the slower modules become bottlenecks that constrain the entire system's performance. This metric quantifies throughput divergence across modules to identify candidates for asynchronous decoupling before bottlenecks manifest as user-visible latency.
   \[
     \Delta\Theta = \max_{m \in M} \Theta_m - \min_{m \in M} \Theta_m
   \]
-  \emph{Scalability meaning:} high $\Delta\Theta$ indicates uneven load distribution and potential synchronous bottlenecks. \\
+  \emph{Target:} Monitor $\Delta\Theta$ growth; trigger async decoupling when divergence exceeds 2:1 ratio between connected modules. \\
 
-  \item \emph{Module Latency Variance ($\sigma^2_{L,m}$):}
-  The variance of response latency for operations within module $m$. High variance under load suggests resource contention or synchronous dependency on a slower module.
-  \emph{Scalability meaning:} sustained increase in $\sigma^2_{L,m}$ is a trigger for L0 or L1 intervention. \\
+  \item \textbf{Module Latency Variance ($\sigma^2_{L,m}$):}
+  Consistent response times are a hallmark of well-architected systems, while high variance typically indicates resource contention, inefficient queries, or synchronous dependencies on overloaded modules \cite{martin2012clean}. In progressive scalability, latency variance serves as an early warning signal: modules experiencing high variance under load are candidates for vertical optimization or asynchronous decoupling before their instability propagates to dependent modules.
+  The variance of response latency for operations within module $m$:
+  \[
+    \sigma^2_{L,m} = \mathbb{E}[(L_m - \mu_{L,m})^2]
+  \]
+  \emph{Target:} Monitor $\sigma^2_{L,m}$ growth; investigate when variance increases significantly under load. \\
 
-  \item \emph{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$):}
-  The proportion of inter-module interactions that are synchronous (blocking) versus asynchronous (event-driven or queued):
+  \item \textbf{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$):}
+  Synchronous inter-module communication creates tight temporal coupling that propagates latency and failures across module boundaries \cite{dragoni2017microservices}. While synchronous calls are necessary for some operations, excessive synchronous communication prevents modules from scaling independently and creates cascading failure scenarios. This metric quantifies the proportion of synchronous versus asynchronous interactions, providing a foundation for identifying where asynchronous decoupling can improve system resilience.
   \[
     \rho_{\mathrm{sync}} = \frac{|I_{\mathrm{sync}}|}{|I_{\mathrm{sync}}| + |I_{\mathrm{async}}|}
   \]
   where $I_{\mathrm{sync}}$ and $I_{\mathrm{async}}$ are the sets of synchronous and asynchronous inter-module interactions, respectively.
-  \emph{Scalability meaning:} a high $\rho_{\mathrm{sync}}$ in the presence of divergent throughput profiles signals backpressure risk. Target: decrease $\rho_{\mathrm{sync}}$ for module pairs with high $\Delta\Theta$. \\
+  \emph{Target:} $\rho_{\mathrm{sync}} \leq 0.3$ (majority of inter-module communication asynchronous). \\
 
-  \item \emph{Data Ownership Clarity Index ($\omega$):}
-  The proportion of database tables (or collections) that are accessed by exactly one bounded-context module through its own repository:
+  \item \textbf{Data Ownership Clarity Index ($\omega$):}
+  Clear data ownership is fundamental to achieving data isolation and enabling selective scaling of individual modules \cite{evans2003ddd}. When multiple modules access the same database tables directly, they become tightly coupled through the data layer, preventing independent schema evolution and blocking future extraction scenarios. This metric measures the proportion of data structures that have unambiguous ownership, providing early visibility into data coupling that would otherwise only become apparent when attempting data isolation or service extraction.
   \[
     \omega = \frac{|T_{\mathrm{single\text{-}owner}}|}{|T|}
   \]
   where $T$ is the set of all tables and $T_{\mathrm{single\text{-}owner}}$ is the subset accessed by only one module.
-  \emph{Scalability meaning:} $\omega < 1$ indicates shared tables that will block data isolation (L2) and extraction (L3). Target: $\omega \to 1$ over time. \\
+  \emph{Target:} $\omega \to 1$ (all data structures have clear ownership). \\
 
-  \item \emph{Infrastructure Abstraction Coverage ($\alpha$):}
-  The proportion of infrastructure access points (database connections, cache clients, message broker producers/consumers, external API clients) that are mediated through an interface or port rather than used directly:
+  \item \textbf{Infrastructure Abstraction Coverage ($\alpha$):}
+  Modules that access infrastructure dependencies directly become tightly coupled to specific technologies, preventing seamless transitions between scalability levels \cite{martin2012clean}. For example, a module that uses database drivers directly cannot easily transition from a shared database to a dedicated instance without code changes. This metric quantifies the proportion of infrastructure access that is mediated through abstractions, ensuring that scalability interventions remain deployment topology changes rather than code rewrites.
   \[
     \alpha = \frac{|A_{\mathrm{abstracted}}|}{|A|}
   \]
-  \emph{Scalability meaning:} $\alpha < 1$ indicates infrastructure lock-in that will require code changes when transitioning between spectrum levels. Target: $\alpha = 1$ for modules identified as scale-point candidates. \\
+  \emph{Target:} $\alpha = 1$ (all infrastructure access through abstractions). \\
 
-  \item \emph{Extraction Readiness Score ($\varepsilon_m$):}
-  A composite indicator for module $m$ that combines boundary enforcement (from G1), maintainability (from G2), and scalability preparation (from G3):
+  \item \textbf{Extraction Readiness Score ($\varepsilon_m$):}
+  Service extraction should be an evidence-based architectural decision, not an emergency response to performance crises \cite{wolfart2021modernizing}. This composite metric synthesizes multiple architectural health signals to quantify how prepared a module is for independent deployment. A high readiness score indicates that extraction would be a low-risk topology change; a low score reveals preparation debt that must be addressed before extraction becomes viable. This metric provides the objective foundation for L3 decisions and prevents premature extraction of unprepared modules.
   \[
     \varepsilon_m = f\!\left(C_{\mathrm{undecl}}^{(m)},\; C_{\mathrm{leak}}^{(m)},\; \omega_m,\; \alpha_m,\; \rho_{\mathrm{sync}}^{(m)}\right)
   \]
   where $C_{\mathrm{undecl}}^{(m)}$ and $C_{\mathrm{leak}}^{(m)}$ are the G1/G2 violation counts scoped to module $m$, and $\omega_m$, $\alpha_m$, $\rho_{\mathrm{sync}}^{(m)}$ are the G3 metrics scoped to module $m$.
-  \emph{Scalability meaning:} a high $\varepsilon_m$ indicates that the module can be extracted with low risk if L3 is triggered. A low $\varepsilon_m$ signals preparation debt that must be addressed before extraction is viable. \\
+  \emph{Target:} $\varepsilon_m \geq 0.8$ before considering L3 extraction for module $m$. \\
 \end{itemize}
 
 \noindent
 \emph{Verification strategy:} G3 metrics are tracked longitudinally alongside G1 and G2 metrics. The primary verification concern is not whether the system scales today, but whether it \emph{can} scale proportionally when needed. An increase in $\Delta\Theta$ without a corresponding decrease in $\rho_{\mathrm{sync}}$ for the affected module pair indicates that scalability preparation is lagging behind actual load growth. A declining $\omega$ indicates increasing data coupling that will block future isolation. These signals enable proactive architectural intervention before scaling becomes an emergency.
+
+\medskip
+\noindent
+\textbf{Compliance summary.} G3 progressive scalability compliance holds when:
+\[
+  \rho_{\mathrm{sync}} \leq 0.3 \land \omega \to 1 \land \alpha = 1 \land \varepsilon_m \geq 0.8 \text{ for extraction candidates}
+\]
 
 
 \subsection*{Documentation Guidelines}
