@@ -282,7 +282,7 @@ fix through the same automated checks that enforce modular boundaries during day
 The steps below apply G1 using Tiny Store as an executable reference. Each step states the intent and the expected signal, and when applicable it includes a runnable snippet.
 
 \subsubsection*{Steps}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=4pt]
 
   \item \emph{Step 0: Establish a Clean Baseline:}
   Confirm that boundary enforcement is active before introducing controlled violations.
@@ -488,7 +488,7 @@ dependency rule, $P_{\mathrm{iso}}$ captures the isolation pass rate when module
 \normalsize
 
 \subsubsection*{Exercises}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=10pt,topsep=4pt]
 
   \item \emph{Exercise 0: Confirm the Baseline:}
   Re-run Step 0, and confirm that all checks pass.
@@ -509,7 +509,9 @@ Run enforcement.
 npm run test:boundary 
   \end{lstlisting}
   
-  Expected signal: a boundary test fails, and $C_{\mathrm{leak}}\uparrow$. Fix: remove these exports, and expose a contract instead (handler/port/event).
+  \emph{Expected signal:} a boundary test fails, and $C_{\mathrm{leak}}\uparrow$.
+
+  \emph{Fix:} remove these exports, and expose a contract instead (handler/port/event).
 
   \item \emph{Exercise 2: Introduce a Direct Cross-Module Import (Undeclared or Forbidden):}
   Demonstrate that bounded contexts must not couple via direct imports for convenience. Introduce the violation by adding a direct import in an Orders feature file under \texttt{libs/modules/orders/src/features/}.
@@ -527,10 +529,12 @@ import { SomeInventoryHandler } from '@tiny-store/modules-inventory';
 npm run test:boundary
   \end{lstlisting}
 
-  \DontMark\ Expected signal: a boundary check fails if cross-module imports are constrained by the enforcement suite.
+  \emph{Expected signal:} a boundary check fails if cross-module imports are constrained by the enforcement suite.
   If it does not fail, treat this as an enforcement coverage gap and extend \texttt{module-boundary.spec.ts} to detect forbidden \texttt{@tiny-store/modules-*} imports from within another module.
-  Metric impact: $C_{\mathrm{undecl}}\uparrow$ or $C_{\mathrm{forbid}}\uparrow$.
-  Fix (preferred): replace the direct import with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory, publish \texttt{InventoryReserved}).
+
+  \emph{Metric impact:} $C_{\mathrm{undecl}}\uparrow$ or $C_{\mathrm{forbid}}\uparrow$.
+
+  \emph{Fix (preferred):} replace the direct import with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory, publish \texttt{InventoryReserved}).
 
   \item \emph{Exercise 3: Hide Event Wiring Inside a Module (Implicit Dependency):}
   Demonstrate why subscription wiring must remain centralized and auditable.
@@ -550,9 +554,11 @@ Run enforcement.
 npm run test:boundary && npm run test:integration
 
 \end{lstlisting}
-  Expected signal: this may not fail immediately if the current enforcement suite does not scan for subscription calls outside the composition root. In that case, enforce a rule that forbids \texttt{eventBus.subscribe(} usage outside \texttt{apps/api/src/app/lib/register-listeners.ts}, and/or detect it via module isolation tests.
-  Metric impact: $P_{\mathrm{iso}}\downarrow$ and potentially $C_{\mathrm{event}}\uparrow$.
-  Fix: move the subscription back to \texttt{register-listeners.ts}.
+  \emph{Expected signal:} this may not fail immediately if the current enforcement suite does not scan for subscription calls outside the composition root. In that case, enforce a rule that forbids \texttt{eventBus.subscribe(} usage outside \texttt{apps/api/src/app/lib/register-listeners.ts}, and/or detect it via module isolation tests.
+
+  \emph{Metric impact:} $P_{\mathrm{iso}}\downarrow$ and potentially $C_{\mathrm{event}}\uparrow$.
+
+  \emph{Fix:} move the subscription back to \texttt{register-listeners.ts}.
 \end{itemize}
 
 \subsection*{Conclusion of the G1 Implementation}
