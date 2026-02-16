@@ -15,7 +15,7 @@ The root cause is that most deployment pipelines are designed around \emph{deplo
 G5 therefore treats deployment as a spectrum that mirrors G3's scalability spectrum. Just as the architecture progresses from vertical optimization (L0) to selective extraction (L3), the deployment strategy progresses from a single artifact to multiple artifacts produced from the same monorepo. The monorepo does not split. The build toolchain does not change. What changes is the number of entry points the pipeline packages into deployable images.
 
 This approach preserves three properties that splitting the repository would compromise:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Atomic refactoring:} Cross-module changes (e.g., updating an event contract and all its consumers) are committed atomically in a single pull request, with all affected tests running in the same CI job.
   \item \emph{Shared toolchain:} Linting, formatting, type checking, and boundary verification (G1) run against the entire workspace, ensuring consistency across modules regardless of how they are deployed.
   \item \emph{Dependency graph as source of truth:} The Nx project graph encodes the same module boundaries enforced by G1, so the pipeline's understanding of ``what changed'' is always aligned with the architecture.
@@ -24,7 +24,7 @@ This approach preserves three properties that splitting the repository would com
 \subsection*{Conceptual Overview}
 
 Deployment strategy is embedded by designing the CI/CD pipeline around module boundaries rather than deployment units:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item The monorepo (Nx workspace) remains the single source of truth for all modules, shared libraries, and deployment configurations, regardless of how many services are extracted.
   \item The pipeline understands the module dependency graph and uses it to scope builds, tests, and deployments to affected modules only.
   \item Containerization is module-aware: each deployable target has its own Dockerfile (or Dockerfile target) that packages only the module and its transitive dependencies.
@@ -34,7 +34,7 @@ Deployment strategy is embedded by designing the CI/CD pipeline around module bo
 \subsection*{Applicability Conditions and Scope}
 
 G5 applies to modular monolith systems where:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item The codebase is organized as a monorepo with explicit module boundaries, as established by G1.
   \item The system uses or plans to use containerized deployment (Docker, OCI images).
   \item The team seeks to maintain a single repository even as individual modules are extracted into independently deployable services.
@@ -43,7 +43,7 @@ G5 applies to modular monolith systems where:
 G5 does not prescribe specific CI/CD platforms (GitHub Actions, GitLab CI, Jenkins), container orchestrators (Kubernetes, ECS, Cloud Run), or infrastructure-as-code tools (Terraform, Pulumi, Helm). Its scope is limited to the deployment architecture: how the pipeline relates to module boundaries and how deployment artifacts are produced from the monorepo.
 
 \subsection*{Objectives}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Module-aware CI/CD:} Ensure the pipeline understands the module dependency graph and scopes builds, tests, and deployments to affected modules only.
   \item \emph{Single-repo, multi-artifact capability:} Enable the monorepo to produce multiple deployment artifacts (Docker images) without splitting the repository or duplicating the build toolchain.
   \item \emph{Infrastructure-as-code from day one:} Provision production dependencies (Kafka, Temporal, databases) as part of the standard deployment configuration, so that extraction does not require new infrastructure provisioning.
@@ -53,7 +53,7 @@ G5 does not prescribe specific CI/CD platforms (GitHub Actions, GitLab CI, Jenki
 
 \subsection*{Key Principles}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{The monorepo never splits:}
   Repository splitting is one of the most frequently cited reasons for migration failures. When modules move to separate repositories, atomic refactoring becomes impossible, shared library versioning introduces diamond dependency problems, and boundary verification (G1) can no longer run across the full codebase. G5 requires that all modules, whether deployed as a single monolith or as multiple services, remain in the same Nx workspace. The repository boundary and the deployment boundary are independent concerns.
 
@@ -262,7 +262,7 @@ CMD ["node", "main.js"]
 \end{lstlisting}
 
 Key observations:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item The Dockerfile copies only \texttt{libs/modules/orders} and \texttt{libs/shared}, not other modules. Nx's project boundaries ensure that orders cannot import inventory, payments, or shipments (G1), so the image is self-contained.
   \item The \texttt{orders-service} entry point connects to the same Kafka cluster and Temporal namespace as the monolith. The Temporal workflow code from G4 runs unchanged. The \texttt{KafkaEventPublisher} publishes to the same \texttt{orders.events} topic.
   \item The monolith's Docker Compose is extended, not replaced. A new service entry for \texttt{orders-service} is added alongside the existing \texttt{api} service. Both connect to the same Kafka, Temporal, and PostgreSQL infrastructure.
@@ -361,7 +361,7 @@ env:
 
 \paragraph{Deployment scripts.} Two shell scripts operationalize the D0 and D2 topologies:
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \texttt{bin/deploy}: Deploys the monolith only (\texttt{kamal deploy}). First-time usage: \texttt{bin/deploy setup} provisions all accessories.
   \item \texttt{bin/deploy-d2}: Deploys both the monolith and the orders service. Executes \texttt{kamal deploy} followed by \texttt{kamal deploy -d orders-service}.
 \end{itemize}
@@ -372,7 +372,7 @@ This progression from D0 to D2 is a deployment topology change, not a rewrite. T
 
 \subsection*{Common Failure Modes and Anti-Patterns}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Repository splitting during extraction:}
   Moving an extracted module to a separate repository breaks atomic refactoring, duplicates shared libraries, and disables workspace-wide boundary verification. The monorepo should remain unified; only deployment targets multiply.
 
@@ -394,7 +394,7 @@ This progression from D0 to D2 is a deployment topology change, not a rewrite. T
 
 G5 metrics assess whether the deployment strategy supports the modular architecture and enables progressive extraction.
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{CI Scope Efficiency ($\eta_{\mathrm{CI}}$):}
   Inefficient CI pipelines that run all tests for every change create feedback delays and resource waste that discourage frequent commits and rapid iteration \cite{fairbanks2010justenough}. Module-aware pipelines should scope builds and tests precisely to the modules affected by a change, ensuring that CI time grows with change size rather than repository size. This metric quantifies how effectively the pipeline leverages the module dependency graph to eliminate unnecessary work, directly impacting developer velocity and CI cost efficiency.
   \[
@@ -451,7 +451,7 @@ G5 metrics assess whether the deployment strategy supports the modular architect
 
 
 \subsection*{Documentation Guidelines}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Deployment Target Registry:}
   Maintain a registry of all deployment targets in the monorepo, including: the Nx project that serves as the entry point, the Dockerfile path, the infrastructure dependencies, and the deployment cadence. This registry is the deployment equivalent of G1's module descriptor.
 
@@ -465,7 +465,7 @@ G5 metrics assess whether the deployment strategy supports the modular architect
 
 \subsection*{Tooling Capabilities Checklist}
 Any open-source or proprietary tool used to support the deployment strategy should address:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Dependency-aware build orchestration:} Compute affected projects from the module dependency graph and scope builds, tests, and deployments accordingly. Nx is the reference implementation in Tiny Store; alternatives include Turborepo and Bazel.
   \item \emph{Multi-target container builds:} Produce multiple Docker images from a single monorepo, each scoped to a specific deployment target and its transitive dependencies.
   \item \emph{Local infrastructure provisioning:} Run production dependencies (Kafka, Temporal, PostgreSQL) locally via Docker Compose with configuration parity to production.
@@ -479,7 +479,7 @@ Any open-source or proprietary tool used to support the deployment strategy shou
 All code listings in this section correspond to files in the Tiny Store reference implementation:
 
 \small
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \texttt{apps/api/Dockerfile}: Monolith multi-stage Docker build
   \item \texttt{docker-compose.yml}: Full local development environment with all infrastructure
   \item \texttt{.github/workflows/ci.yml}: Module-aware CI with Nx affected
