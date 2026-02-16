@@ -1,0 +1,55 @@
+[]{#sec:conclusion label="sec:conclusion"}
+
+This chapter completes the research proposal by summarizing contributions developed so far, outlining forthcoming investigation stages, and defining the boundaries that shape this research.
+
+# Summary of Contributions
+
+This research proposes architectural guidelines for software startups adopting modular monolith architectures that preserve scalability, maintainability, and internal modularity. The guidelines are organized across four dimensions: Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation. Six of the twelve originally proposed guidelines have been fully developed in this dissertation.
+
+- **G1: Enforce Modular Boundaries** establishes modularity as an enforceable architectural property through explicit declarations, automated boundary verification, and build-time checks. Tiny Store demonstrates G1 as an executable practice with controlled violation exercises and measurable metrics.
+
+- **G2: Embed Maintainability** frames maintainability as a bounded cost of change, operationalized through stable contracts, unidirectional dependency flow, and longitudinal structural metrics that detect architectural drift before it becomes irreversible.
+
+- **G3: Design for Progressive Scalability** introduces the central concept of this dissertation. A four-level scalability spectrum (L0--L3) enables modular monoliths to absorb growth through proportional, evidence-driven interventions, from vertical optimization through selective extraction, without requiring wholesale migration to microservices.
+
+- **G4: Promote Migration Readiness** prepares modules for extraction with production-grade infrastructure. Using Apache Kafka for durable event streaming and Temporal for workflow orchestration and saga management, G4 demonstrates a module can be made extraction-ready while remaining inside the monolith. The orders module case study shows extraction, when triggered, becomes a deployment topology change rather than an architectural rewrite.
+
+- **G5: Streamline Deployment Strategy** establishes a deployment spectrum (D0--D2) that mirrors G3's scalability spectrum. The monorepo remains the single source of truth; only deployment artifacts multiply. Module-aware CI/CD with Nx, containerization with Docker, and infrastructure-as-code from day one ensure that the deployment pipeline evolves proportionally with the architecture.
+
+- **G6: Introduce Observability Patterns** embeds module-scoped observability using OpenTelemetry, Prometheus, Grafana, and Jaeger inside the monolith, scoped to module boundaries. The same instrumentation, dashboards, and traces survive extraction unchanged, providing the feedback loop that connects scaling decisions (G3), readiness assessments (G4), and deployment monitoring (G5).
+
+Together, these six guidelines form a self-contained guideline set supported by a coherent, production-grade technology stack (Nx, KafkaJS, Temporal, Redis/ioredis, BullMQ, TypeORM+PostgreSQL, OpenTelemetry, Jaeger, Prometheus+Grafana, Docker, Kamal, GitHub Actions) and grounded in a **working, tested reference implementation** (Tiny Store). The implementation includes 127 passing tests, 0 lint errors, 38 atomic commits, validated Docker Compose infrastructure (13 services including PostgreSQL, Kafka, Temporal, Redis, Jaeger, Prometheus, Grafana), and production-ready Kamal deployment configuration. All code listings in G3--G6 are drawn directly from repository source files and verified against the running system.
+
+The guideline set's distinguishing characteristic is that schema isolation, caching, async queues, event-driven communication, and distributed tracing are *architectural requirements from project inception*, not migration prerequisites to be added later. Extraction becomes a deployment topology change, not a codebase rewrite. The system is operationally indistinguishable from a distributed deployment while retaining the simplicity of a single deployable unit.
+
+The systematic literature review found no existing study that directly addresses progressive scalability as a step-by-step guideline approach for modular monoliths. While the reviewed literature covers individual techniques (modular boundaries, maintainability patterns, migration strategies, deployment automation), none integrate them into a cohesive, progressive guideline set. This dissertation's core innovation is this integration. The G1$\rightarrow$G6 progression synthesizes individually studied techniques into a deliberate scalability pathway, enabling startups to absorb growth through proportional, evidence-driven interventions without requiring premature adoption of distributed architectures.
+
+# Extending the Research Process
+
+The next step is to conduct the verification plan outlined in Chapter [\[sec:proposal\]](#sec:proposal){reference-type="ref" reference="sec:proposal"}. Semi-structured interviews with industry practitioners and academic researchers will confirm, refine, or extend the guidelines and reveal additional constraints or trade-offs. Insights from these interviews, combined with targeted research in gray literature, will inform revisions leading to more actionable and context-informed heuristics.
+
+The six deferred guidelines (G7--G12), covering Organizational Alignment and Guideline Orientation, will be developed in a subsequent phase based on practitioner feedback and empirical investigation. These guidelines require methods beyond code-level analysis, including team surveys, onboarding measurements, and organizational case studies. They will be validated through the same interview-based methodology applied to G1--G6.
+
+Beyond the deferred guidelines, this research identifies two tooling directions as future work: (1) an AI-powered coding agent that internalizes the guideline set and acts as a pair programmer, providing real-time modularity guidance when integrated into any existing codebase; and (2) the evolution of that agent into a language-specific framework or plugin (e.g., a Node.js module, a Ruby gem, or an Elixir library) that packages boundary enforcement, scalability-level assessment, and extraction readiness scoring as programmatic tooling. These directions would operationalize the guidelines at the developer workflow level, lowering adoption barriers and making progressive scalability a reproducible engineering practice.
+
+Through this reflective cycle, the guidelines will transition from literature-derived hypotheses to field-validated tools, ensuring clarity, applicability, and relevance in real-world startup environments.
+
+# Scope and Limitations
+
+The research deliberately focuses on early-stage, cloud-native software startups: contexts where architectural decisions are often made under uncertainty, with limited time, infrastructure, and people. This scope excludes large-scale enterprise systems, highly regulated industries, or long-established software organizations, where architectural dynamics may differ substantially.
+
+The guideline set is not intended to function as a prescriptive framework. Rather, it is structured as a series of modular principles, subject to validation, contextualization, and adaptation. The current work is limited to the Architectural Design and Operational Fit dimensions; the Organizational Alignment and Guideline Orientation dimensions are identified as future research directions.
+
+Additional limitations include:
+
+- While the implementation uses a specific technology stack (Kafka, Temporal, OpenTelemetry, Kamal), the architectural patterns it demonstrates (event-driven communication, durable workflows, module-scoped observability, progressive deployment) are transferable to alternative technologies (e.g., RabbitMQ, AWS Step Functions, Datadog, Kubernetes). The guidelines should be validated with alternative stacks in future work.
+
+- The Tiny Store reference implementation is deliberately small. While this makes the guidelines demonstrable and reproducible, it does not capture the full complexity of a production e-commerce system. Validation with larger, real-world codebases is a necessary extension.
+
+- The availability and diversity of expert participants for the verification phase may constrain the generalizability of findings. This risk will be mitigated through transparent methodology, critical triangulation, and clear scope delimitation.
+
+# Final Remarks
+
+This proposal positions architectural guidance not as a static artifact, but as an evolving construct shaped by both empirical evidence and contextual complexity. The guidelines introduced here reflect the first iteration of that construct. The central argument, that modular monoliths can achieve progressive scalability through deliberate, evidence-driven architectural interventions without premature distribution, is operationalized through six guidelines, a reference implementation, and a production-grade technology stack.
+
+The next phase of this research will move beyond synthesis into engagement: testing whether these principles can meaningfully support the design and evolution of systems that remain simple in structure, scalable in function, and sustainable in team practice.
