@@ -63,30 +63,105 @@ This research proposes implementing G1 through a combination of (i) structural e
   \item \emph{Automated verification:} Fail the build when undeclared cross-module references are detected, and optionally verify event subscriptions and command usage against declared dependencies.
 \end{itemize}
 
-\subsection*{Metrics}
+\subsection*{Common Failure Modes and Anti-Patterns}
+The following failure modes are frequently observed in codebases that lack explicit boundary enforcement. Each anti-pattern weakens modular isolation and increases the cost of future architectural change. The first five patterns address structural violations at the code level; the remaining five address design-level decisions that erode modularity before a single import is written.
+
+\subsubsection*{Structural Anti-Patterns}
+
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Undeclared Dependency Reference Count:}
-  Number of static references from module $A$ to module $B$ where $A \rightarrow B$ is not declared in the module descriptor.
+  \item \emph{Convenience-Driven Imports:} Developers import internal classes from another module because the path is shorter or the type is already available. Over time, these imports create a web of hidden coupling that boundary checks cannot detect if enforcement is absent~\cite{parnas1972informationhiding}. This anti-pattern is captured by an increase in $C_{\mathrm{leak}}$.
 
-  \item \emph{Forbidden Dependency Reference Count:}
-  Number of static references from module $A$ to module $B$ where $A \rightarrow B$ is explicitly forbidden.
+  \item \emph{Shared Utility Creep:} A \texttt{shared/} or \texttt{common/} package grows to include domain-specific logic that belongs inside a bounded context~\cite{martin2012clean}. Modules become coupled through this shared layer rather than through explicit contracts. This is reflected in rising $C_{\mathrm{undecl}}$ when shared utilities reference module internals.
 
-  \item \emph{API-Only Dependency Ratio:}
-  For all cross-module references, the proportion that targets the provider module's declared public API surface (interfaces, exported packages, published events) rather than internal packages.
+  \item \emph{Implicit Wiring via Framework Magic:} Dependency injection containers, auto-configuration, or classpath scanning silently wire modules together without any declared dependency. Boundary checks based on import analysis miss these couplings entirely. This failure mode surfaces through declining $P_{\mathrm{iso}}$ when module isolation tests fail due to undeclared runtime dependencies.
 
-  \item \emph{Encapsulation Leakage Count:}
-  Number of external references to internal symbols (classes, packages, resources) that are not part of the provider module's declared public surface.
+  \item \emph{Event Handlers Registered Outside the Composition Root:} When event subscriptions are scattered across module initializers rather than centralized in a single wiring location, the integration surface becomes invisible to architectural review. This increases $C_{\mathrm{event}}$ and makes the system's collaboration topology difficult to audit.
 
-  \item \emph{Module Isolation Test Pass Rate:}
-  Percentage of module-scoped tests that execute with only the module and its declared dependencies available (for example, module-level context loading).
-  Failures indicate hidden wiring to undeclared modules, even when imports look compliant.
-  
-  \item \emph{Event Subscription Boundary Violations (if events are used):}
-  Number of event handlers in module $A$ consuming events from module $B$ without a declared $A \rightarrow B$ dependency (or without a declared event subscription, depending on the enforcement model).
-
- \item \emph{Boundary Bypass Surface Count (optional):}
-  Number of occurrences of mechanisms that can bypass static boundaries (for example, reflection-based access, service locator patterns, dynamic class loading) within cross-module interaction paths. This metric is intended as a risk indicator even when no violations are detected statically.
+  \item \emph{Boundary Enforcement Treated as Optional:} When boundary verification gates are not part of the mandatory CI pipeline, violations accumulate silently. Teams discover the erosion only when a refactoring or extraction attempt reveals that modules are far more coupled than the architecture documentation suggests~\cite{thoughtworks2017fitnessfunction}. Quality is a deliberate choice; without enforcement, the cost of accumulated violations compounds quietly until a refactoring or extraction attempt reveals the true state of the architecture.
 \end{itemize}
+
+\subsubsection*{Design-Level Anti-Patterns}
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \emph{Extreme Granularity:} Teams slice the system into excessively narrow domains (StockCheck, ReservationHold, WarehouseAllocation, StockReplenishment) instead of grouping them under a cohesive bounded context (Inventory). Similarly, splitting User, Authentication, Authorization, and ProfileManagement into separate modules when they all belong to a single Identity context creates artificial boundaries that generate coupling without gaining isolation. Each micro-domain cannot fulfill a business workflow independently, forcing constant cross-module calls for routine operations like reserving stock during order placement or authenticating a user session. The result is high coupling across many small modules that share the same data and the same transaction boundaries, effectively recreating distributed complexity inside the monolith~\cite{dragoni2017microservices, fowler2014}. G1 requires that module boundaries align with bounded contexts~\cite{evans2003ddd} large enough to complete a workflow end-to-end and small enough to be owned by a single team.
+
+  \item \emph{Speculative Generality:} The codebase accumulates extension points, abstract factories, strategy patterns, hooks, and metaprogramming constructs designed for hypothetical future requirements that may never materialize. Each speculative abstraction adds navigational complexity and implicit coupling: consumers depend on interfaces whose contracts are shaped by imagined use cases rather than observed needs. This anti-pattern directly contradicts the progressive scalability philosophy (G3), which advocates for proportional intervention driven by evidence, not by speculation. The YAGNI principle~\cite{extremeProgramming} applies at the architectural level: if a pattern is not required by a current bounded context interaction or a measured scaling bottleneck, it should not exist in the codebase. Removing speculative abstractions often improves both cohesion (fewer unused symbols per module) and coupling (fewer unnecessary interfaces crossing boundaries).
+
+  \item \emph{Leaky Abstractions in Public Contracts:} A module exposes DTOs or event payloads that mirror its internal database schema rather than its domain model~\cite{fowler2002}. Downstream consumers couple to storage-level details: column names, join structures, nullable fields that reflect persistence trade-offs rather than business semantics. When the originating module refactors its schema, all consumers break, even though no business rule changed. G1 requires that public contracts reflect domain intent; anti-corruption layers (formalized in G4) provide the translation boundary that prevents internal models from leaking outward~\cite{evans2003ddd}. This anti-pattern is detectable when event or DTO field names match database column names verbatim.
+
+  \item \emph{Circular Dependencies Between Modules:} Module A depends on Module B, which depends on Module A, often through indirect paths that span three or more modules. Circular dependencies make independent testing, reasoning, and extraction impossible: changing any module in the cycle requires understanding all of them~\cite{martin2012clean, yourdon1979structured}. Cycles typically signal that bounded contexts need redrawing or that a shared contract (event, value object) should be extracted into a common library. Dependency graph tooling can visualize these cycles immediately, but prevention requires encoding the allowed dependency direction as an automated rule. G1 treats any circular dependency as a blocking violation.
+
+  \item \emph{Test Coupling Across Boundaries:} Test code in Module A directly instantiates domain objects from Module B to build fixtures or assert on internal state. This creates invisible coupling that does not appear in production imports but makes modules inseparable in practice: a refactoring of Module B's internal entities breaks Module A's test suite. Test boundaries should mirror production boundaries. Modules should provide test factories or fixture builders as part of their public test surface, and tests in other modules should depend only on those published utilities, never on internal constructors or repository implementations.
+\end{itemize}
+
+\subsubsection*{SOLID as Boundary Discipline}
+
+\noindent
+These anti-patterns share a common root: they treat modularity as an organizational convenience rather than as an enforceable architectural property. The SOLID principles, when applied with discipline, address many of these failure modes directly. The Single Responsibility Principle prevents god modules and extreme granularity by requiring that each module encapsulates one cohesive business capability. The Open-Closed Principle, properly understood, means modules are open for extension through published contracts (events, handlers) rather than through speculative abstractions. The Dependency Inversion Principle ensures that modules depend on stable interfaces rather than on volatile internals from other bounded contexts~\cite{martin2012clean}. The misapplication of SOLID, however, is itself a common failure mode: teams interpret these principles as mandates for complex abstractions (deep inheritance hierarchies, excessive interfaces, premature generalization) rather than as guidelines for simpler, more stable boundaries. In a modular monolith, SOLID serves boundary discipline, not architectural ornamentation.
+
+\subsubsection*{The Enforcement Gap}
+
+\noindent
+Recognizing anti-patterns and understanding SOLID principles is necessary but not sufficient. Most of the failure modes described above are well known by the software industry; experienced engineers recognize them on sight during code reviews and design discussions. Yet recognition alone does not prevent them. The gap between conceptual knowledge and daily practice persists because these principles are rarely operationalized as measurable, automated constraints~\cite{fairbanks2010justenough}. They exist as shared understanding in the team's collective memory, not as executable checks in the CI pipeline.
+
+This gap compounds with growth. A single convenience import is harmless; hundreds of locally reasonable shortcuts across months of fast-paced delivery by multiple engineers and teams produce systemic architectural drift that no amount of documentation or periodic review can reverse. By the time the drift becomes visible, typically during an extraction attempt or a major refactoring, the cost of correction dwarfs the cost of prevention.
+
+The metrics and enforcement gates introduced in this guideline (and extended throughout G2 through G6) represent a deliberate attempt to close this gap: translating what engineers already know into what the build system can verify on every commit.
+
+\subsection*{Metrics and Verification}
+
+The metrics below operationalize modular boundary enforcement as measurable, automated constraints. Each metric follows a three-layer structure: a plain-language description of what it captures and why it matters, a formal definition that enables unambiguous implementation, and an enforcement threshold that determines whether the boundary gate passes or fails. Together, they translate the principles discussed in the preceding sections into executable verification rules.
+
+\medskip
+\noindent
+\emph{Notation.} Let $M$ be the set of bounded-context modules. Let $R$ be the multiset of observed cross-module references, including static imports, dependency injection wiring, and event handler registrations. For a pair of modules $(A, B)$, let $\operatorname{refs}(A \to B) \subseteq R$ denote the references originating in $A$ that target symbols in $B$. Let $D \subseteq M \times M$ be the set of declared allowed dependencies (\emph{requires}) and $F \subseteq M \times M$ be the set of explicitly forbidden dependencies (\emph{forbids}), both defined in the module descriptor. Let $\operatorname{pub}(B)$ denote the set of symbols in module $B$'s declared public API surface.
+
+\begin{itemize}[noitemsep,topsep=2pt]
+  \item \textbf{Undeclared Dependency Reference Count} ($C_{\mathrm{undecl}}$). \\
+  A reference from module $A$ to a symbol in module $B$ is \emph{undeclared} when the dependency $A \to B$ does not appear in the module descriptor. Undeclared references represent invisible coupling: they exist in the codebase but are not subject to architectural review. Every undeclared reference is a potential extraction blocker, because it will only surface when the modules are separated~\cite{deLauretis2019from}.
+  \[
+    C_{\mathrm{undecl}} = \sum_{A \neq B} \left|\left\{ r \in \operatorname{refs}(A \to B) : (A, B) \notin D \right\}\right|
+  \]
+  \emph{Threshold:} $C_{\mathrm{undecl}} = 0$. Any undeclared reference fails the boundary gate.
+
+  \item \textbf{Forbidden Dependency Reference Count} ($C_{\mathrm{forbid}}$). \\
+  Some module pairs are explicitly forbidden from depending on each other, typically to prevent circular dependencies or to enforce layering constraints~\cite{martin2012clean}. A forbidden reference is one where the dependency $A \to B$ appears in the \emph{forbids} set. Unlike undeclared references (which may be oversight), forbidden references represent known architectural violations that have been explicitly prohibited.
+  \[
+    C_{\mathrm{forbid}} = \sum_{A \neq B} \left|\left\{ r \in \operatorname{refs}(A \to B) : (A, B) \in F \right\}\right|
+  \]
+  \emph{Threshold:} $C_{\mathrm{forbid}} = 0$. Any forbidden reference fails the boundary gate.
+
+  \item \textbf{Encapsulation Leakage Count} ($C_{\mathrm{leak}}$). \\
+  Encapsulation leakage occurs when a module consumes internal symbols (classes, functions, types, resources) from another module rather than using its declared public API surface. This violates the information hiding principle~\cite{parnas1972informationhiding}: consumers become coupled to implementation details that the provider should be free to change. Even when the dependency $A \to B$ is declared, references that bypass the public surface create fragile coupling that increases the blast radius of internal refactoring.
+  \[
+    C_{\mathrm{leak}} = \sum_{A \neq B} \left|\left\{ r \in \operatorname{refs}(A \to B) : \operatorname{target}(r) \notin \operatorname{pub}(B) \right\}\right|
+  \]
+  \emph{Threshold:} $C_{\mathrm{leak}} = 0$. All cross-module references must target the provider's public API surface.
+
+  \item \textbf{Module Isolation Test Pass Rate} ($P_{\mathrm{iso}}$). \\
+  Static analysis can detect import-level violations, but some forms of coupling are only observable at runtime: implicit wiring through dependency injection containers, service locator patterns, or transitive module loading. The isolation test pass rate captures these hidden dependencies by executing each module's test suite with only the module and its declared dependencies available~\cite{fairbanks2010justenough}. A failing isolation test indicates that the module depends on runtime context from an undeclared module, even when its static imports appear compliant.
+  \[
+    P_{\mathrm{iso}} = \frac{|T_{\mathrm{pass}}|}{|T_{\mathrm{iso}}|}
+  \]
+  where $T_{\mathrm{iso}}$ is the set of module-scoped isolation tests and $T_{\mathrm{pass}} \subseteq T_{\mathrm{iso}}$ is the subset that passes.\\
+  \emph{Threshold:} $P_{\mathrm{iso}} = 100\%$. Any isolation test failure fails the boundary gate.
+
+  \item \textbf{Event Subscription Boundary Violations} ($C_{\mathrm{event}}$). \\
+  In systems that use event-driven integration, a module may consume events from another module without declaring that dependency. This creates coupling that is invisible to static import analysis because the subscription is typically registered at runtime through the event bus infrastructure. Event subscription violations are particularly insidious because they couple modules through data flow rather than code structure, making the dependency harder to detect during code review~\cite{richardson2018microservices}.
+  \[
+    C_{\mathrm{event}} = \left|\left\{ (A, B) \in H : (A, B) \notin D \right\}\right|
+  \]
+  where $H$ is the set of $(subscriber, publisher)$ pairs derived from event handler registrations.\\
+  \emph{Threshold:} $C_{\mathrm{event}} = 0$. Every event subscription must correspond to a declared dependency.
+\end{itemize}
+
+\medskip
+\noindent
+\textbf{Compliance summary.} G1 boundary compliance holds when all five metrics satisfy their thresholds simultaneously:
+\[
+  C_{\mathrm{undecl}} = 0 \;\wedge\; C_{\mathrm{forbid}} = 0 \;\wedge\; C_{\mathrm{leak}} = 0 \;\wedge\; P_{\mathrm{iso}} = 100\% \;\wedge\; C_{\mathrm{event}} = 0
+\]
+This compound condition is evaluated on every commit by the boundary verification gate. A violation of any single metric blocks the commit, ensuring that boundary erosion is detected at the point of introduction rather than during a downstream extraction attempt. The metrics are designed to be composable: G2 extends them with maintainability dimensions, G3 with scalability signals, and G4 with extraction readiness indicators.
 
 \subsection*{Documentation Guidelines}
 \begin{itemize}[noitemsep,topsep=2pt]
@@ -108,7 +183,17 @@ Any open-source or proprietary tool used to enforce modular boundaries should su
 \end{itemize}
 
 \subsection*{Literature Support Commentary}
-Although modularity is widely recognized as essential, much of the research treats it as an outcome of refactoring rather than a design criterion. Few works propose proactive structural mechanisms for enforcing modularity in monoliths, and those that do often lack empirical validation. This gap motivates G1 as a guideline that operationalizes modular boundaries through explicit declarations and automated verification.
+The foundational argument for modular boundaries rests on the principle that information hiding, rather than functional decomposition, should determine module structure~\cite{parnas1972informationhiding}. This principle remains the theoretical anchor for G1: modules in a modular monolith must encapsulate implementation details behind stable interfaces, and cross-module access must be mediated through declared contracts rather than direct knowledge of internals.
+
+The systematic literature review conducted in Chapter~3 reveals that modularity is widely acknowledged as a prerequisite for sustainable architecture, yet few works operationalize it as an enforceable property. A survey of 63 studies on monolith decomposition shows that most approaches focus on \emph{identifying} module boundaries through clustering, dependency analysis, or domain modeling, but stop short of prescribing mechanisms to \emph{enforce} those boundaries once established~\cite{abgaz2023decomposition}. The gap between boundary identification and boundary enforcement is precisely what G1 addresses.
+
+Several SLR-included works provide converging evidence for the importance of explicit modular structure. The ``sliceable monolith'' concept demonstrates that a monolith designed with clean module boundaries can be progressively decomposed into services without a rewrite, validating the premise that boundary discipline must precede extraction~\cite{montesi2021sliceable}. At the infrastructure level, component boundaries enforced at the programming model itself, with deployment topology deferred to a later decision, reinforce the principle that modularity is a build-time property, not a deployment-time afterthought~\cite{ghemawat2023towards}. Systematic analysis of factors influencing modulith adoption identifies ``module boundary definition'' and ``dependency management'' as two of the top five decision drivers over microservices~\cite{prakash2024systematic}.
+
+The coupling and cohesion dimensions that G1 operationalizes through metrics ($C_{\mathrm{leak}}$, $C_{\mathrm{undecl}}$, $C_{\mathrm{forbid}}$, $P_{\mathrm{iso}}$) are well grounded in the decomposition literature. Modernization roadmaps position coupling analysis as the first diagnostic step before any migration decision, treating boundary enforcement as a precondition for all subsequent architectural evolution~\cite{wolfart2021modernizing}. Empirical evidence from migration attempts confirms that monolithic systems fail during extraction not because of inherent architectural limitations but because undeclared dependencies create invisible coupling that only surfaces under separation pressure~\cite{deLauretis2019from}. Trend analyses of modular monolith adoption reinforce this finding, noting that the architecture is driven primarily by the need to control internal coupling before it becomes external complexity~\cite{tsechelidis2023modular}.
+
+The modular monolith is increasingly recognized as a deliberate architectural choice for cloud environments rather than a transitional compromise, with enforceable module isolation identified as the distinguishing characteristic that separates a well-structured monolith from a traditional one~\cite{su2024modular}. Many systems adopt microservices prematurely and would benefit from enforced modularity within a single deployment unit~\cite{gravanis2021dont}, a position that directly supports G1's emphasis on boundary discipline as a first-order concern.
+
+Industry experience reports complement these academic findings. Large-scale monoliths restructured around enforced component boundaries have demonstrated sustained development velocity across hundreds of engineers~\cite{shopify2020monolith, shopify2022}, and legacy system rewrites confirm that automated boundary enforcement is the decisive factor in controlling complexity~\cite{jovanovic2024rewriting}. These practitioner accounts validate the academic consensus: modularity without enforcement degrades under delivery pressure, and the cost of retroactive boundary repair far exceeds the cost of proactive boundary discipline.
 
 \pagebreak
 \section{G1 Applied: The Modular Tiny Store Example}
@@ -120,7 +205,7 @@ The objective is to show how G1 is applied as an engineering practice, not only 
 The tutorial is written from the perspective of an engineer evolving a monolithic application that contains multiple business capabilities. The goal is to keep bounded contexts isolated, to ensure that any cross-module dependency is intentional and reviewable, and to prevent accidental coupling from accumulating into a refactoring bottleneck.
 
 Two complementary feedback loops are used throughout the steps. The first is \texttt{npm run test:boundary}, which validates structural rules and fails when a module imports
-forbidden internals or bypasses the public surface of another context. The second is \texttt{npm run test:integration}, which exercises cross-module behavior end to end and confirms that the system remains correct after boundaries are tightened or contracts are introduced. Together, these targets support a workflow that is both practical and repeatable: make a change, observe the result immediately, and keep architectural integrity measurable as the system evolves.
+forbidden internals or bypasses the public surface of another context. The second is \texttt{npm run test:integration}, which exercises cross-module behavior end-to-end and confirms that the system remains correct after boundaries are tightened or contracts are introduced. Together, these targets support a workflow that is both practical and repeatable: make a change, observe the result immediately, and keep architectural integrity measurable as the system evolves.
 
 \subsection*{Reader map}
 This tutorial is designed to be completed in a single sitting. It assumes you can run the repository’s boundary and integration targets locally, and it keeps the steps intentionally hands-on. You will first trigger a boundary failure on demand, then locate the exact import or export that caused the violation, and finally fix it by introducing an explicit modular contract rather than importing another context’s internals. The expected time investment is 20--30 minutes, and the outcome is a concrete, reproducible ability to detect and remediate boundary erosion using the same mechanisms that can be embedded into a continuous integration pipeline.
@@ -137,7 +222,7 @@ REST endpoints under \texttt{apps/api/src/app/api/} act as thin adapters that tr
 
 Cross-module integration is intentionally made visible. Listener subscription wiring is centralized in \texttt{apps/api/src/app/lib/register-listeners.ts}, which serves as an auditable map of event choreography: which events are subscribed to, which handlers react, and which dependencies exist at the system level. Centralizing subscriptions avoids hidden side effects (for example, listeners registered implicitly during import time) and makes integration decisions reviewable and testable.
 
-Initially, domain behavior were divided into four bounded contexts under \texttt{libs/modules/}: \texttt{orders}, \texttt{inventory}, \texttt{payments}, and \texttt{shipments}. Each context is an Nx library structured around three concerns. The \texttt{domain/} subtree holds aggregates, entities, value objects, domain events, and repository abstractions. The \texttt{features/} subtree holds application use cases organized as vertical slices. The \texttt{listeners/} subtree reacts to published
+Initially, domain behavior was divided into four bounded contexts under \texttt{libs/modules/}: \texttt{orders}, \texttt{inventory}, \texttt{payments}, and \texttt{shipments}. Each context is an Nx library structured around three concerns. The \texttt{domain/} subtree holds aggregates, entities, value objects, domain events, and repository abstractions. The \texttt{features/} subtree holds application use cases organized as vertical slices. The \texttt{listeners/} subtree reacts to published
 events and invokes local features, enabling collaboration without direct access to another context’s internals.
 
 Modules are consumed through a deliberate public API surface. Each bounded context exposes an entrypoint, typically \texttt{modules/<context>/src/index.ts}.
@@ -182,7 +267,7 @@ Shared code is intentionally constrained under \texttt{libs/shared/}. The \textt
   \label{fig:repo-orientation-diagram}
 \end{figure}
 
-Architecture is enforced as executable checks. The \texttt{npm run test:boundary} target validates module dependency rules and detects coupling regressions, while \texttt{npm run test:integration} exercises cross-module flows end to end. Together, they provide fast feedback on both structural correctness and runtime behavior.
+Architecture is enforced as executable checks. The \texttt{npm run test:boundary} target validates module dependency rules and detects coupling regressions, while \texttt{npm run test:integration} exercises cross-module flows end-to-end. Together, they provide fast feedback on both structural correctness and runtime behavior.
 
 A practical reading order follows the enforced dependency direction: begin at \texttt{apps/api/} to see system assembly, then
 inspect \texttt{register-listeners.ts} to identify cross-context collaboration points. Next, enter a bounded context through its \texttt{src/index.ts} public surface and trace inward from
@@ -197,7 +282,7 @@ fix through the same automated checks that enforce modular boundaries during day
 The steps below apply G1 using Tiny Store as an executable reference. Each step states the intent and the expected signal, and when applicable it includes a runnable snippet.
 
 \subsubsection*{Steps}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=4pt]
 
   \item \emph{Step 0: Establish a Clean Baseline:}
   Confirm that boundary enforcement is active before introducing controlled violations.
@@ -361,7 +446,7 @@ describe('Module Public Surface', () => {
 });
 \end{lstlisting}
 
-When this gate is treated as first-class, the architectural rules stop being informal conventions and become enforced constraints. In practice, the boundary policy can be summarized as follows: external modules must not access another context’s entities, repositories, or internal services; they may depend on public handlers, event contracts, and listener wiring through the composition root; and they may reuse domain-neutral primitives from \texttt{libs/shared/}. This is the mechanism that keeps G1 enforceable as the codebase scales.\newline
+When this gate is treated as first-class, the architectural rules stop being informal conventions and become enforced constraints. In practice, the boundary policy can be summarized as follows: external modules must not access another context’s entities, repositories, or internal services; they may depend on public handlers, event contracts, and listener wiring through the composition root; and they may reuse domain-neutral primitives from \texttt{libs/shared/}. This is the mechanism that keeps G1 enforceable as the codebase scales.
 
   \item \emph{Step 7: Add Module Isolation Checks to Detect Hidden Wiring:}
   Detect coupling that does not appear as imports by running module-scoped isolation tests that load a module with only its declared dependencies available.
@@ -403,12 +488,12 @@ dependency rule, $P_{\mathrm{iso}}$ captures the isolation pass rate when module
 \normalsize
 
 \subsubsection*{Exercises}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=10pt,topsep=4pt]
 
   \item \emph{Exercise 0: Confirm the Baseline:}
-  Re-run Step 0, and confirm that all checks pass.\newline
+  Re-run Step 0, and confirm that all checks pass.
 
-  \newline\item \emph{Exercise 1: Create an Encapsulation Leak by Exporting an Internal Symbol:}
+  \item \emph{Exercise 1: Create an Encapsulation Leak by Exporting an Internal Symbol:}
   Demonstrate that entities and repositories must not be exposed through module entrypoints. Introduce the violation by exporting internal symbols from the Orders module entry-point (for example \texttt{libs/modules/orders/src/index.ts}).
 
   \begin{lstlisting}[language=TypeScript,caption={Violation: exporting internal symbols},label={lst:g1-ex1-leak}]
@@ -424,10 +509,12 @@ Run enforcement.
 npm run test:boundary 
   \end{lstlisting}
   
-  Expected signal: a boundary test fails, and $C_{\mathrm{leak}}\uparrow$. Fix: remove these exports, and expose a contract instead (handler/port/event).\newline
+  \emph{Expected signal:} a boundary test fails, and $C_{\mathrm{leak}}\uparrow$.
 
-  \newline\item \emph{Exercise 2: Introduce a Direct Cross-Module Import (Undeclared or Forbidden):}
-  Demonstrate that bounded contexts must not couple via direct imports for convenience. Introduce the violation by adding a direct import in an Orders feature file under \texttt{libs/modules/orders/src/features/}.\newline
+  \emph{Fix:} remove these exports, and expose a contract instead (handler/port/event).
+
+  \item \emph{Exercise 2: Introduce a Direct Cross-Module Import (Undeclared or Forbidden):}
+  Demonstrate that bounded contexts must not couple via direct imports for convenience. Introduce the violation by adding a direct import in an Orders feature file under \texttt{libs/modules/orders/src/features/}.
 
   \begin{lstlisting}[language=TypeScript,caption={Violation: direct cross-module import},label={lst:g1-ex2-import}]
 /**
@@ -442,10 +529,12 @@ import { SomeInventoryHandler } from '@tiny-store/modules-inventory';
 npm run test:boundary
   \end{lstlisting}
 
-  \DontMark\ Expected signal: a boundary check fails if cross-module imports are constrained by the enforcement suite.
-  If it does not fail, treat this as an enforcement coverage gap and extend \texttt{module-boundary.spec.ts} to detect forbidden \texttt{@tiny-store/modules-*} imports from within another module.\newline
-  Metric impact: $C_{\mathrm{undecl}}\uparrow$ or $C_{\mathrm{forbid}}\uparrow$.\newline
-  Fix (preferred): replace the direct import with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory, publish \texttt{InventoryReserved}).\newline
+  \emph{Expected signal:} a boundary check fails if cross-module imports are constrained by the enforcement suite.
+  If it does not fail, treat this as an enforcement coverage gap and extend \texttt{module-boundary.spec.ts} to detect forbidden \texttt{@tiny-store/modules-*} imports from within another module.
+
+  \emph{Metric impact:} $C_{\mathrm{undecl}}\uparrow$ or $C_{\mathrm{forbid}}\uparrow$.
+
+  \emph{Fix (preferred):} replace the direct import with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory, publish \texttt{InventoryReserved}).
 
   \item \emph{Exercise 3: Hide Event Wiring Inside a Module (Implicit Dependency):}
   Demonstrate why subscription wiring must remain centralized and auditable.
@@ -458,16 +547,18 @@ npm run test:boundary
 EventBus.getInstance().subscribe('OrderPlaced', (e) => this.handle(e));
   \end{lstlisting}
 
-\newline
+
 Run enforcement.
 
  \begin{lstlisting}[language=bash,caption={Run enforcement after Exercise 3},label={lst:g1-ex3-run}]
 npm run test:boundary && npm run test:integration
 
 \end{lstlisting}
-  Expected signal: this may not fail immediately if the current enforcement suite does not scan for subscription calls outside the composition root. In that case, enforce a rule that forbids \texttt{eventBus.subscribe(} usage outside \texttt{apps/api/src/app/lib/register-listeners.ts}, and/or detect it via module isolation tests.\newline
-  Metric impact: $P_{\mathrm{iso}}\downarrow$ and potentially $C_{\mathrm{event}}\uparrow$.\newline
-  Fix: move the subscription back to \texttt{register-listeners.ts}.
+  \emph{Expected signal:} this may not fail immediately if the current enforcement suite does not scan for subscription calls outside the composition root. In that case, enforce a rule that forbids \texttt{eventBus.subscribe(} usage outside \texttt{apps/api/src/app/lib/register-listeners.ts}, and/or detect it via module isolation tests.
+
+  \emph{Metric impact:} $P_{\mathrm{iso}}\downarrow$ and potentially $C_{\mathrm{event}}\uparrow$.
+
+  \emph{Fix:} move the subscription back to \texttt{register-listeners.ts}.
 \end{itemize}
 
 \subsection*{Conclusion of the G1 Implementation}
