@@ -14,7 +14,7 @@ In practice, most early-stage systems do not face uniform scaling pressure. Load
 
 G3 therefore treats scalability as a \emph{gradient} rather than a binary switch. The guideline proposes that a modular monolith can traverse a scalability spectrum through deliberate, reversible interventions:
 
-\begin{enumerate}[noitemsep,topsep=2pt]
+\begin{enumerate}[itemsep=8pt,topsep=2pt]
   \item \emph{Vertical optimization within the monolith:} resource tuning, query optimization, caching, and concurrency improvements applied to specific modules without structural change.
   \item \emph{Asynchronous decoupling of hot paths:} introducing message queues or event streams between modules whose throughput requirements diverge, converting synchronous bottlenecks into buffered pipelines.
   \item \emph{Data isolation for divergent modules:} separating persistence for modules whose data access patterns, volume, or consistency requirements no longer fit a shared schema.
@@ -26,7 +26,7 @@ This spectrum makes the migration to microservices an \emph{option}, not an obli
 \subsection*{Conceptual Overview}
 
 Progressive scalability is embedded by designing modules so that growth is absorbed incrementally:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Each module's resource consumption, throughput profile, and data growth trajectory are observable and attributable, enabling evidence-based scaling decisions.
   \item Communication between modules with divergent scaling needs can transition from synchronous to asynchronous without rewriting business logic.
   \item Persistence is designed so that schema ownership can be narrowed from shared to module-scoped without data migration crises.
@@ -36,7 +36,7 @@ Progressive scalability is embedded by designing modules so that growth is absor
 \subsection*{Applicability Conditions and Scope}
 
 G3 applies to modular monolith systems that satisfy the following conditions:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Module boundaries are enforced and dependencies are explicit, as established by G1.
   \item Maintainability discipline is in place, ensuring that contracts are stable and change locality is preserved, as established by G2.
   \item The system is expected to grow in load, data volume, or team size, but the timing and distribution of that growth are uncertain.
@@ -46,7 +46,7 @@ G3 does not prescribe specific cloud providers, container orchestrators, or scal
 
 
 \subsection*{Objectives}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Identify module-level scale points:} Determine which modules are likely to experience disproportionate load, data growth, or throughput demands, and make these scale points visible in the architecture.
   \item \emph{Enable asynchronous decoupling:} Design inter-module communication so that synchronous call paths can be replaced with asynchronous channels without modifying domain logic or violating module contracts.
   \item \emph{Establish data isolation from inception:} Structure persistence so that each module owns a dedicated schema from the first deployment, ensuring that extraction never requires data migration.
@@ -57,7 +57,7 @@ G3 does not prescribe specific cloud providers, container orchestrators, or scal
 
 \subsection*{Key Principles}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Scale where it hurts, not where it might:}
   Scaling interventions should be driven by observed bottlenecks, not by speculative anticipation. Module-level metrics (see Metrics section) provide the evidence base. Premature optimization of modules that are not under pressure introduces unnecessary complexity and operational cost.
 
@@ -326,7 +326,7 @@ The readiness score quantifies the $\varepsilon_m$ metric defined in the Metrics
 \noindent
 G3 is implemented through the following architectural mechanisms, all established from project inception:
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Module-scoped resource profiling:} Each module's resource consumption (CPU, memory, I/O, query volume) is attributable through instrumentation or naming conventions, enabling identification of scale points without distributed tracing.
 
   \item \emph{Communication abstraction layer:} Inter-module communication passes through a contract-based abstraction (e.g., an event bus interface or a command dispatcher) that can be backed by in-process dispatch, an in-memory queue, or a distributed broker without changing the caller or handler.
@@ -339,7 +339,7 @@ G3 is implemented through the following architectural mechanisms, all establishe
 
 \subsection*{Common Failure Modes and Anti-Patterns}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Premature Distribution (``Microservices Envy''):}
   Extracting modules into services before exhausting in-process optimizations. This introduces distributed-system complexity (network latency, partial failures, eventual consistency) without evidence that distribution is necessary. The cost is disproportionate to the benefit, particularly for early-stage teams with limited operational maturity~\cite{gravanis2021dont, su2024from}.
 
@@ -361,7 +361,7 @@ G3 is implemented through the following architectural mechanisms, all establishe
 
 G3 metrics are designed to make scaling pressure observable at the module level and to verify that the architectural preparation for progressive scalability is in place. They complement the structural metrics defined in G1 and G2 by adding resource, throughput, and isolation dimensions.
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{Module Throughput Profile ($\Theta_m$):}
   In modular monoliths, load distribution is rarely uniform across bounded contexts. Some modules handle high-frequency operations while others manage occasional administrative tasks \cite{richardson2018microservices}. When modules with significantly different throughput requirements are connected through synchronous calls, the slower modules become bottlenecks that constrain the entire system's performance. This metric quantifies throughput divergence across modules to identify candidates for asynchronous decoupling before bottlenecks manifest as user-visible latency.
   \[
@@ -421,7 +421,7 @@ G3 metrics are designed to make scaling pressure observable at the module level 
 
 
 \subsection*{Documentation Guidelines}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Module Scale Profile:}
   Maintain a lightweight document (or section in the module descriptor) for each module that records its current spectrum level (L0--L3), its observed throughput profile, and any known scaling constraints. This profile is updated when monitoring data changes significantly or when a spectrum-level transition occurs.
 
@@ -434,7 +434,7 @@ G3 metrics are designed to make scaling pressure observable at the module level 
 
 \subsection*{Tooling Capabilities Checklist}
 Any open-source or proprietary tool used to support progressive scalability should address:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Module-scoped metrics collection:} Attribute resource consumption, latency, and throughput to individual modules within the monolith, without requiring distributed tracing infrastructure.
   \item \emph{Communication abstraction:} Provide a dispatch mechanism that supports both synchronous and asynchronous inter-module communication through the same contract interface.
   \item \emph{Schema ownership analysis:} Identify tables or collections accessed by multiple modules and quantify data ownership clarity ($\omega$).
@@ -457,7 +457,7 @@ The scalability levels defined here provide the trigger criteria for G4 (Migrati
 
 The code listings in this section are drawn from the Tiny Store reference implementation. The relevant source files are:
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \texttt{libs/shared/infrastructure/src/cache/cache.service.ts}: Module-namespaced Redis caching (L0)
   \item \texttt{libs/shared/infrastructure/src/cache/cache.decorator.ts}: Read-through caching decorator (L0)
   \item \texttt{libs/shared/infrastructure/src/queue/queue.service.ts}: Module-scoped BullMQ queues (L1)
