@@ -1,0 +1,114 @@
+[]{#sec:relatedwork label="sec:relatedwork"}
+
+This chapter presents a synthesis of prior research on software architecture in cloud-native systems, with particular emphasis on modular monolithic applications. It is grounded in the findings of a Systematic Literature Review (SLR) conducted during the initial phase of this research proposal. The main objective of the review was to examine how modular monoliths are conceptualized in academic literature and to identify how these perspectives compare to traditional monolithic or microservices architecture approaches.
+
+The review was conducted in accordance with the guidelines for evidence-based software engineering proposed by Kitchenham and Charters [@kitchenham2007guidelines], which emphasize transparency, reproducibility, and methodological rigor. It focused on peer-reviewed journal articles and conference papers published between 2019 and 2024, retrieved from two well-established digital libraries: IEEE Xplore and the ACM Digital Library. These sources were selected for their relevance, academic credibility, and comprehensive coverage of current developments, research challenges, and trends in modern software engineering.
+
+A structured search strategy was designed using Boolean logic to combine terms related to modular monoliths, microservices, scalability, and cloud-native system design. The inclusion criteria targeted studies that addressed at least one core architectural theme, such as modularity, maintainability, deployment strategy, scalability, or system evolution. Only technically substantive, peer-reviewed, English-language publications were considered. Studies were excluded if they lacked relevance to software architecture, fell below the minimum depth requirement, or were duplicate entries. Following full-text screening and selection, a final set of 18 articles was retained for analysis.
+
+Although some recent reviews in software architecture adopt a multivocal approach that includes gray literature such as blogs or practitioner talks, including the parallel SLR by Al-Qora'n and Al-Said Ahmad [@alqoran2025mma] on modular monolith adoption in cloud environments, this review intentionally limited its scope to academic sources. This decision ensured consistency and methodological soundness across the review. Practitioner insights will be incorporated in a later phase through expert validation interviews, providing complementary real-world perspectives.
+
+The remainder of this chapter builds on the results of the literature review by applying a structured set of evaluation criteria to the selected studies. These criteria are organized into four key dimensions: Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation. Together, they reflect essential considerations in cloud-native system design and provide a consistent basis for analyzing the strengths, focus areas, and limitations of each study. A dedicated subsection introduces and defines each criterion, followed by a comparative matrix that summarizes their coverage across the reviewed articles. This analysis helps identify conceptual and practical gaps in the literature and clarifies how this research proposal contributes by addressing areas underexplored in prior studies.
+
+To support this comparison, the evaluation criteria were derived from both academic literature and practical concerns in software architecture, particularly those relevant to engineers pursuing decent software design. Each criterion was selected to represent a critical factor influencing the scalability, maintainability, operational complexity, or organizational alignment of cloud-native systems. By mapping the reviewed studies against these criteria, this chapter provides a thematic synthesis of the literature and establishes the foundation for the architectural guidelines developed in Chapter [\[sec:proposal\]](#sec:proposal){reference-type="ref" reference="sec:proposal"}.
+
+# Evaluation Criteria {#sec:evaluationcriteria}
+
+The evaluation criteria were selected to support a rigorous and multidimensional analysis of how the selected studies address key architectural concerns in cloud-native applications. Each criterion reflects not only theoretical considerations but also recurring themes from the literature, ensuring relevance to both academic research and software engineering practice.
+
+Together, these criteria provide a structured foundation for identifying strengths, weaknesses, and conceptual gaps. To guide this analysis, the criteria were grouped into four analytical dimensions:
+
+- **Architectural Design**: structural qualities that influence long-term adaptability, including modularity, maintainability, scalability, and migration readiness.
+
+- **Operational Fit**: aspects that affect runtime behavior and production viability, such as deployment strategy, complexity management, and performance implications.
+
+- **Organizational Alignment**: how architecture interacts with team structures, including team fit, maturity of DevOps and engineering team members onboarding.
+
+- **Guideline Orientation**: the practicality and contextual relevance of architectural recommendations, focusing on clarity of target context and feasibility of adoption.
+
+# Literature Overview
+
+The systematic evaluation of 18 peer-reviewed studies against 12 architectural associated criteria reveals a landscape with both established strengths and untapped potential.
+
+::: {#tab:criteria-dimensions-summary}
+  **Dimension**              **Associated Criteria**                                                **Analytical Focus**
+  -------------------------- ---------------------------------------------------------------------- -------------------------------------------------
+  Architectural Design       Modularity, Maintainability, Scalability, Migration Readiness          Structural quality and long-term adaptability
+  Operational Fit            Deployment Strategy, Complexity Management, Performance Implications   Runtime efficiency and operational feasibility
+  Organizational Alignment   Team Fit, DevOps Maturity, Onboarding                                  Team compatibility and onboarding effectiveness
+  Guideline Orientation      Practicality of Adoption, Target Context                               Actionability and contextual relevance
+
+  : Evaluation Dimensions, Associated Criteria, and Analytical Focus
+:::
+
+Rather than focusing on limitations, this analysis seeks to highlight where meaningful contributions can be made to expand, refine, or operationalize existing knowledge. The goal is to surface areas where architectural research, particularly around modular monoliths, remains either conceptually underdeveloped or practically unsupported.
+
+Modularity is widely recognized as a foundational concept across the reviewed literature, particularly in studies comparing monoliths, microservices, and modular monoliths. Prakash and Arora [@prakash2024systematic], Johnson et al. [@johnson2024serviceweaver], and Su et al. [@su2024from] explicitly examine modularity as either a primary research focus or a strategic architectural objective. In contrast, migration-oriented studies typically address modularity only implicitly, referencing refactoring or service extraction without conducting a detailed analysis of modular structures or mechanisms for enforcing modular boundaries.
+
+Maintainability is among the most consistently addressed criteria across the selected studies. Several works provide empirical measures, such as Berry et al. [@berry2024isItWorth], while others offer qualitative insights, including Su and Taibi [@su2024from]. In the microservices literature, maintainability is often associated with bounded contexts and team autonomy, whereas modular monoliths are linked to code cohesion and internal consistency. Despite this emphasis, relatively few studies propose reusable patterns or tools that support long-term maintainability in practice.
+
+Scalability is frequently cited as a central driver of architectural decisions. Arya et al. [@arya2024beyond] and Berry et al. [@berry2024isItWorth] provide empirical evidence highlighting the advantages of microservices in horizontally scaling high-demand applications. Conversely, De Lauretis [@deLauretis2019from] and Montesi et al. [@montesi2021sliceable] argue that modular monoliths can fulfill moderate scalability requirements while offering lower operational complexity. However, few studies provide formal models or detailed guidance for hybrid or staged scalability strategies.
+
+Migration Readiness is also addressed in works focusing on legacy modernization and architectural transformation. Berry et al. [@berry2024isItWorth] and Ng et al. [@ng2024migrating] offer detailed accounts of migration efforts, outlining common challenges, methodologies, and results. While many works view microservices as the ultimate target architecture, others, such as Montesi et al. [@montesi2021sliceable], position modular monoliths as a preparatory or transitional stage. Nevertheless, the literature still lacks comprehensive modeling or empirical validation of phased migration approaches and gradual decomposition strategies, though recent work has explored dynamic decomposition [@nassima2024dynamic] and the evolution of decomposition techniques [@oumoussa2024evolution].
+
+Deployment Strategy is commonly discussed in the microservices literature, especially in works such as Arya et al. [@arya2024beyond] and Johnson et al. [@johnson2024serviceweaver], which explore Kubernetes orchestration, CI/CD automation, and containerization. These studies highlight how deployment granularity affects team autonomy and release cadence. In contrast, studies on modular monoliths often acknowledge simplified deployment but stop short of deeply analyzing its implications. Montesi et al. [@montesi2021sliceable] propose a model where deployment is kept unified until needed; however, deployment tooling in modular monoliths remains an underexplored area.
+
+Complexity Management appears across all architectural discussions, though only a few works propose structured models or design strategies to address it. Microservices-focused papers  [@su2024from] often raise concerns about distributed coordination, operational overhead, and toolchain fragmentation. On the other hand, modular monoliths are praised for keeping architectural complexity manageable while retaining flexibility [@montesi2021sliceable; @celozzi2020]. Prakash and Arora [@prakash2024systematic] explicitly highlight perceived complexity as a factor affecting architecture adoption, showing a strong link between organizational maturity and complexity tolerance.
+
+Performance implications are inconsistently evaluated in the literature. Some empirical studies, such as Berry et al. [@berry2024isItWorth] and Blinowski et al. [@blinowski2022monolithic], compare response times, energy usage, and availability between microservices and monoliths. These works suggest that microservices may perform better at scale but introduce baseline latency due to inter-service communication, a finding consistent with the comparative analysis by Jatkiewicz et al. [@jatkiewicz2023differences]. Modular monoliths, by contrast, are less frequently the subject of direct performance testing, leaving a gap in benchmarking their efficiency in production-grade scenarios.
+
+Team Fit is discussed less explicitly, though the influence of architecture on collaboration and ownership surfaces across several studies. Prakash and Arora [@prakash2024systematic] and Su and Taibi [@su2024from] draw direct connections between modular architecture and team maturity. Their findings suggest that modular monoliths may better support small, cross-functional teams by reducing cognitive load and easing coordination. However, most migration-oriented and performance-focused studies do not explore these social or organizational dynamics in depth.
+
+DevOps Maturity is a frequent theme in microservices literature. Studies such as Arya et al. [@arya2024beyond] and Johnson et al. [@johnson2024serviceweaver] explore the high operational demands of distributed systems, including observability, CI/CD tooling, and deployment automation. In contrast, modular monoliths are generally framed as more accessible for teams with limited DevOps capabilities [@montesi2021sliceable; @celozzi2020]. Despite these observations, formal analyses of DevOps maturity requirements across architectural styles remain scarce.
+
+Onboarding is among the least discussed criteria. Most studies do not evaluate how architecture affects a new developer's ability to contribute effectively. A few exceptions, such as Montesi et al. [@montesi2021sliceable] and Rademacher et al. [@tsechelidis2023modular], suggest that modular monoliths may reduce onboarding friction by maintaining a unified codebase with clear boundaries. Still, onboarding remains an underexplored variable in architectural evaluation, especially given its importance in fast-growing startup teams.
+
+Practicality of Adoption is addressed to varying degrees. While many studies outline theoretical benefits of certain architectures, few offer concrete, actionable steps for adoption. Celozzi [@celozzi2020] and Su and Taibi [@su2024from] stand out by linking architecture decisions to implementation workflows. Rademacher et al. [@tsechelidis2023modular] contribute classification models but lack empirical validation. This divide between evaluation and implementation suggests a promising direction for future research aiming to translate academic insight into practice.
+
+Target Context is inconsistently addressed. Although most papers discuss architectural trade-offs, few specify the organizational environments in which their findings apply. Notable exceptions include Prakash and Arora [@prakash2024systematic], who focus on small to medium teams, and Su and Taibi [@su2024from], who distinguish between startups and enterprise settings. Greater contextual clarity would improve the relevance and applicability of architectural guidance for real-world teams.
+
+Table [2](#tab:gap-analysis){reference-type="ref" reference="tab:gap-analysis"} presents a consolidated view of this analysis. It helps clarify which areas are well-supported by current literature and which remain open for deeper exploration. This mapping serves as a strategic reference for the development of the architectural guidelines proposed in the next chapter. By aligning these guidelines with the gaps identified here, the research aims to produce contributions that are both academically grounded and practically relevant.
+
+This review also reveals the absence of any study that directly addresses **progressive scalability** for modular monolithic architectures. While individual techniques relevant to scalability are well-represented in the literature, including modular boundary enforcement, maintainability patterns, migration strategies, and deployment automation, none of the 18 reviewed articles integrate these techniques into a coherent, step-by-step scalability guideline set. Existing work treats scalability either as a property to be benchmarked (typically favoring microservices) or as a migration endpoint, but does not propose a structured progression through which a modular monolith can absorb increasing demand through proportional, evidence-driven architectural interventions. This dissertation's central contribution is precisely to synthesize these individually studied techniques into a cohesive **progressive scalability guideline** (G1$\rightarrow$G6), where each guideline builds on the previous one to form an integrated pathway from enforced modularity through observable, extraction-ready architecture. The innovation lies not in the individual techniques themselves, but in their integration into a deliberate progression that enables startups to scale incrementally without premature distribution.
+
+::: {#tab:gap-analysis}
+  **Evaluation Criterion**   **Literature Coverage**                                                         **Opportunity for Contribution**
+  -------------------------- ------------------------------------------------------------------------------- --------------------------------------------------------------------------------------------------
+  Modularity                 High across studies, but often implied in migration-focused works.              Formalize modularity strategies beyond implicit mentions; propose enforceable structures.
+  Maintainability            Frequently addressed with both qualitative and quantitative methods.            Develop reusable architectural patterns and tools to support long-term maintainability.
+  Scalability                Widely benchmarked, especially for microservices; hybrid strategies are rare.   Design hybrid or staged scaling models and assess their viability in practice.
+  Migration Readiness        Strong presence in legacy transformation works.                                 Model phased migration paths and validate modular monoliths as intermediate architecture.
+  Deployment Strategy        Well-covered in microservices; modular monoliths receive limited attention.     Analyze streamlined deployment approaches and tooling for monoliths with modular structure.
+  Complexity Management      Acknowledged in most papers but rarely quantified or modeled.                   Propose strategies to manage complexity and cognitive load across architectures.
+  Performance Implications   Covered in about half the studies; modular monoliths are under-tested.          Conduct empirical benchmarks comparing performance trade-offs across styles.
+  Team Fit                   Rarely analyzed directly; mostly inferred from architectural discussions.       Quantitatively assess how architectural decisions affect collaboration and team structure.
+  DevOps Maturity            Common in cloud-native and microservices literature.                            Compare DevOps tooling and practices across architectures, especially for early-stage teams.
+  Onboarding                 Largely absent; only anecdotal mentions in modular monolith studies.            Evaluate onboarding experience and developer ramp-up across different architectural styles.
+  Practicality of Adoption   Mentioned conceptually, rarely operationalized.                                 Bridge academic findings with concrete steps and decision support frameworks.
+  Target Context             Often missing or broadly defined.                                               Clarify the applicability of architectural recommendations to specific organizational scenarios.
+
+  : Gap Analysis by Evaluation Criterion
+:::
+
+To complement the tabular representation, Figure [1](#fig:heatmap-criteria){reference-type="ref" reference="fig:heatmap-criteria"} provides a heatmap visualization of the same evaluation matrix. This format offers a quick, intuitive overview of how each of the 18 studies engages with the twelve architectural criteria. Darker shades indicate stronger or more explicit coverage of a criterion, while lighter cells highlight gaps or minimal engagement. By translating the comparative data into visual patterns, the heatmap makes it easier to detect clusters of well-explored themes as well as areas where scholarly attention remains sparse. This graphical summary reinforces the analytical findings discussed earlier and further supports the identification of opportunities for the research.
+
+<figure id="fig:heatmap-criteria" data-latex-placement="H">
+<img src="Cap3/Heatmap Of Literature Coverage By Architectural Criteria.png" />
+<figcaption>Heatmap of Literature Coverage by Architectural Criteria.</figcaption>
+</figure>
+
+- **Explicit:** The article addresses the criterion directly and in depth, typically through models, dedicated sections, experiments, or case-based discussions.
+
+- **Implicit:** The criterion is mentioned or inferred, often as context, background, or supporting detail, but not systematically explored.
+
+- **Not addressed:** The article does not meaningfully engage with the criterion in either direct discussion or implied analysis.
+
+# Disclaimer on the usage of Artificial Intelligence LLM
+
+Part of the literature evaluation in this study was supported by a process assisted by artificial intelligence large language models.[^1] These models were used to help identify architectural evaluation criteria based on recurring patterns observed across the selected studies. They also assisted in classifying how 18 peer-reviewed articles addressed each criterion using a three-point scale: **2 (Explicit)** for deep and focused coverage, **1 (Implicit)** for indirect or contextual mentions, and **0 (Not Addressed)** for cases where the topic was not meaningfully discussed. The point scale was necessary to generate the image using the python numpy and matplotlib libraries.
+
+All classifications generated by the language models were manually reviewed by the author. This process involved reading the full text of each article, comparing the model-generated scores against systematic review notes, and making adjustments when necessary to ensure accuracy and alignment with the research objectives.
+
+This combined approach leveraged the scalability of artificial intelligence while maintaining academic rigor through human oversight. It enabled a consistent and traceable mapping of the literature that remains grounded in the critical interpretation and judgment of the researcher.
+
+[^1]: The large language model used to support this research was ChatGPT (04-mini-high), developed by OpenAI. It was employed to assist in content classification, literature pattern identification, and synthesis drafting under the supervision of the author.
