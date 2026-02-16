@@ -18,7 +18,7 @@ G4 inverts this dynamic. Instead of treating migration as a future problem to be
 
 Migration readiness is embedded by designing each module so that its external integration surface is network-boundary compatible. Crucially, G4 does not treat this as a hypothetical design exercise. The guideline prescribes introducing production-grade infrastructure, Apache Kafka for event streaming and Temporal for durable workflow orchestration, \emph{inside} the monolith, before any extraction occurs. This approach eliminates the gap between ``designed for extraction'' and ``ready for extraction'': the same brokers, workflow engines, and contract mechanisms that would be used in a distributed deployment are already running in the monolith, validated by the same integration tests, and observable through the same monitoring tools.
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Each module exposes its capabilities through a versioned internal API that could be replaced by a network endpoint without changing the contract.
   \item Integration points between modules are mediated by anti-corruption layers that translate between domain models, preventing one module's internal evolution from breaking another.
   \item No module relies on shared mutable state (shared database tables, in-memory caches, global singletons) for correctness; each module owns its data and collaborates through contracts.
@@ -29,7 +29,7 @@ Migration readiness is embedded by designing each module so that its external in
 \subsection*{Applicability Conditions and Scope}
 
 G4 applies to modular monolith systems where:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Module boundaries are enforced (G1) and maintainability discipline is in place (G2).
   \item At least some modules are expected to face extraction pressure in the medium term, due to scaling needs (G3), independent release cadence, or technology heterogeneity.
   \item The team prefers to invest incrementally in extraction readiness rather than accept a high-cost migration event later.
@@ -38,7 +38,7 @@ G4 applies to modular monolith systems where:
 G4 does not prescribe when to extract. That decision belongs to G3's scalability spectrum (Level L3). G4 prescribes \emph{how to be ready} when the decision is made. The guideline is technology-agnostic: the principles apply whether the system uses REST, gRPC, message queues, or any other communication mechanism.
 
 \subsection*{Objectives}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Design internal APIs as if they were external:} Module public surfaces should be defined with the same discipline applied to external APIs: versioned, documented, backward-compatible, and independent of internal implementation details.
   \item \emph{Introduce anti-corruption layers at integration points:} Ensure that each module translates inbound and outbound data through an explicit mapping layer, so that internal model changes do not propagate across boundaries.
   \item \emph{Eliminate shared mutable state:} Ensure no module depends on another module's database tables, in-memory state, or global resources for correctness.
@@ -48,7 +48,7 @@ G4 does not prescribe when to extract. That decision belongs to G3's scalability
 
 \subsection*{Key Principles}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Internal APIs deserve the same rigor as external APIs:}
   In a modular monolith, the temptation is to treat inter-module interfaces as informal. Since everything runs in-process, breaking changes are discovered immediately and can be fixed in the same commit. This convenience is precisely what creates migration debt. When an internal API is designed with versioning, backward compatibility, and explicit contracts, extraction requires only a transport change (in-process call $\to$ HTTP/gRPC call), not an interface redesign.
 
@@ -76,7 +76,7 @@ In any e-commerce system, order placement is the highest-traffic path: every che
 
 The orders module in Tiny Store already satisfies several migration readiness properties by construction:
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Explicit public surface:} The module exposes capabilities through \texttt{@tiny-store/modules-orders}, which re-exports only handlers and event contracts. Internal entities (\texttt{Order}, \texttt{OrderRepository}) are not exported.
 
   \item \emph{Event-driven collaboration:} Cross-module interaction follows the event choreography pattern. Orders publishes \texttt{OrderPlaced}, \texttt{OrderCancelled}, and other domain events; downstream modules react through listeners wired in the composition root. There are no direct imports between orders and inventory, payments, or shipments.
@@ -90,7 +90,7 @@ These properties mean that, at the code level, extracting orders would not requi
 
 Despite strong boundary enforcement, Tiny Store's baseline state reflects a common pattern in early-stage monoliths: boundaries are clean at the code level, but the infrastructure layer still assumes co-location. The gaps below are not unique to Tiny Store. They appear in virtually every modular monolith that has not been deliberately prepared for extraction, and closing them is what transforms an architectural prototype into a production-ready system:
 
-\begin{enumerate}[noitemsep,topsep=2pt]
+\begin{enumerate}[itemsep=8pt,topsep=2pt]
   \item \emph{Shared database:} All modules share a single database instance. The \texttt{orders} table and the \texttt{inventory} table live in the same schema. Even though code-level boundaries are clean, a direct SQL join or a shared transaction could couple them at the persistence level. Extraction requires that orders owns its own database (or at minimum, its own schema), and that any data it needs from inventory arrives through events or API calls.
 
   \item \emph{In-process event bus:} In a naive modular monolith, the event bus would be an in-memory singleton with synchronous delivery. Tiny Store avoids this gap by including Kafka from inception: the \texttt{EventBusFactory} (Listing~\ref{lst:g4-event-port}) selects between in-memory and Kafka adapters via an environment variable. Each module publishes to a dedicated topic (e.g., \texttt{orders.events}), and downstream modules consume through consumer groups that support horizontal scaling and exactly-once processing semantics. This is a design requirement, not a migration step.
@@ -106,7 +106,7 @@ Despite strong boundary enforcement, Tiny Store's baseline state reflects a comm
 
 The following steps describe how to bring the orders module from its baseline state to production-grade migration readiness, without extracting it. Unlike the G1 tutorial, which focused on boundary verification through lightweight test targets, these steps introduce production infrastructure: Kafka for event streaming, Temporal for durable workflow orchestration, schema isolation for data ownership, and versioned contracts for independent evolution. Each step is designed so that the resulting system is not merely ``ready for extraction in theory'' but operationally indistinguishable from a distributed setup, running the same brokers, the same workflow engine, and the same contract mechanisms that would be used after extraction. The only difference is deployment topology: everything still runs as a single deployable unit.
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Step 1: Isolate the orders schema.}
   Create a dedicated database schema (or namespace) for orders. Migrate the \texttt{orders} and \texttt{order\_items} tables into this schema. Update the orders repository to use the isolated schema. Verify that no other module queries these tables directly (G3's $\omega$ metric should increase toward 1).
 
@@ -526,7 +526,7 @@ npx ts-node tools/extract/extract.ts retract orders
 
 The extraction process consists of eight automated steps:
 
-\begin{enumerate}[noitemsep,topsep=2pt]
+\begin{enumerate}[itemsep=8pt,topsep=2pt]
   \item \emph{Entity Discovery:} Parse TypeScript source files to identify \texttt{@Entity} decorators and their associated database tables. This step ensures that all database artifacts belonging to the module are discovered programmatically rather than maintained in a separate manifest.
 
   \item \emph{Database Migration:} Create a dedicated PostgreSQL database for the extracted service and migrate data from the shared SQLite database. This step materializes the data ownership principle (G3's $\omega = 1$) by providing the module with an isolated persistence layer.
@@ -572,7 +572,7 @@ The extract command adopts this philosophy for modular monoliths: modules are de
 
 This approach provides several benefits aligned with Service Weaver's design goals:
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Development/production parity:} Developers can run the entire system as a monolith for local development, while production deploys modules as independent services based on scaling needs.
   \item \emph{Gradual extraction:} Teams can extract modules incrementally (orders first, then inventory, then payments) based on operational requirements rather than all-or-nothing migration events.
   \item \emph{Operational flexibility:} The same module can be extracted during peak traffic periods and retracted during maintenance windows, providing deployment-level scaling strategies.
@@ -613,7 +613,7 @@ This operationalization of G4's principles provides production teams with the co
 
 \subsection*{Common Failure Modes and Anti-Patterns}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{``We'll fix it during migration'' (Deferred Readiness):}
   Postponing migration preparation until extraction is imminent. At that point, the accumulated coupling (shared tables, implicit transactions, unversioned APIs) makes extraction a multi-month project instead of a multi-day configuration change. G4 treats readiness as a continuous investment, not a phase.
 
@@ -635,7 +635,7 @@ This operationalization of G4's principles provides production teams with the co
 
 G4 metrics assess whether a module is structurally prepared for extraction, complementing G1's boundary metrics, G2's maintainability metrics, and G3's scalability metrics.
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{Data Ownership Clarity ($\omega_m$):}
   Shared database tables represent the single largest obstacle to service extraction, creating coupling at the persistence layer that survives any amount of code-level decoupling \cite{evans2003ddd}. When modules access the same tables directly, extraction requires complex data migration and schema splitting that often fails in production. This metric, inherited from G3 but scoped to the candidate module, quantifies how cleanly the module's data boundaries are established, providing the foundation for zero-migration extraction.
   Reused from G3, scoped to the candidate module. $\omega_m = 1$ means the module owns all its tables exclusively. $\omega_m < 1$ indicates shared tables that block extraction.
@@ -696,7 +696,7 @@ G4 metrics assess whether a module is structurally prepared for extraction, comp
 
 
 \subsection*{Documentation Guidelines}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Module Extraction Runbook:}
   For each module identified as an extraction candidate, maintain a runbook that documents: the current migration readiness score ($\mu_m$), the remaining preparation steps, the extraction procedure (infrastructure changes), and the rollback procedure. This runbook is updated as readiness improves.
 
@@ -709,7 +709,7 @@ G4 metrics assess whether a module is structurally prepared for extraction, comp
 
 \subsection*{Tooling Capabilities Checklist}
 Any open-source or proprietary tool used to support migration readiness should address:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Schema ownership analysis:} Identify which modules access which database tables and flag shared-table violations ($\omega < 1$).
   \item \emph{Event schema registry:} Track event contract versions, detect breaking changes, and validate consumer compatibility.
   \item \emph{Durable workflow orchestration:} Manage cross-module sagas with built-in retry, timeout, and compensation support. Temporal is recommended for its durable execution model, workflow versioning, and production-grade observability (execution history, pending activities, failure traces). The Temporal Web UI provides real-time saga visualization without custom tooling.
@@ -747,7 +747,7 @@ Independent CI pipeline & Nx target with scoped tests & Monolith-wide pipeline o
 All code listings in this section correspond to files in the Tiny Store reference implementation. The key file paths are:
 
 \small
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \texttt{libs/shared/infrastructure/src/event-bus/event-bus.factory.ts}: Event publisher port and Kafka adapter
   \item \texttt{libs/shared/infrastructure/src/kafka/kafka.producer.ts}: Kafka producer with trace propagation
   \item \texttt{libs/shared/infrastructure/src/kafka/kafka.consumer.ts}: Kafka consumer with idempotency
