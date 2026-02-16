@@ -1,0 +1,708 @@
+# G4: Promote Migration Readiness {#sec:g4-promote-migration-readiness}
+
+This section presents G4, which focuses on designing modules so that they can be extracted from the monolith and deployed as independent services with minimal downstream disruption. Migration readiness is treated as a proactive design property rather than a reactive refactoring exercise. The guideline establishes the internal conditions (internal APIs, anti-corruption layers, and the elimination of shared mutable state) that make extraction a controlled, low-risk operation when the conditions described in G3 (Level L3) are met.
+
+G4 extends the Architectural Design Dimension (G1--G3) into the Operational Fit Dimension. While G1 enforces boundaries, G2 preserves maintainability, and G3 prepares for progressive scalability, G4 ensures that the transition from monolith to service, when justified, does not require a rewrite. The guideline targets the structural prerequisites that make the difference between a planned extraction and an emergency migration.
+
+## Intent and Rationale {#intent-and-rationale .unnumbered}
+
+Migration from a monolith to microservices is one of the most expensive architectural transitions a team can undertake. Studies consistently report that migration efforts are dominated not by the extraction itself, but by the discovery and resolution of hidden coupling: shared database tables, implicit assumptions about co-location, synchronous call chains that mask network-boundary failures, and domain logic scattered across modules [@fritzsch2019; @abgaz2023decomposition; @wolfart2021modernizing].
+
+The root cause is that most monoliths are not designed with extraction in mind. Dependencies accumulate implicitly, persistence is shared by convention, and inter-module communication relies on in-process guarantees (transactions, shared memory, synchronous method calls) that do not survive a network boundary. When migration pressure arrives, typically driven by scaling needs (G3, Level L3), independent release cadence, or technology heterogeneity, teams discover that the actual cost of extraction is proportional to the amount of implicit coupling that must be made explicit.
+
+G4 inverts this dynamic. Instead of treating migration as a future problem to be solved when it arises, G4 embeds migration readiness into the module's design from the outset. The cost is incremental: designing internal APIs, introducing anti-corruption layers at integration points, and avoiding shared mutable state are practices that improve the system's quality independent of whether extraction ever occurs. The benefit is optionality: when extraction is justified, the module is already prepared.
+
+## Conceptual Overview {#conceptual-overview .unnumbered}
+
+Migration readiness is embedded by designing each module so that its external integration surface is network-boundary compatible. Crucially, G4 does not treat this as a hypothetical design exercise. The guideline prescribes introducing production-grade infrastructure, Apache Kafka for event streaming and Temporal for durable workflow orchestration, *inside* the monolith, before any extraction occurs. This approach eliminates the gap between "designed for extraction" and "ready for extraction": the same brokers, workflow engines, and contract mechanisms that would be used in a distributed deployment are already running in the monolith, validated by the same integration tests, and observable through the same monitoring tools.
+
+- Each module exposes its capabilities through a versioned internal API that could be replaced by a network endpoint without changing the contract.
+
+- Integration points between modules are mediated by anti-corruption layers that translate between domain models, preventing one module's internal evolution from breaking another.
+
+- No module relies on shared mutable state (shared database tables, in-memory caches, global singletons) for correctness; each module owns its data and collaborates through contracts.
+
+- Cross-module workflows are orchestrated through Temporal, which provides durable execution, explicit compensation paths, and activity-level retry policies that function identically whether activities are in-process calls or network calls.
+
+- Domain events are published to Kafka topics, providing durable, partitioned delivery with consumer group semantics that support horizontal scaling of listeners, both before and after extraction.
+
+## Applicability Conditions and Scope {#applicability-conditions-and-scope .unnumbered}
+
+G4 applies to modular monolith systems where:
+
+- Module boundaries are enforced (G1) and maintainability discipline is in place (G2).
+
+- At least some modules are expected to face extraction pressure in the medium term, due to scaling needs (G3), independent release cadence, or technology heterogeneity.
+
+- The team prefers to invest incrementally in extraction readiness rather than accept a high-cost migration event later.
+
+G4 does not prescribe when to extract. That decision belongs to G3's scalability spectrum (Level L3). G4 prescribes *how to be ready* when the decision is made. The guideline is technology-agnostic: the principles apply whether the system uses REST, gRPC, message queues, or any other communication mechanism.
+
+## Objectives {#objectives .unnumbered}
+
+- *Design internal APIs as if they were external:* Module public surfaces should be defined with the same discipline applied to external APIs: versioned, documented, backward-compatible, and independent of internal implementation details.
+
+- *Introduce anti-corruption layers at integration points:* Ensure that each module translates inbound and outbound data through an explicit mapping layer, so that internal model changes do not propagate across boundaries.
+
+- *Eliminate shared mutable state:* Ensure no module depends on another module's database tables, in-memory state, or global resources for correctness.
+
+- *Replace distributed transactions with sagas:* Design cross-module workflows as compensable sequences rather than atomic transactions, so that the same logic functions correctly across process boundaries.
+
+- *Make extraction a configuration change, not a rewrite:* The ideal extraction involves changing infrastructure wiring (swapping in-process dispatch for network calls, pointing to a separate database) without modifying domain or application logic.
+
+## Key Principles {#key-principles .unnumbered}
+
+- *Internal APIs deserve the same rigor as external APIs:* In a modular monolith, the temptation is to treat inter-module interfaces as informal. Since everything runs in-process, breaking changes are discovered immediately and can be fixed in the same commit. This convenience is precisely what creates migration debt. When an internal API is designed with versioning, backward compatibility, and explicit contracts, extraction requires only a transport change (in-process call $\to$ HTTP/gRPC call), not an interface redesign.
+
+- *Anti-corruption layers prevent model leakage:* Each module has its own domain model, its own vocabulary, and its own invariants. When module $A$ consumes data from module $B$, it should not depend on $B$'s internal representation. An anti-corruption layer (ACL) sits at the boundary and translates $B$'s published model into $A$'s internal model. This decouples the evolution of both modules: $B$ can refactor its internals without breaking $A$, and $A$ can evolve its model without requiring changes in $B$ [@evans2003ddd].
+
+- *Data ownership is non-negotiable:* Shared database tables are the single largest obstacle to extraction. When two modules read from or write to the same table, they are coupled at the persistence level regardless of how clean their code-level boundaries are. G4 requires that each module owns its data exclusively. Cross-module data access occurs through the module's public API or through published events, never through direct database queries. This principle builds on G3's Data Ownership Clarity Index ($\omega$) and treats $\omega = 1$ as a prerequisite for extraction readiness.
+
+- *Eventual consistency is the default for cross-module workflows:* Monoliths often rely on database transactions to maintain consistency across modules. This works in-process but fails across network boundaries. G4 replaces cross-module transactions with saga patterns: each module performs its local operation and publishes an event; downstream modules react and either continue the workflow or trigger a compensating action. The saga pattern is already implicit in Tiny Store's event-driven choreography (OrderPlaced $\to$ InventoryReserved $\to$ PaymentProcessed $\to$ ShipmentCreated); G4 makes it explicit and robust.
+
+- *Infrastructure wiring is the extraction knob:* When a module is ready for extraction, the change should be localized to the composition root: swap the in-process event bus for a distributed broker, replace the shared database connection with a dedicated one, and route API calls through a network client instead of a direct import. If extraction requires changes to domain logic, the module is not yet migration-ready.
+
+## The Orders Module: A Production-Grade Migration Readiness Case Study {#the-orders-module-a-production-grade-migration-readiness-case-study .unnumbered}
+
+The previous guidelines (G1--G3) used Tiny Store as a teaching artifact, a small modular monolith designed to make architectural concepts observable and testable. G4 shifts the register. This case study takes the orders module beyond pedagogical illustration and prepares it with the same infrastructure a production e-commerce system would use: Apache Kafka for durable event streaming, Temporal for workflow orchestration and saga management, schema-level data isolation, and versioned event contracts with anti-corruption layers. The intent is to demonstrate that migration readiness is not a theoretical exercise, but a concrete engineering practice that produces a system indistinguishable from a production-ready architecture, even while it remains a monolith.
+
+In any e-commerce system, order placement is the highest-traffic path: every checkout invokes it, and it fans out to inventory reservation, payment processing, and shipment creation. As the business scales, orders is likely to be the first module to hit the scaling limits described in G3, making it the most probable extraction candidate. The case study examines the orders module through the lens of G4's five objectives, identifying what is already migration-ready and what would need to change to reach production-grade extraction readiness.
+
+### Current State: What Orders Already Does Well {#current-state-what-orders-already-does-well .unnumbered}
+
+The orders module in Tiny Store already satisfies several migration readiness properties by construction:
+
+- *Explicit public surface:* The module exposes capabilities through `@tiny-store/modules-orders`, which re-exports only handlers and event contracts. Internal entities (`Order`, `OrderRepository`) are not exported.
+
+- *Event-driven collaboration:* Cross-module interaction follows the event choreography pattern. Orders publishes `OrderPlaced`, `OrderCancelled`, and other domain events; downstream modules react through listeners wired in the composition root. There are no direct imports between orders and inventory, payments, or shipments.
+
+- *Centralized wiring:* All event subscriptions are registered in `register-listeners.ts`, making the integration surface auditable and modifiable from a single location.
+
+These properties mean that, at the code level, extracting orders would not require rewriting cross-module interactions. The event contracts serve as the interface, and the composition root serves as the wiring point.
+
+### Migration Readiness Gaps: From Teaching Artifact to Production System {#migration-readiness-gaps-from-teaching-artifact-to-production-system .unnumbered}
+
+Despite strong boundary enforcement, Tiny Store's baseline state reflects a common pattern in early-stage monoliths: boundaries are clean at the code level, but the infrastructure layer still assumes co-location. The gaps below are not unique to Tiny Store. They appear in virtually every modular monolith that has not been deliberately prepared for extraction, and closing them is what transforms an architectural prototype into a production-ready system:
+
+1.  *Shared database:* All modules share a single database instance. The `orders` table and the `inventory` table live in the same schema. Even though code-level boundaries are clean, a direct SQL join or a shared transaction could couple them at the persistence level. Extraction requires that orders owns its own database (or at minimum, its own schema), and that any data it needs from inventory arrives through events or API calls.
+
+2.  *In-process event bus:* In a naive modular monolith, the event bus would be an in-memory singleton with synchronous delivery. Tiny Store avoids this gap by including Kafka from inception: the `EventBusFactory` (Listing [\[lst:g4-event-port\]](#lst:g4-event-port){reference-type="ref" reference="lst:g4-event-port"}) selects between in-memory and Kafka adapters via an environment variable. Each module publishes to a dedicated topic (e.g., `orders.events`), and downstream modules consume through consumer groups that support horizontal scaling and exactly-once processing semantics. This is a design requirement, not a migration step.
+
+3.  *Transactional assumptions:* When an order is placed, the system could benefit from the fact that inventory reservation happens in the same process. After extraction, the "place order $\to$ reserve inventory" flow must tolerate partial failures. G4 addresses this by including Temporal[^1] as a durable workflow orchestrator from inception. Temporal persists workflow state automatically, provides built-in retry and timeout policies per activity, and executes compensating actions reliably even across process restarts. The workflow runs inside the monolith from day one, then survives extraction unchanged; this is an architectural requirement, not a migration step.
+
+4.  *Anti-corruption layers:* Tiny Store includes ACL gateways from inception (Listings [\[lst:g4-acl-inventory\]](#lst:g4-acl-inventory){reference-type="ref" reference="lst:g4-acl-inventory"} and [\[lst:g4-acl-payments\]](#lst:g4-acl-payments){reference-type="ref" reference="lst:g4-acl-payments"}). The orders module communicates with inventory and payments exclusively through gateway interfaces (`InventoryGateway`, `PaymentGateway`). The adapter implementations translate between domain models, so that swapping an in-process call for an HTTP client after extraction requires changing only the adapter, not the domain logic.
+
+5.  *No API versioning:* The orders module's public handlers do not carry version metadata. In a co-located monolith, this is acceptable because all consumers are updated simultaneously. After extraction, the orders service must support multiple API versions to allow independent deployment of consumers.
+
+### Preparing Orders for Extraction: Production-Grade Steps {#preparing-orders-for-extraction-production-grade-steps .unnumbered}
+
+The following steps describe how to bring the orders module from its baseline state to production-grade migration readiness, without extracting it. Unlike the G1 tutorial, which focused on boundary verification through lightweight test targets, these steps introduce production infrastructure: Kafka for event streaming, Temporal for durable workflow orchestration, schema isolation for data ownership, and versioned contracts for independent evolution. Each step is designed so that the resulting system is not merely "ready for extraction in theory" but operationally indistinguishable from a distributed setup, running the same brokers, the same workflow engine, and the same contract mechanisms that would be used after extraction. The only difference is deployment topology: everything still runs as a single deployable unit.
+
+- *Step 1: Isolate the orders schema.* Create a dedicated database schema (or namespace) for orders. Migrate the `orders` and `order_items` tables into this schema. Update the orders repository to use the isolated schema. Verify that no other module queries these tables directly (G3's $\omega$ metric should increase toward 1).
+
+- *Step 2: Abstract the event bus behind a port, with Kafka as the production adapter.* Kafka is included from inception as part of the modular monolith's infrastructure. The system defines an `IEventPublisher` interface (port) in the shared infrastructure layer, with two adapters: an in-memory `EventBus` for development and testing, and a `KafkaEventBusAdapter` for production. A factory function selects the adapter based on the `EVENT_TRANSPORT` environment variable. This makes event transport a configuration decision from day one, not a migration step.
+
+  ``` {#lst:g4-event-port .TypeScript language="TypeScript" caption="Event bus factory with Kafka adapter ({\\ttfamily event-bus.factory.ts})" label="lst:g4-event-port"}
+  // libs/shared/infrastructure/src/event-bus/event-bus.factory.ts
+  export interface IEventPublisher {
+    publish(event: DomainEvent): Promise<void>;
+    subscribe(eventType: string,
+      handler: (event: DomainEvent) => Promise<void> | void): void;
+  }
+
+  class KafkaEventBusAdapter implements IEventPublisher {
+    private kafkaProducer: KafkaProducer;
+    private localBus: EventBus;
+    constructor() {
+      this.kafkaProducer = KafkaProducer.getInstance();
+      this.localBus = EventBus.getInstance();
+    }
+    async publish(event: DomainEvent): Promise<void> {
+      await this.kafkaProducer.publish(event); // Kafka for cross-service
+      await this.localBus.publish(event);      // local for in-process
+    }
+    subscribe(eventType: string,
+      handler: (event: DomainEvent) => Promise<void> | void): void {
+      this.localBus.subscribe(eventType, handler);
+    }
+  }
+
+  export function createEventPublisher(): IEventPublisher {
+    const transport = process.env.EVENT_TRANSPORT || 'memory';
+    if (transport === 'kafka') return new KafkaEventBusAdapter();
+    return EventBus.getInstance();
+  }
+  ```
+
+  The Kafka producer publishes events to per-module topics (e.g., `orders.events`), with trace context propagation for distributed observability:
+
+  ``` {#lst:g4-kafka-producer .TypeScript language="TypeScript" caption="Kafka producer with trace propagation ({\\ttfamily kafka.producer.ts})" label="lst:g4-kafka-producer"}
+  // libs/shared/infrastructure/src/kafka/kafka.producer.ts
+  export class KafkaProducer {
+    private static instance: KafkaProducer;
+    private producer: Producer;
+    private connected = false;
+
+    async publish(event: DomainEvent): Promise<void> {
+      await this.ensureConnected();
+      const topic = `${event.aggregateType}.events`;
+      await this.producer.send({
+        topic,
+        messages: [{
+          key: event.aggregateId,
+          value: JSON.stringify({
+            eventId: event.eventId, eventType: event.eventType,
+            aggregateId: event.aggregateId,
+            aggregateType: event.aggregateType,
+            occurredAt: event.occurredAt.toISOString(),
+            payload: event.payload, version: event.version,
+          }),
+          headers: injectTraceContext({
+            eventId: event.eventId, eventType: event.eventType,
+            correlationId: event.aggregateId,
+          }),
+        }],
+      });
+    }
+  }
+  ```
+
+  On the consumer side, each downstream module subscribes to the relevant Kafka topic using a dedicated consumer group. The consumer includes idempotency checks and OpenTelemetry trace extraction:
+
+  ``` {#lst:g4-kafka-consumer .TypeScript language="TypeScript" caption="Kafka consumer with idempotency and tracing ({\\ttfamily kafka.consumer.ts})" label="lst:g4-kafka-consumer"}
+  // libs/shared/infrastructure/src/kafka/kafka.consumer.ts
+  export class KafkaConsumer {
+    private handlers: Map<string, Set<EventHandler>> = new Map();
+    private processedEventIds: Set<string> = new Set();
+
+    constructor(groupId: string) { /* ... */ }
+
+    subscribe(eventType: string, handler: EventHandler): void {
+      if (!this.handlers.has(eventType))
+        this.handlers.set(eventType, new Set());
+      this.handlers.get(eventType)!.add(handler);
+    }
+
+    async start(topics: string[]): Promise<void> {
+      await this.consumer.connect();
+      for (const topic of topics)
+        await this.consumer.subscribe({ topic, fromBeginning: false });
+      await this.consumer.run({
+        eachMessage: async (msg) => this.handleMessage(msg),
+      });
+    }
+
+    private async handleMessage({ message, topic }: EachMessagePayload) {
+      const event = JSON.parse(message.value!.toString());
+      if (this.processedEventIds.has(event.eventId)) return; // idempotent
+      this.processedEventIds.add(event.eventId);
+      const handlers = this.handlers.get(event.eventType);
+      if (handlers)
+        await Promise.all([...handlers].map((h) => h(event)));
+    }
+  }
+  ```
+
+  Topic names and consumer groups are centralized in a configuration file that ensures consistency across all modules:
+
+  ``` {#lst:g4-topics-config .TypeScript language="TypeScript" caption="Centralized topic configuration ({\\ttfamily topics.config.ts})" label="lst:g4-topics-config"}
+  // libs/shared/infrastructure/src/kafka/topics.config.ts
+  export const TOPICS = {
+    ORDERS:    'orders.events',
+    INVENTORY: 'inventory.events',
+    PAYMENTS:  'payments.events',
+    SHIPMENTS: 'shipments.events',
+  } as const;
+
+  export const CONSUMER_GROUPS = {
+    ORDERS:    'orders-consumer',
+    INVENTORY: 'inventory-consumer',
+    PAYMENTS:  'payments-consumer',
+    SHIPMENTS: 'shipments-consumer',
+  } as const;
+  ```
+
+- *Step 3: Orchestrate the order lifecycle as a Temporal workflow.* Tiny Store's current event choreography (OrderPlaced $\to$ InventoryReserved $\to$ PaymentProcessed $\to$ ShipmentCreated) distributes saga logic implicitly across listeners. This works in-process but becomes fragile after extraction: failure visibility is poor, retry policies are ad hoc, and compensating actions are scattered across modules. G4 replaces implicit choreography with an explicit orchestration using Temporal[^2], a durable execution engine that provides: built-in retry and timeout policies per activity, automatic state persistence (the workflow survives process restarts), native compensation through saga patterns, and full observability of workflow execution history.
+
+  The key insight is that Temporal can be introduced *inside* the monolith first. The workflow orchestrator runs as a Temporal worker within the same process, invoking module handlers as Temporal activities. After extraction, the same workflow code runs unchanged; only the activity implementations switch from in-process calls to network calls (gRPC or HTTP). This makes Temporal both a migration readiness tool and a production-grade saga manager.
+
+  ``` {#lst:g4-temporal-workflow .TypeScript language="TypeScript" caption="Order fulfillment saga workflow ({\\ttfamily order-fulfillment.workflow.ts})" label="lst:g4-temporal-workflow"}
+  // libs/modules/orders/src/workflows/order-fulfillment.workflow.ts
+  import { proxyActivities, ApplicationFailure } from '@temporalio/workflow';
+  import type * as activities from './order-fulfillment.activities';
+
+  const { reserveInventory, releaseInventory, processPayment,
+    refundPayment, createShipment,
+  } = proxyActivities<typeof activities>({
+    startToCloseTimeout: '30s',
+    retry: { maximumAttempts: 3 },
+  });
+
+  export interface OrderFulfillmentInput {
+    orderId: string;
+    items: Array<{ sku: string; quantity: number; unitPrice: number }>;
+    totalAmount: number;
+    shippingAddress: { street: string; city: string; state: string;
+      postalCode: string; country: string };
+  }
+
+  export async function orderFulfillmentWorkflow(
+    input: OrderFulfillmentInput
+  ): Promise<{ success: boolean; trackingNumber?: string; error?: string }> {
+    // Step 1: Reserve inventory
+    const reservation = await reserveInventory({
+      orderId: input.orderId,
+      items: input.items.map((i) => ({ sku: i.sku, quantity: i.quantity })),
+    });
+    if (!reservation.success)
+      return { success: false, error: reservation.error };
+
+    // Step 2: Process payment (compensate on failure)
+    let paymentResult;
+    try {
+      paymentResult = await processPayment({
+        orderId: input.orderId, amount: input.totalAmount });
+    } catch (err) {
+      await releaseInventory({ orderId: input.orderId });
+      throw ApplicationFailure.nonRetryable(
+        `Payment failed for ${input.orderId}, inventory released`);
+    }
+    if (!paymentResult.success) {
+      await releaseInventory({ orderId: input.orderId });
+      return { success: false, error: paymentResult.errorMessage };
+    }
+
+    // Step 3: Create shipment (compensate on failure)
+    let shipment;
+    try {
+      shipment = await createShipment({
+        orderId: input.orderId,
+        shippingAddress: input.shippingAddress });
+    } catch (err) {
+      await refundPayment({ orderId: input.orderId,
+        paymentId: paymentResult.paymentId });
+      await releaseInventory({ orderId: input.orderId });
+      throw ApplicationFailure.nonRetryable(
+        `Shipment failed for ${input.orderId}, compensated`);
+    }
+    return { success: true, trackingNumber: shipment.trackingNumber };
+  }
+  ```
+
+  ``` {#lst:g4-temporal-activities .TypeScript language="TypeScript" caption="Temporal activities: in-process today, network calls after extraction ({\\ttfamily order-fulfillment.activities.ts})" label="lst:g4-temporal-activities"}
+  // libs/modules/orders/src/workflows/order-fulfillment.activities.ts
+  // Activities call module APIs through ACL gateways.
+  // Today: in-process. After extraction: swap for HTTP/gRPC clients.
+  // The workflow code does NOT change.
+
+  export async function reserveInventory(
+    input: ReserveInventoryInput
+  ): Promise<ReserveInventoryResult> {
+    // Calls inventory module via InventoryGateway ACL
+    return { success: true, orderId: input.orderId };
+  }
+
+  export async function releaseInventory(
+    input: { orderId: string }
+  ): Promise<void> { /* compensating action */ }
+
+  export async function processPayment(
+    input: { orderId: string; amount: number }
+  ): Promise<ProcessPaymentResult> {
+    // Calls payments module via PaymentGateway ACL
+    return { paymentId: `pay-${input.orderId}`, success: true };
+  }
+
+  export async function refundPayment(
+    input: { orderId: string; paymentId: string }
+  ): Promise<void> { /* compensating action */ }
+
+  export async function createShipment(
+    input: CreateShipmentInput
+  ): Promise<CreateShipmentResult> {
+    return { shipmentId: `ship-${input.orderId}`,
+      trackingNumber: `TRK-${Date.now()}` };
+  }
+  ```
+
+  The Temporal workflow provides several properties that pure event choreography lacks: (i) the full compensation path is visible in a single file rather than scattered across listeners; (ii) Temporal's execution history records every activity attempt, retry, and compensation, providing audit-grade observability; (iii) timeout and retry policies are declared per activity rather than implemented ad hoc in each listener; and (iv) the workflow is testable using Temporal's time-skipping test framework, which can simulate failures at any step and verify the correct compensation sequence.
+
+- *Step 4: Introduce anti-corruption layers in downstream modules.* In the inventory module, create a translation layer that maps the `OrderPlaced` event payload into inventory's own internal command. This way, if orders changes its event schema (e.g., renames a field or restructures the payload), the inventory module's ACL absorbs the change without affecting inventory's domain logic.
+
+  ``` {#lst:g4-acl-inventory .TypeScript language="TypeScript" caption="ACL: Orders $\\to$ Inventory gateway ({\\ttfamily inventory-gateway.acl.ts})" label="lst:g4-acl-inventory"}
+  // libs/modules/orders/src/acl/inventory-gateway.acl.ts
+  export interface InventoryGateway {
+    reserveItems(orderId: string, items: OrderItem[]): Promise<ReserveItemsResult>;
+    releaseItems(orderId: string): Promise<void>;
+  }
+
+  // Default: calls inventory module in-process.
+  // After extraction: replace with HTTP/gRPC client.
+  export class InventoryGatewayAdapter implements InventoryGateway {
+    constructor(deps: {
+      reserveStock: (dto: {...}) => Promise<ReserveItemsResult>;
+      releaseStock: (dto: {...}) => Promise<{...}>;
+    }) { /* wire dependencies */ }
+
+    async reserveItems(orderId: string, items: OrderItem[]) {
+      return this.reserveStockFn({ orderId, items });
+    }
+    async releaseItems(orderId: string) {
+      await this.releaseStockFn({ orderId });
+    }
+  }
+  ```
+
+  ``` {#lst:g4-acl-payments .TypeScript language="TypeScript" caption="ACL: Orders $\\to$ Payments gateway ({\\ttfamily payment-gateway.acl.ts})" label="lst:g4-acl-payments"}
+  // libs/modules/orders/src/acl/payment-gateway.acl.ts
+  export interface PaymentGateway {
+    requestPayment(orderId: string, amount: number): Promise<PaymentResult>;
+    requestRefund(orderId: string, paymentId: string): Promise<void>;
+  }
+
+  // Default: calls payments module in-process.
+  // After extraction: replace with HTTP/gRPC client.
+  export class PaymentGatewayAdapter implements PaymentGateway {
+    constructor(deps: {
+      processPayment: (dto: {...}) => Promise<{...}>;
+    }) { /* wire dependencies */ }
+
+    async requestPayment(orderId: string, amount: number) {
+      const result = await this.processPaymentFn({ orderId, amount });
+      return { paymentId: result.paymentId,
+        success: result.success, errorMessage: result.errorMessage };
+    }
+    async requestRefund(orderId: string, paymentId: string) { /* ... */ }
+  }
+  ```
+
+- *Step 5: Add version metadata to the orders public API.* Annotate event contracts and handler interfaces with a version identifier. This does not require a full API gateway; it can be as simple as a version field in the event payload or a version constant exported alongside each handler. The goal is to enable backward-compatible evolution after extraction.
+
+  ``` {#lst:g4-versioned-event .TypeScript language="TypeScript" caption="Versioned event contract with factory ({\\ttfamily order-placed.event.ts})" label="lst:g4-versioned-event"}
+  // libs/shared/contracts/src/events/order-placed.event.ts
+  import { DomainEvent } from '@tiny-store/shared-domain';
+  import { v4 as uuid } from 'uuid';
+
+  export interface OrderPlacedPayload {
+    orderId: string;
+    items: Array<{ sku: string; quantity: number; unitPrice: number }>;
+    total: number;
+    version: 1;  // explicit schema version for backward compatibility
+  }
+
+  export interface OrderPlacedEvent extends DomainEvent {
+    eventType: 'OrderPlaced';
+    payload: OrderPlacedPayload;
+  }
+
+  export function createOrderPlacedEvent(
+    orderId: string,
+    payload: Omit<OrderPlacedPayload, 'version'>
+  ): OrderPlacedEvent {
+    return {
+      eventId: uuid(),
+      eventType: 'OrderPlaced',
+      aggregateId: orderId,
+      aggregateType: 'Order',
+      occurredAt: new Date(),
+      version: 1,
+      payload: { ...payload, version: 1 },
+    };
+  }
+  ```
+
+### Extraction Readiness Checklist for Orders {#extraction-readiness-checklist-for-orders .unnumbered}
+
+After completing Steps 1--5, the orders module operates on production-grade infrastructure (Kafka, Temporal, isolated schema) while remaining inside the monolith. The following checklist confirms that extraction, when triggered by G3's scalability spectrum (Level L3), requires only a deployment topology change:
+
+  -------------------------------------------------------------
+     **Prerequisite**                              **Status**
+  -- --------------------------------------------- ------------
+     Own database schema (no shared tables)        Step 1
+
+     Event publishing through Kafka-backed port    Step 2
+
+     Temporal workflow with compensating actions   Step 3
+
+     ACLs in all downstream consumers              Step 4
+
+     Versioned event contracts and public API      Step 5
+
+     No direct cross-module imports (G1)           Baseline
+
+     Centralized wiring in composition root        Baseline
+
+     Module isolation tests pass (G1/G2)           Baseline
+  -------------------------------------------------------------
+
+When all prerequisites are met, extracting orders means: deploying it as a standalone service with its own database, switching the `InMemoryEventPublisher` to the `KafkaEventPublisher` (pointing to the `orders.events` topic), replacing Temporal activity implementations from in-process handler calls to HTTP/gRPC client calls, and routing incoming requests through a network endpoint. The Temporal workflow code remains identical. The Kafka topic structure remains identical. The ACLs in downstream consumers remain identical. No domain logic changes. No saga redesign. No downstream module rewrites.
+
+## Operationalizing Extraction: The Extract Command {#operationalizing-extraction-the-extract-command .unnumbered}
+
+While the previous sections establish the theoretical foundations for migration readiness, production systems require practical tooling to operationalize these principles. Drawing inspiration from Service Weaver's configuration-driven deployment model [@ghemawat2023weaver], which treats distribution as a configuration concern rather than a coding concern, this section presents the `extract` command, a tooling solution that automates the transition from monolith to service while preserving the infrastructure abstractions described in Steps 1--5.
+
+The extract command embodies G4's core principle that extraction should be a configuration change, not a rewrite. Rather than requiring manual coordination across database migration, service scaffolding, Docker configuration, monolith updates, and deployment orchestration, the extract command executes these steps atomically through a declarative extraction manifest. The command is designed for the modular monoliths that have achieved migration readiness: modules with clean boundaries (G1), infrastructure abstraction through ports (G2/G3), and event-driven integration patterns that survive network boundaries.
+
+### The Extraction Manifest {#the-extraction-manifest .unnumbered}
+
+The extract command operates from a declarative configuration file (`extraction.config.yml`) that specifies which modules are deployed as monoliths versus independent services. This manifest serves as the single source of truth for deployment topology, following Service Weaver's philosophy that the same application code should be deployable in different configurations without modification.
+
+``` {#lst:g4-extract-config caption="Extraction configuration manifest ({\\ttfamily extraction.config.yml})" label="lst:g4-extract-config"}
+version: '1.0'
+
+modules:
+  orders:
+    mode: extracted              # monolith | extracted
+    database:
+      type: postgres
+      name: tinystore_orders
+      port: 5432
+    service:
+      port: 3001
+      dockerfile: apps/orders-service/Dockerfile
+    dependencies: [inventory, payments, shipments]
+  
+  inventory:
+    mode: monolith
+  
+  payments:
+    mode: monolith
+  
+  shipments:
+    mode: monolith
+
+infrastructure:
+  kafka:
+    brokers: ['localhost:9092']
+    topics:
+      orders: orders.events
+      inventory: inventory.events
+      payments: payments.events
+      shipments: shipments.events
+  
+  temporal:
+    address: localhost:7233
+    namespace: tiny-store
+  
+  postgres:
+    host: localhost
+    port: 5432
+    username: tiny
+    password: store
+```
+
+The manifest captures the deployment intentions without embedding them in application code. A module's `mode` can transition from `monolith` to `extracted` through a configuration change, triggering the automated migration process. The infrastructure section specifies the Kafka brokers, Temporal namespace, and PostgreSQL connection parameters that support both deployment modes.
+
+### Automated Extraction Flow {#automated-extraction-flow .unnumbered}
+
+The extract command orchestrates a multi-step process that transforms a module from in-process deployment to independent service deployment. Each step is designed to be atomic and reversible, ensuring that partial failures can be rolled back cleanly.
+
+``` {#lst:g4-extract-usage .Bash language="Bash" caption="Extract command usage ({\\ttfamily tools/extract/extract.ts})" label="lst:g4-extract-usage"}
+# Extract the orders module as an independent service
+npx ts-node tools/extract/extract.ts orders
+
+# Show current extraction status
+npx ts-node tools/extract/extract.ts status
+
+# Retract the orders service back to monolith deployment
+npx ts-node tools/extract/extract.ts retract orders
+```
+
+The extraction process consists of eight automated steps:
+
+1.  *Entity Discovery:* Parse TypeScript source files to identify `@Entity` decorators and their associated database tables. This step ensures that all database artifacts belonging to the module are discovered programmatically rather than maintained in a separate manifest.
+
+2.  *Database Migration:* Create a dedicated PostgreSQL database for the extracted service and migrate data from the shared SQLite database. This step materializes the data ownership principle (G3's $\omega = 1$) by providing the module with an isolated persistence layer.
+
+3.  *Service Scaffolding:* Generate a complete Express-based service application with TypeORM configuration, health check endpoints, and integration with the existing module handlers. The scaffolded service uses the same Temporal workflow definitions and Kafka event publishers as the monolith, ensuring behavioral equivalence.
+
+4.  *Monolith Updates:* Remove the extracted module's entities from the monolith's database configuration and install HTTP proxy routes that forward requests to the extracted service. This step ensures that existing consumers of the module's API continue to function without modification.
+
+5.  *Docker Configuration:* Generate Dockerfile, .dockerignore, and docker-compose service definitions for the extracted service, enabling containerized deployment with production-grade resource limits and health checks.
+
+6.  *Nx Workspace Integration:* Update the monorepo's TypeScript path mappings, package.json scripts, and project.json configurations to support building, testing, and serving the extracted service alongside the monolith.
+
+7.  *Infrastructure Wiring:* Update the extracted service's configuration to use Kafka producers instead of the in-memory event bus, and point Temporal activities to network endpoints instead of in-process handler calls.
+
+8.  *Verification:* Execute integration tests against both the monolith (with proxy routes) and the extracted service (with network boundaries) to verify that the extraction preserves functional correctness.
+
+### The Retract Command: Rollback as a First-Class Operation {#the-retract-command-rollback-as-a-first-class-operation .unnumbered}
+
+Production systems require the ability to reverse architectural decisions when extraction proves premature or problematic. The `retract` command provides an automated rollback mechanism that restores the module to monolith deployment while preserving data and configuration history.
+
+``` {#lst:g4-retract-usage .Bash language="Bash" caption="Retract command restoring monolith deployment ({\\ttfamily tools/extract/extract.ts})" label="lst:g4-retract-usage"}
+# Retract orders service back to monolith
+npx ts-node tools/extract/extract.ts retract orders
+
+# Output:
+# [retry] Starting retraction of orders service...
+# [metrics] Migrating data back from PostgreSQL to SQLite...
+# [fix] Restoring monolith database configuration...
+# [cleanup] Removing service directory and Docker configuration...
+# [sweep] Removing proxy routes from monolith API...
+# [config] Updating Nx workspace configuration...
+# PASS: orders service retracted successfully!
+```
+
+The retraction process reverses each extraction step: migrates data back to the shared database, restores entities to the monolith's ORM configuration, removes the service directory and Docker artifacts, eliminates proxy routes, and updates the extraction manifest. This bidirectional capability treats extraction as a reversible deployment decision rather than a one-way architectural commitment.
+
+### Connection to Service Weaver's Design Philosophy {#connection-to-service-weavers-design-philosophy .unnumbered}
+
+The extract/retract tooling draws heavily from Google's Service Weaver project [@ghemawat2023weaver], which treats distribution as a deployment concern rather than a development concern. Service Weaver applications are written as if they were single-process programs; the runtime decides which components to co-locate and which to distribute based on a deployment configuration file.
+
+The extract command adopts this philosophy for modular monoliths: modules are designed with clean boundaries and infrastructure abstraction (G1--G3), but their deployment topology (monolith vs. service) is determined by the extraction manifest. When a module is marked as `extracted`, the tooling automatically provisions the infrastructure (database, message broker, service runtime) required for independent deployment. When a module is marked as `monolith`, the same code runs in-process with shared infrastructure.
+
+This approach provides several benefits aligned with Service Weaver's design goals:
+
+- *Development/production parity:* Developers can run the entire system as a monolith for local development, while production deploys modules as independent services based on scaling needs.
+
+- *Gradual extraction:* Teams can extract modules incrementally (orders first, then inventory, then payments) based on operational requirements rather than all-or-nothing migration events.
+
+- *Operational flexibility:* The same module can be extracted during peak traffic periods and retracted during maintenance windows, providing deployment-level scaling strategies.
+
+- *Testing across topologies:* Integration tests can verify module behavior in both monolith and service deployment modes, ensuring that extraction preserves correctness.
+
+Unlike Service Weaver, which operates at the Go component level, the extract command operates at the domain module level and focuses on systems that have already achieved migration readiness through the practices described in G4. This makes it complementary to Service Weaver's approach: where Service Weaver handles distribution automatically, the extract command requires explicit preparation but provides fine-grained control over the extraction process and bidirectional rollback capabilities that are crucial for production adoption.
+
+### Implementation Results and Production Readiness {#implementation-results-and-production-readiness .unnumbered}
+
+The extract command was implemented and tested against Tiny Store's orders module, producing the following operational results:
+
+  -------------------------------------------------------------------------------------
+  **Extraction Step**      **Duration**   **Result**
+  ------------------------ -------------- ---------------------------------------------
+  Entity discovery         \<1s           1 entity found (OrderEntity → orders table)
+
+  Database migration        5s            Dedicated PostgreSQL database created
+
+  Service scaffolding      \<1s           Complete Express app generated
+
+  Monolith updates         \<1s           Proxy routes installed
+
+  Docker configuration     \<1s           Dockerfile and compose services
+
+  Nx integration           \<1s           Project configs and scripts updated
+
+  Verification              3s            Integration tests pass
+
+  **Total extraction**     **\<15s**      **Orders running as service**
+
+  Retraction (rollback)     8s            Module restored to monolith
+  -------------------------------------------------------------------------------------
+
+The tooling successfully demonstrated that a properly prepared module (following G4's readiness checklist) can transition between monolith and service deployment in seconds rather than weeks. The generated service preserves the module's API contracts, event publishing behavior, and integration patterns, requiring no changes to downstream consumers.
+
+More importantly, the retract command validated the bidirectional nature of the extraction decision. Teams can extract modules during scaling pressure and retract them during consolidation periods, treating deployment topology as a tunable operational parameter rather than a permanent architectural commitment.
+
+This operationalization of G4's principles provides production teams with the confidence to invest in migration readiness knowing that the transition, when it occurs, will be automated, reversible, and low-risk. The extract command transforms migration readiness from a theoretical architectural property into a practical engineering capability that can be deployed, tested, and operationalized at scale.
+
+## Common Failure Modes and Anti-Patterns {#common-failure-modes-and-anti-patterns .unnumbered}
+
+- *"We'll fix it during migration" (Deferred Readiness):* Postponing migration preparation until extraction is imminent. At that point, the accumulated coupling (shared tables, implicit transactions, unversioned APIs) makes extraction a multi-month project instead of a multi-day configuration change. G4 treats readiness as a continuous investment, not a phase.
+
+- *Shared database as a hidden integration layer:* Two modules that appear decoupled at the code level but share database tables are coupled at the persistence level. This is the most common and most expensive migration blocker, because it requires data migration, schema splitting, and potentially retroactive event sourcing to disentangle.
+
+- *Cross-module transactions masking distributed failure modes:* Relying on database transactions to maintain consistency across modules hides the failure modes that will surface after extraction. When the inventory reservation and the order creation are in the same transaction, partial failure is impossible. After extraction, partial failure is the default. Teams that have not designed compensating actions discover this in production. Introducing Temporal inside the monolith *before* extraction forces the team to confront these failure modes early, when debugging is still straightforward.
+
+- *Payload coupling without anti-corruption layers:* When downstream modules consume event payloads directly without translation, any change to the upstream module's event schema breaks all consumers simultaneously. This creates a coordination bottleneck that is incompatible with independent deployment, which is one of the primary motivations for extraction.
+
+- *Premature extraction without readiness:* Extracting a module that has not been prepared (shared state, no ACLs, no saga) creates a distributed monolith: the operational complexity of microservices with the coupling characteristics of a monolith. This is strictly worse than the original state [@gravanis2021dont].
+
+## Metrics and Verification {#metrics-and-verification .unnumbered}
+
+G4 metrics assess whether a module is structurally prepared for extraction, complementing G1's boundary metrics, G2's maintainability metrics, and G3's scalability metrics.
+
+- *Data Ownership Clarity ($\omega_m$):* Reused from G3, scoped to the candidate module. $\omega_m = 1$ means the module owns all its tables exclusively. $\omega_m < 1$ indicates shared tables that block extraction. *Migration meaning:* prerequisite for schema isolation.\
+
+- *Anti-Corruption Layer Coverage ($\gamma$):* The proportion of cross-module integration points (event listeners, API consumers) that include an explicit translation layer: $$\gamma = \frac{|I_{\mathrm{ACL}}|}{|I|}$$ where $I$ is the set of all cross-module integration points and $I_{\mathrm{ACL}}$ is the subset mediated by an ACL. *Migration meaning:* $\gamma < 1$ indicates integration points where upstream schema changes will break downstream modules. Target: $\gamma = 1$ for extraction candidates.\
+
+- *Saga Completeness ($\sigma$):* The proportion of cross-module workflows that have explicitly defined compensating actions for each failure mode: $$\sigma = \frac{|W_{\mathrm{compensated}}|}{|W|}$$ where $W$ is the set of cross-module workflows involving the candidate module. *Migration meaning:* $\sigma < 1$ indicates workflows that rely on transactional guarantees and will exhibit data inconsistency after extraction.\
+
+- *Infrastructure Abstraction Coverage ($\alpha_m$):* Reused from G3, scoped to the candidate module. Measures whether infrastructure dependencies (event bus, database, cache) are accessed through ports. *Migration meaning:* $\alpha_m < 1$ means extraction requires code changes in domain or application logic, not just infrastructure wiring.\
+
+- *API Version Coverage ($\nu$):* The proportion of public API endpoints and event contracts that carry explicit version metadata: $$\nu = \frac{|E_{\mathrm{versioned}}|}{|E|}$$ *Migration meaning:* $\nu < 1$ means that after extraction, API evolution will require coordinated deployment of all consumers, eliminating the independent deployment benefit that motivated extraction.\
+
+- *Composite Migration Readiness Score ($\mu_m$):* A composite indicator for module $m$: $$\mu_m = f\!\left(\omega_m,\; \gamma_m,\; \sigma_m,\; \alpha_m,\; \nu_m,\; \varepsilon_m\right)$$ where $\varepsilon_m$ is the extraction readiness score from G3. $\mu_m$ provides a single dashboard view of how prepared a module is for extraction.
+
+*Verification strategy:* G4 metrics are assessed before any extraction decision. When G3's scalability spectrum indicates that a module is approaching L3 (selective extraction), the team evaluates $\mu_m$ to determine whether the module is ready. If $\mu_m$ is below threshold, the team invests in readiness (Steps 1--5 above) before proceeding. This ensures that extraction is a deliberate architectural decision, not a crisis response.
+
+## Documentation Guidelines {#documentation-guidelines .unnumbered}
+
+- *Module Extraction Runbook:* For each module identified as an extraction candidate, maintain a runbook that documents: the current migration readiness score ($\mu_m$), the remaining preparation steps, the extraction procedure (infrastructure changes), and the rollback procedure. This runbook is updated as readiness improves.
+
+- *Saga Documentation:* For each cross-module workflow, document the happy path, the failure modes, and the compensating actions. Include sequence diagrams that show both the in-process flow (current) and the distributed flow (post-extraction). The saga documentation should be testable: each compensating action should have a corresponding integration test.
+
+- *Event Contract Registry:* Maintain a registry of all published event contracts, including version history, schema, and consuming modules. This registry serves as the source of truth for ACL design and for assessing the impact of schema changes.
+
+## Tooling Capabilities Checklist {#tooling-capabilities-checklist .unnumbered}
+
+Any open-source or proprietary tool used to support migration readiness should address:
+
+- *Schema ownership analysis:* Identify which modules access which database tables and flag shared-table violations ($\omega < 1$).
+
+- *Event schema registry:* Track event contract versions, detect breaking changes, and validate consumer compatibility.
+
+- *Durable workflow orchestration:* Manage cross-module sagas with built-in retry, timeout, and compensation support. Temporal is recommended for its durable execution model, workflow versioning, and production-grade observability (execution history, pending activities, failure traces). The Temporal Web UI provides real-time saga visualization without custom tooling.
+
+- *Distributed event streaming:* Provide durable, partitioned event delivery with consumer group semantics. Apache Kafka is recommended for its throughput, exactly-once semantics (via idempotent producers and transactional consumers), topic-based partitioning aligned with module boundaries, and mature ecosystem (Schema Registry for event contract validation, Connect for data pipeline integration).
+
+- *Infrastructure port verification:* Detect direct infrastructure access (bypassing ports) in module code and report $\alpha_m$.
+
+- *Extraction simulation:* Run the candidate module in isolation (separate process, separate database) against the existing integration test suite to verify that extraction would succeed without code changes.
+
+## Extraction Readiness Checklist {#extraction-readiness-checklist .unnumbered}
+
+Table [1](#tab:extraction-readiness){reference-type="ref" reference="tab:extraction-readiness"} summarizes the key criteria that determine whether a module is ready for extraction. Each criterion should be verified before initiating the extraction process.
+
+::: {#tab:extraction-readiness}
+  **Criterion**                           **Ready**                    **Not Ready**
+  ---------------------------- ------------------------------- ------------------------------
+  Event-driven communication       Async events via Kafka           Direct method calls
+  Schema isolation               Own tables, $\omega_m = 1$     Shared tables across modules
+  Idempotent consumers           Deduplication keys present      No idempotency guarantees
+  Saga/compensation              Temporal workflows defined        Ad-hoc error handling
+  ACL in place                  Translation layer at boundary       Direct model sharing
+  Independent CI pipeline        Nx target with scoped tests    Monolith-wide pipeline only
+
+  : Extraction readiness checklist for candidate modules
+:::
+
+## Reference Implementation {#reference-implementation .unnumbered}
+
+All code listings in this section correspond to files in the Tiny Store reference implementation. The key file paths are:
+
+- `libs/shared/infrastructure/src/event-bus/event-bus.factory.ts`: Event publisher port and Kafka adapter
+
+- `libs/shared/infrastructure/src/kafka/kafka.producer.ts`: Kafka producer with trace propagation
+
+- `libs/shared/infrastructure/src/kafka/kafka.consumer.ts`: Kafka consumer with idempotency
+
+- `libs/shared/infrastructure/src/kafka/topics.config.ts`: Centralized topic and consumer group configuration
+
+- `libs/shared/contracts/src/events/order-placed.event.ts`: Versioned event contract with factory
+
+- `libs/modules/orders/src/workflows/order-fulfillment.workflow.ts`: Temporal saga workflow
+
+- `libs/modules/orders/src/workflows/order-fulfillment.activities.ts`: Temporal activity implementations
+
+- `libs/modules/orders/src/acl/payment-gateway.acl.ts`: Anti-corruption layer for payments
+
+- `libs/modules/orders/src/acl/inventory-gateway.acl.ts`: Anti-corruption layer for inventory
+
+## Literature Support Commentary {#literature-support-commentary .unnumbered}
+
+Migration from monoliths to microservices is one of the most extensively studied topics in modern software architecture. Fritzsch et al. [@fritzsch2019] identify common migration intentions, strategies, and challenges, noting that teams frequently underestimate the coupling embedded in shared databases and implicit co-location assumptions. Abgaz et al. [@abgaz2023decomposition] provide a comprehensive review of decomposition techniques, but observe that most approaches focus on identifying service candidates rather than on preparing the monolith for extraction. Wolfart et al. [@wolfart2021modernizing] propose a modernization roadmap but acknowledge that proactive readiness, designing for extraction before the need arises, remains underexplored. Bozan et al. [@bozan2020transition] describe how to transition incrementally to microservices, emphasizing that the migration path should be planned from the outset rather than improvised under pressure. Salii et al. [@salii2023migrating] survey the benefits and challenges of migrating to microservices, confirming that hidden coupling and shared state are the dominant cost drivers. Oumoussa and Saidi [@oumoussa2024evolution] trace the evolution of microservices identification techniques in monolith decomposition, while Nassima et al. [@nassima2024dynamic] propose dynamic decomposition approaches. Griffin and Henson [@griffin2022moving] discuss migration strategies in the context of cloud modernization, reinforcing the need for infrastructure readiness before extraction.
+
+The anti-corruption layer concept originates in Evans' Domain-Driven Design [@evans2003ddd], where it serves as a boundary mechanism between bounded contexts with different models. Its application to modular monoliths, as a proactive migration preparation technique rather than a reactive integration fix, is novel in this context.
+
+The saga pattern is well-established in distributed systems literature [@richardson2018microservices] but is rarely discussed as a monolith-internal pattern. G4 argues that sagas should be introduced *before* extraction, while the system is still co-located and easier to debug, rather than after extraction when distributed failure modes make saga design significantly harder. Temporal [@temporal2024] provides the runtime infrastructure for this approach: its durable execution model persists workflow state across process restarts, and its activity abstraction creates a natural boundary where in-process calls can later be swapped for network calls without changing workflow logic. This positions Temporal not merely as a microservices tool, but as a migration readiness enabler that functions within the monolith.
+
+Similarly, Apache Kafka [@kafka2024] is introduced not as a scaling tool but as a migration readiness mechanism. By publishing domain events to durable, partitioned topics inside the monolith, teams establish the event streaming infrastructure that will survive extraction. Kafka's consumer group model, exactly-once semantics, and schema registry provide production-grade guarantees that the in-memory event bus cannot offer, making the transition from monolith to distributed system a matter of configuration rather than re-architecture.
+
+G4 fills a gap in the literature by treating migration readiness as a continuous design property rather than a migration-phase activity. By combining data ownership (G3), anti-corruption layers (DDD), durable workflow orchestration (Temporal), event streaming (Kafka), and infrastructure abstraction (G3), G4 provides a structured framework for ensuring that extraction, when it occurs, is a low-risk configuration change rather than a high-risk architectural transformation.
+
+Building on the scalability spectrum from G3, the extraction-ready patterns introduced here feed directly into G5 (Deployment Strategy), which operationalizes deployment topology changes.
+
+[^1]: <https://temporal.io>
+
+[^2]: <https://temporal.io>
