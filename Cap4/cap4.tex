@@ -29,26 +29,27 @@ Figure~\ref{fig:guideline-dimensions} shows the four guideline dimensions used i
 \noindent
 Each dimension group provides a set of guidelines that, together, form the foundation for the proposal of this research. It illustrates how technical, operational, organizational, and orientation-based considerations should be integrated when selecting or evolving a modular monolith architecture in software startups. What follows is a descriptive presentation of the guidelines within each dimension and their foundation concepts, starting with those that address the architectural design of modular monoliths.
 
+\clearpage
 \section{Reference Implementation and Technology Stack}
 \label{sec:tech-stack}
 
 The guidelines proposed in this chapter are grounded in a reference implementation called \textbf{Tiny Store}\footnote{\url{https://github.com/maurcarvalho/tiny-store}}, an Nx monorepo e-commerce application with four domain modules: orders, inventory, payments, and shipments. All code examples, exercises, and verification scenarios reference this implementation. Table~\ref{tab:tech-stack} summarizes the production-grade technology stack used across the guidelines.
 
-\begin{table}[htb]
+\begin{table}[H]
 \centering
 \caption{Technology stack used in the Tiny Store reference implementation}
 \label{tab:tech-stack}
 \small
-\begin{tabularx}{\linewidth}{p{0.28\linewidth} X p{0.08\linewidth}}
+\begin{tabularx}{\linewidth}{p{0.25\linewidth} X p{0.10\linewidth}}
 \hline
-\textbf{Tool} & \textbf{Purpose} & \textbf{GL} \\
+\textbf{Tool} & \textbf{Purpose} & \textbf{Guideline} \\
 \hline
 Nx & Monorepo management, dependency graph, affected CI & G1, G5 \\
 ESLint + @nx/enforce-module-boundaries & Boundary enforcement at lint time & G1 \\
 KafkaJS + Apache Kafka & Event-driven communication, topic-per-aggregate & G4 \\
 Temporal & Durable workflows, saga orchestration, compensation & G4 \\
-Redis + ioredis & Caching layer (L1 vertical optimization) & G3 \\
-BullMQ & Async job queues (L2 async decoupling) & G3 \\
+Redis + ioredis & Caching layer (L0 vertical optimization) & G3 \\
+BullMQ & Async job queues (L1 async decoupling) & G3 \\
 TypeORM + PostgreSQL & ORM with per-module schema isolation & G3 \\
 OpenTelemetry & Distributed traces, metrics, structured logging & G6 \\
 Jaeger & Trace visualization and analysis & G6 \\
