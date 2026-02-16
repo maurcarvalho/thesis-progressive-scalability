@@ -66,13 +66,13 @@ G2 is implemented through established software engineering practices rather than
 The following failure modes are frequently observed in modular monoliths that lack explicit maintainability discipline. Each anti-pattern increases the cost of change by expanding the blast radius of modifications, weakening ownership boundaries, or introducing hidden coupling. For each anti-pattern, G2 defines one or more metrics that make the degradation observable and verifiable.
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Cross-Module Internal Reuse:} Reusing internal classes or utilities from another module instead of interacting through a declared public API tightly couples the consumer to the provider’s internal structure. Internal refactoring then forces coordinated changes across modules, undermining independent evolution. This anti-pattern is primarily detected through an increase in encapsulation leakage count ($C_{\mathrm{leak}}$) and a reduction in the API-only dependency ratio ($\rho_{\mathrm{api}}$).
+  \item \emph{Cross-Module Internal Reuse:} Reusing internal classes or utilities from another module instead of interacting through a declared public API tightly couples the consumer to the provider's internal structure. Internal refactoring then forces coordinated changes across modules, undermining independent evolution. This anti-pattern is primarily detected through an increase in encapsulation leakage count ($C_{\mathrm{leak}}$) and a reduction in the API-only dependency ratio ($\rho_{\mathrm{api}}$).
 
   \item \emph{Implicit Dependency Introduction:} Dependencies introduced through configuration, dependency injection wiring, or reflection without explicit declaration bypass architectural review. Over time, they erode the reliability of dependency models and increase the effort required to assess change impact. This failure mode is reflected by an increase in undeclared dependency references ($C_{\mathrm{undecl}}$) and by reduced module isolation test pass rates ($P_{\mathrm{iso}}$).
 
   \item \emph{Bidirectional or Cyclic Dependencies:} Allowing modules to depend on each other directly or indirectly introduces cycles that prevent independent evolution. Cycles increase cognitive load and coordination cost and are expensive to remove once established. This anti-pattern is detected through forbidden dependency references ($C_{\mathrm{forbid}}$) and explicit cycle analysis of the module dependency graph.
 
-  \item \emph{Overloaded Module APIs:} Uncontrolled growth of a module’s public surface leads to unstable interfaces and defensive design. Refactoring becomes increasingly risky, and internal structure gradually freezes. This failure mode is indicated by a declining API-only dependency ratio ($\rho_{\mathrm{api}}$) and sustained growth of the module’s public API surface over time.
+  \item \emph{Overloaded Module APIs:} Uncontrolled growth of a module's public surface leads to unstable interfaces and defensive design. Refactoring becomes increasingly risky, and internal structure gradually freezes. This failure mode is indicated by a declining API-only dependency ratio ($\rho_{\mathrm{api}}$) and sustained growth of the module's public API surface over time.
 
   \item \emph{Feature-Centric Coupling Across Modules:} When features span multiple modules without clear ownership, features rather than modules become the primary unit of change. This pattern increases coordination cost and dilutes accountability. It is weakly visible in static dependencies but becomes evident through repeated cross-module co-changes and elevated architectural drift incidents.
 \end{itemize}
@@ -93,58 +93,65 @@ G2 builds directly on the enforcement model introduced in G1. While G1 establish
 \end{itemize}
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Undeclared Dependency Reference Count:}
+  \item \textbf{Undeclared Dependency Reference Count:}
+  Undeclared dependencies represent the most insidious form of architectural drift in modular systems. When developers introduce cross-module references without updating dependency declarations, they create hidden coupling that bypasses architectural review and violates the principle of explicit design \cite{parnas1972informationhiding}. This metric quantifies references between modules that exist in the codebase but are not documented in the module descriptor, making change impact analysis unreliable and undermining the architectural fitness function \cite{FordParsons2017}.
   \[
     C_{\mathrm{undecl}} = \left| \{ (A,B) \in R \mid (A,B) \notin D \} \right|
   \]
-  \emph{Maintainability meaning:} measures hidden coupling introduced without architectural review. \\
+  \emph{Threshold:} $C_{\mathrm{undecl}} = 0$ (zero undeclared dependencies). \\
   \emph{Verification intent:} ensure all cross-module dependencies are explicit and reviewable.\\
 
-  \item \emph{Forbidden Dependency Reference Count:}
+  \item \textbf{Forbidden Dependency Reference Count:}
+  Architectural constraints often require strict isolation between certain modules to prevent cyclic dependencies or maintain layering discipline \cite{martin2012clean}. Forbidden dependencies represent violations of these explicitly prohibited relationships, typically occurring when convenience-driven shortcuts bypass intended abstraction barriers. Such violations compound over time, making dependency cycles increasingly difficult to resolve and undermining the modular structure that supports independent evolution \cite{yourdon1979structured}.
   \[
     C_{\mathrm{forbid}} = \left| \{ (A,B) \in R \mid (A,B) \in F \} \right|
   \]
-  \emph{Maintainability meaning:} detects structurally disallowed coupling that violates architectural constraints. \\
+  \emph{Threshold:} $C_{\mathrm{forbid}} = 0$ (zero forbidden dependency references). \\
   \emph{Verification intent:} preserve strict isolation where required and prevent dependency cycles.\\
 
-  \item \emph{API-Only Dependency Ratio:}
-  Let $R_{\mathrm{api}} \subseteq R$ be references targeting only the provider module’s public surface:
+  \item \textbf{API-Only Dependency Ratio:}
+  The stability of a modular system depends critically on whether cross-module dependencies target stable, intentional interfaces rather than internal implementation details \cite{parnas1972informationhiding}. When modules depend directly on internal structures of other modules, refactoring becomes a system-wide coordination problem rather than a local concern. This metric measures the proportion of cross-module references that respect encapsulation boundaries by targeting only the provider module's explicitly declared public surface.
+  Let $R_{\mathrm{api}} \subseteq R$ be references targeting only the provider module's public surface:
   \[
     \rho_{\mathrm{api}} = \frac{|R_{\mathrm{api}}|}{|R|}
   \]
-  \emph{Maintainability meaning:} indicates whether dependencies are routed through stable contracts rather than internal structures. \\
+  \emph{Target:} $\rho_{\mathrm{api}} \geq 95\%$ (nearly all dependencies through public APIs). \\
   \emph{Verification intent:} constrain change propagation and stabilize interaction surfaces.\\
 
-  \item \emph{Encapsulation Leakage Count:}
+  \item \textbf{Encapsulation Leakage Count:}
+  Encapsulation leakage occurs when external modules directly access internal implementation details that were never intended for public consumption \cite{parnas1972informationhiding}. This violation of information hiding principles creates tight coupling between modules' internal structures, dramatically expanding the blast radius of refactoring activities. Leakage typically manifests as direct imports of domain entities, repositories, or utilities that bypass the module's intentional public interface, forcing coordinated changes across module boundaries.
   Let $R_{\mathrm{internal}} \subseteq R$ be references to internal packages or non-exported symbols:
   \[
     C_{\mathrm{leak}} = |R_{\mathrm{internal}}|
   \]
-  \emph{Maintainability meaning:} quantifies boundary bypass that increases blast radius and refactoring risk. \\
+  \emph{Threshold:} $C_{\mathrm{leak}} = 0$ (zero encapsulation leakage references). \\
   \emph{Verification intent:} enforce information hiding at the module boundary.
 
-  \item \emph{Module Isolation Test Pass Rate:}
+  \item \textbf{Module Isolation Test Pass Rate:}
+  Static dependency analysis cannot detect all forms of coupling, particularly runtime dependencies introduced through configuration, reflection, or global state. Module isolation tests verify that each module can function correctly using only its explicitly declared dependencies, revealing hidden coupling that would otherwise remain invisible until deployment \cite{fairbanks2010justenough}. These tests are essential for validating that the modular design will support independent evolution and selective testing of individual components.
   Let $T_{\mathrm{iso}}$ be the set of module isolation tests:
   \[
     P_{\mathrm{iso}} = \frac{|T_{\mathrm{pass}}|}{|T_{\mathrm{iso}}|}
   \]
-  \emph{Maintainability meaning:} detects implicit coupling not visible through static analysis alone. \\
+  \emph{Target:} $P_{\mathrm{iso}} = 100\%$ (all isolation tests pass). \\
   \emph{Verification intent:} ensure modules can execute using only their declared dependencies.
 
-  \item \emph{Event Subscription Boundary Violations (when events are used):}
+  \item \textbf{Event Subscription Boundary Violations (when events are used):}
+  Event-driven architectures can introduce coupling that is less visible than direct method calls but equally problematic for maintainability \cite{richardson2018microservices}. When modules subscribe to events from other modules without declaring these dependencies explicitly, they create hidden coupling through the event infrastructure. This form of implicit dependency makes impact analysis difficult and can lead to cascading failures when event schemas evolve, undermining the loose coupling that events are intended to provide.
   Let $H$ be the set of event handlers in module $A$ consuming events from module $B$:
   \[
     C_{\mathrm{event}} = \left| \{ (A,B) \in H \mid (A,B) \notin D \} \right|
   \]
-  \emph{Maintainability meaning:} captures undeclared coupling introduced through event-driven integration. \\
+  \emph{Threshold:} $C_{\mathrm{event}} = 0$ (zero undeclared event subscriptions). \\
   \emph{Verification intent:} keep asynchronous collaboration explicit and auditable.
 
-  \item \emph{Boundary Bypass Surface Count (optional):}
+  \item \textbf{Boundary Bypass Surface Count (optional):}
+  Some programming environments provide mechanisms that can circumvent static boundary enforcement, such as reflection, dynamic loading, or configuration-driven wiring \cite{martin2012clean}. While these mechanisms may serve legitimate purposes, their excessive use creates interaction paths that are invisible to static analysis and difficult to reason about during maintenance. This metric identifies locations where such bypass mechanisms are employed, highlighting potential architectural risk points that require careful documentation and monitoring.
   Let $S_{\mathrm{bypass}}$ be occurrences of bypass mechanisms within cross-module interaction paths:
   \[
     C_{\mathrm{bypass}} = |S_{\mathrm{bypass}}|
   \]
-  \emph{Maintainability meaning:} indicates reliance on mechanisms that evade static boundary enforcement. \\
+  \emph{Target:} $C_{\mathrm{bypass}} \to 0$ (minimize boundary bypass mechanisms). \\
   \emph{Verification intent:} identify high-risk interaction paths that undermine architectural guarantees.
 \end{itemize}
 
@@ -153,19 +160,21 @@ G2 builds directly on the enforcement model introduced in G1. While G1 establish
 \end{itemize}
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Public API Surface Growth Rate:}
+  \item \textbf{Public API Surface Growth Rate:}
+  The size of a module's public API surface directly impacts maintainability by creating downstream contractual obligations \cite{parnas1972informationhiding}. Each exported interface, handler, or event represents a commitment to external consumers that constrains internal refactoring freedom. Sustained growth in API surface area indicates that the module may be accumulating too many responsibilities or exposing internal concerns that should remain encapsulated. This longitudinal metric helps identify modules that are becoming increasingly difficult to evolve independently.
   \[
     G_{\mathrm{api}}(m) = \frac{|API_m(t)| - |API_m(t - \Delta t)|}{\Delta t}
   \]
-  \emph{Maintainability meaning:} sustained growth indicates increasing downstream obligations and reduced refactoring freedom. \\
+  \emph{Target:} $G_{\mathrm{api}}(m) \to 0$ over time (stable API surface growth). \\
   \emph{Action:} consolidate contracts, remove accidental exposure, or split responsibilities.
 
-  \item \emph{Change Coupling Index (optional):}
+  \item \textbf{Change Coupling Index (optional):}
+  Modules that frequently change together across commits may indicate that they are more tightly coupled than their static dependency structure suggests \cite{FordParsons2017}. This temporal coupling pattern often emerges when features span multiple modules without clear ownership, forcing coordinated changes that increase development friction and coordination costs. High change coupling suggests that the current modular boundaries may not align well with the natural evolution patterns of the system's features, potentially indicating a need for boundary redesign.
   Let $C(A,B)$ denote the number of commits where modules $A$ and $B$ change together within a defined time window:
   \[
     CCI = \frac{\sum_{A \neq B} C(A,B)}{\sum_{A} C(A)}
   \]
-  \emph{Maintainability meaning:} high values indicate feature-centric coupling and blurred ownership boundaries. \\
+  \emph{Target:} $CCI \to 0.2$ (minimize co-change frequency to preserve independent evolution). \\
   \emph{Action:} reassign responsibilities, introduce clearer module contracts, or refactor feature orchestration logic.
 \end{itemize}
 
@@ -174,6 +183,13 @@ G2 builds directly on the enforcement model introduced in G1. While G1 establish
 
   By tracking these metrics over time and enforcing thresholds where appropriate, G2 enables early detection of architectural drift and supports timely refactoring while corrective actions remain localized and economically viable. The primary objective is not to eliminate change, but to ensure that its cost remains bounded as the system evolves.
 \end{itemize}
+
+\medskip
+\noindent
+\textbf{Compliance summary.} G2 maintainability compliance holds when:
+\[
+  C_{\mathrm{undecl}} = 0 \land C_{\mathrm{forbid}} = 0 \land C_{\mathrm{leak}} = 0 \land C_{\mathrm{event}} = 0 \land \rho_{\mathrm{api}} \geq 0.95 \land P_{\mathrm{iso}} = 1.0
+\]
 
 \subsection*{Documentation Guidelines}
 \begin{itemize}[noitemsep,topsep=2pt]
