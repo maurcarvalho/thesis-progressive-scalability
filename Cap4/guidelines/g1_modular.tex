@@ -11,8 +11,8 @@ This research proposes that modularity in a monolith should be treated as an enf
 Define clear boundaries around each bounded-context module so that:
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Each module encapsulates its internal implementation and feature-level organization.
-  \item Dependencies between modules occur only through explicitly declared and verifiable interfaces.
-  \item Unintended coupling is prevented, enabling independent evolution of modules within a single deployable system.
+  \item Dependencies between modules occur only through explicitly declared and verifiable interfaces, whether synchronous (public API calls) or asynchronous (event subscriptions and command channels).
+  \item Unintended coupling is prevented through automated enforcement, enabling independent evolution of modules within a single deployable system.
 \end{itemize}
 
 
@@ -30,7 +30,8 @@ G1 focuses on enforcing the \emph{outer} boundary between bounded-context module
   \item \emph{Encapsulation:} Keep internal classes, data, and resources hidden within a module.
   \item \emph{Controlled Dependency:} Allow one module to depend on another only when explicitly declared.
   \item \emph{Visibility Management:} Declare which services, events, or commands a module exposes or consumes.
-  \item \emph{Early Verification:} Detect boundary violations at build or test time rather than at runtime.
+  \item \emph{Automated Early Verification:} Detect boundary violations automatically at build or test time rather than at runtime, ensuring that enforcement is part of the CI pipeline rather than relying on manual review.
+  \item \emph{Architectural Drift Prevention:} Defend module boundaries against the common erosion patterns (convenience imports, shared utility creep, implicit wiring) that accumulate during sustained development and reintroduce tight coupling.
   \item \emph{Isolation Guarantees:} Optionally forbid certain modules from ever depending on each other.
 \end{itemize}
 
