@@ -415,49 +415,60 @@ Because all metrics are tagged with \texttt{module} labels from inception, the s
 G6 metrics assess the completeness and effectiveness of the observability implementation across modules.
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Trace Completeness Rate ($\tau$):}
-  The proportion of cross-module request flows that produce a complete, connected trace (all expected spans present):
+  \item \textbf{Trace Completeness Rate ($\tau$):}
+  Incomplete traces represent critical observability gaps that leave teams debugging in the dark when issues cross module boundaries \cite{FordParsons2017}. When a request flows through multiple modules but some spans are missing, the causal chain breaks down, making it impossible to identify where latency accumulates or where errors originate. This metric quantifies how reliably the distributed tracing infrastructure captures complete execution paths across module boundaries, directly impacting the team's ability to maintain system health after extraction.
   \[
     \tau = \frac{|F_{\mathrm{traced}}|}{|F|}
   \]
   where $F$ is the set of all cross-module flows and $F_{\mathrm{traced}}$ is the subset with complete traces.
-  \emph{Observability meaning:} $\tau < 1$ indicates instrumentation gaps at module boundaries, which will become debugging blind spots after extraction. \\
+  \emph{Target:} $\tau \geq 0.95$ (comprehensive trace coverage across module boundaries). \\
 
-  \item \emph{Metric Coverage per Module ($\kappa_m$):}
-  The proportion of module public surface operations (handlers, event publishers, event listeners) that emit latency, throughput, and error metrics:
+  \item \textbf{Metric Coverage per Module ($\kappa_m$):}
+  Uninstrumented operations create blind spots in performance monitoring that prevent evidence-based scaling decisions and accurate system health assessment \cite{martin2012clean}. When some module operations emit metrics while others don't, the resulting throughput and latency calculations become skewed and unreliable. This metric ensures comprehensive instrumentation coverage across all public operations of a module, providing the complete performance picture required for G3's scalability assessments and G4's extraction readiness evaluations.
   \[
     \kappa_m = \frac{|O_{\mathrm{instrumented}}^{(m)}|}{|O^{(m)}|}
   \]
-  \emph{Observability meaning:} $\kappa_m < 1$ means that some module operations are invisible to the metrics system, preventing complete $\Theta_m$ and $\sigma^2_{L,m}$ calculation for G3. \\
+  \emph{Target:} $\kappa_m = 1$ (complete metrics coverage for all module operations). \\
 
-  \item \emph{Log Module Attribution Rate ($\lambda$):}
-  The proportion of log entries that include a \texttt{module} field and a \texttt{traceId}:
+  \item \textbf{Log Module Attribution Rate ($\lambda$):}
+  Unattributed log entries severely hamper debugging efforts in modular systems by forcing engineers to manually correlate events across module boundaries without clear ownership or request context \cite{fairbanks2010justenough}. When log entries lack module attribution and trace correlation, troubleshooting becomes a time-consuming search through unstructured text rather than a focused investigation guided by structured metadata. This metric ensures that all log output can be efficiently filtered by module and correlated with distributed traces.
   \[
     \lambda = \frac{|L_{\mathrm{attributed}}|}{|L|}
   \]
-  \emph{Observability meaning:} $\lambda < 1$ indicates log entries that cannot be filtered by module or correlated with traces. Target: $\lambda = 1$. \\
+  \emph{Target:} $\lambda = 1$ (all log entries include module and trace context). \\
 
-  \item \emph{Alert Precision ($\alpha_{\mathrm{alert}}$):}
-  The proportion of triggered alerts that are scoped to a specific module rather than the application as a whole:
+  \item \textbf{Alert Precision ($\alpha_{\mathrm{alert}}$):}
+  Application-wide alerts create unnecessary alert fatigue and slow incident response by failing to pinpoint which specific module requires attention \cite{FordParsons2017}. When alerts fire at the system level rather than the module level, on-call engineers must perform additional investigation to isolate the problem area, increasing mean time to recovery and reducing confidence in the alerting system. This metric ensures that alerts provide actionable specificity that directly guides incident response efforts.
   \[
     \alpha_{\mathrm{alert}} = \frac{|A_{\mathrm{module\text{-}scoped}}|}{|A|}
   \]
-  \emph{Observability meaning:} low $\alpha_{\mathrm{alert}}$ indicates that alerts lack the specificity needed for targeted incident response. \\
+  \emph{Target:} $\alpha_{\mathrm{alert}} \geq 0.8$ (majority of alerts provide module-level precision). \\
 
-  \item \emph{Baseline Coverage ($\beta$):}
-  The proportion of modules for which a performance baseline (latency distribution, throughput profile, error rate) has been recorded prior to any extraction:
+  \item \textbf{Baseline Coverage ($\beta$):}
+  Without pre-extraction performance baselines, teams cannot objectively evaluate whether service extraction improved or degraded system performance, making architectural decisions based on incomplete data \cite{wolfart2021modernizing}. Performance changes observed after extraction could be caused by the network boundary, concurrent load changes, or unrelated code modifications. This metric ensures comprehensive baseline collection before any extraction event, enabling accurate before-and-after performance comparisons that validate architectural decisions.
   \[
     \beta = \frac{|M_{\mathrm{baselined}}|}{|M|}
   \]
-  \emph{Observability meaning:} $\beta < 1$ before extraction means the team cannot evaluate extraction impact for some modules. Target: $\beta = 1$ before any L3 transition. \\
+  \emph{Threshold:} $\beta = 1$ before any G3 Level L3 extraction. \\
 
-  \item \emph{Mean Time to Detect (MTTD):}
-  The average time between a module-level performance degradation occurring and an alert firing. This is the primary operational effectiveness metric.
-  \emph{Observability meaning:} decreasing MTTD over time indicates improving observability maturity.
+  \item \textbf{Mean Time to Detect (MTTD):}
+  Delayed detection of performance degradation allows problems to compound and affect more users, ultimately increasing both the technical impact and business cost of incidents \cite{FordParsons2017}. Fast detection enables proactive response that can prevent minor issues from escalating into major outages. This metric quantifies the effectiveness of the entire observability stack in translating performance anomalies into actionable alerts, serving as the primary measure of observability system health.
+  The average time between a module-level performance degradation occurring and an alert firing:
+  \[
+    \text{MTTD} = \frac{\sum_{i} (t_{\text{alert},i} - t_{\text{incident},i})}{|I|}
+  \]
+  \emph{Target:} MTTD $\leq 5$ minutes for module-level performance degradation. \\
 \end{itemize}
 
 \noindent
 \emph{Verification strategy:} G6 metrics are assessed as part of the extraction readiness review (G4). Before any module is extracted, $\tau$, $\kappa_m$, $\lambda$, and $\beta$ must meet threshold values. After extraction, the same metrics are compared against the pre-extraction baseline to verify that observability survived the topology change. A drop in $\tau$ after extraction indicates that trace context propagation is failing across the network boundary, requiring investigation of OpenTelemetry context propagation configuration.
+
+\medskip
+\noindent
+\textbf{Compliance summary.} G6 observability compliance holds when:
+\[
+  \tau \geq 0.95 \land \kappa_m = 1 \land \lambda = 1 \land \alpha_{\mathrm{alert}} \geq 0.8 \land \beta = 1 \land \text{MTTD} \leq 5\text{min}
+\]
 
 
 \subsection*{Documentation Guidelines}

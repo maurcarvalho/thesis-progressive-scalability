@@ -636,47 +636,63 @@ This operationalization of G4's principles provides production teams with the co
 G4 metrics assess whether a module is structurally prepared for extraction, complementing G1's boundary metrics, G2's maintainability metrics, and G3's scalability metrics.
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Data Ownership Clarity ($\omega_m$):}
+  \item \textbf{Data Ownership Clarity ($\omega_m$):}
+  Shared database tables represent the single largest obstacle to service extraction, creating coupling at the persistence layer that survives any amount of code-level decoupling \cite{evans2003ddd}. When modules access the same tables directly, extraction requires complex data migration and schema splitting that often fails in production. This metric, inherited from G3 but scoped to the candidate module, quantifies how cleanly the module's data boundaries are established, providing the foundation for zero-migration extraction.
   Reused from G3, scoped to the candidate module. $\omega_m = 1$ means the module owns all its tables exclusively. $\omega_m < 1$ indicates shared tables that block extraction.
-  \emph{Migration meaning:} prerequisite for schema isolation. \\
+  \[
+    \omega_m = \frac{|T_{\mathrm{module\text{-}only}}|}{|T_m|}
+  \]
+  \emph{Threshold:} $\omega_m = 1$ (complete data ownership before extraction). \\
 
-  \item \emph{Anti-Corruption Layer Coverage ($\gamma$):}
-  The proportion of cross-module integration points (event listeners, API consumers) that include an explicit translation layer:
+  \item \textbf{Anti-Corruption Layer Coverage ($\gamma$):}
+  Without explicit translation boundaries, upstream modules' internal model changes propagate directly to downstream consumers, creating tight coupling that prevents independent evolution \cite{evans2003ddd}. Anti-corruption layers serve as contractual buffers that translate between domain models, ensuring that one module's refactoring doesn't cascade into breaking changes for its consumers. This metric quantifies how well protected the module's integration points are from external model changes, directly impacting its ability to evolve independently after extraction.
   \[
     \gamma = \frac{|I_{\mathrm{ACL}}|}{|I|}
   \]
   where $I$ is the set of all cross-module integration points and $I_{\mathrm{ACL}}$ is the subset mediated by an ACL.
-  \emph{Migration meaning:} $\gamma < 1$ indicates integration points where upstream schema changes will break downstream modules. Target: $\gamma = 1$ for extraction candidates. \\
+  \emph{Target:} $\gamma = 1$ (all integration points protected by ACLs). \\
 
-  \item \emph{Saga Completeness ($\sigma$):}
-  The proportion of cross-module workflows that have explicitly defined compensating actions for each failure mode:
+  \item \textbf{Saga Completeness ($\sigma$):}
+  Cross-module workflows that rely on database transactions for consistency will fail catastrophically after extraction, when ACID guarantees no longer span module boundaries \cite{richardson2018microservices}. Saga patterns replace atomic transactions with choreographed sequences that include explicit compensating actions for each step, ensuring that distributed workflows can recover from partial failures. This metric measures how comprehensively the module's workflows have been prepared for the eventual consistency requirements of distributed deployment.
   \[
     \sigma = \frac{|W_{\mathrm{compensated}}|}{|W|}
   \]
   where $W$ is the set of cross-module workflows involving the candidate module.
-  \emph{Migration meaning:} $\sigma < 1$ indicates workflows that rely on transactional guarantees and will exhibit data inconsistency after extraction. \\
+  \emph{Target:} $\sigma = 1$ (all workflows have compensating actions defined). \\
 
-  \item \emph{Infrastructure Abstraction Coverage ($\alpha_m$):}
+  \item \textbf{Infrastructure Abstraction Coverage ($\alpha_m$):}
+  Modules that directly depend on infrastructure implementations become coupled to specific deployment topologies, making extraction a code rewrite rather than a configuration change \cite{martin2012clean}. Infrastructure abstraction through ports and adapters ensures that domain logic remains independent of whether the module runs in-process or as an independent service. This metric, inherited from G3 but critically important for extraction, quantifies how much of the module's infrastructure access has been properly abstracted.
   Reused from G3, scoped to the candidate module. Measures whether infrastructure dependencies (event bus, database, cache) are accessed through ports.
-  \emph{Migration meaning:} $\alpha_m < 1$ means extraction requires code changes in domain or application logic, not just infrastructure wiring. \\
+  \[
+    \alpha_m = \frac{|A_{\mathrm{abstracted,m}}|}{|A_m|}
+  \]
+  \emph{Threshold:} $\alpha_m = 1$ (all infrastructure access through ports). \\
 
-  \item \emph{API Version Coverage ($\nu$):}
-  The proportion of public API endpoints and event contracts that carry explicit version metadata:
+  \item \textbf{API Version Coverage ($\nu$):}
+  Independent deployment is one of the primary benefits of service extraction, but it requires that services can evolve their APIs without forcing simultaneous updates across all consumers \cite{parnas1972informationhiding}. Unversioned APIs create coordination bottlenecks that eliminate the deployment independence that justified extraction in the first place. This metric ensures that the module's public contracts can support backward-compatible evolution, preserving independent deployment capabilities after extraction.
   \[
     \nu = \frac{|E_{\mathrm{versioned}}|}{|E|}
   \]
-  \emph{Migration meaning:} $\nu < 1$ means that after extraction, API evolution will require coordinated deployment of all consumers, eliminating the independent deployment benefit that motivated extraction. \\
+  \emph{Target:} $\nu = 1$ (all public APIs carry version metadata). \\
 
-  \item \emph{Composite Migration Readiness Score ($\mu_m$):}
-  A composite indicator for module $m$:
+  \item \textbf{Composite Migration Readiness Score ($\mu_m$):}
+  Service extraction should be driven by objective readiness assessment rather than urgency or intuition \cite{wolfart2021modernizing}. This composite score synthesizes all preparation dimensions into a single indicator that can guide extraction timing decisions. A high readiness score indicates that extraction will be a low-risk configuration change; a low score reveals specific preparation gaps that must be addressed before extraction becomes viable. This metric transforms extraction from a reactive crisis response into a proactive architectural decision based on measurable readiness.
   \[
     \mu_m = f\!\left(\omega_m,\; \gamma_m,\; \sigma_m,\; \alpha_m,\; \nu_m,\; \varepsilon_m\right)
   \]
   where $\varepsilon_m$ is the extraction readiness score from G3. $\mu_m$ provides a single dashboard view of how prepared a module is for extraction.
+  \emph{Target:} $\mu_m \geq 0.9$ before initiating extraction. \\
 \end{itemize}
 
 \noindent
 \emph{Verification strategy:} G4 metrics are assessed before any extraction decision. When G3's scalability spectrum indicates that a module is approaching L3 (selective extraction), the team evaluates $\mu_m$ to determine whether the module is ready. If $\mu_m$ is below threshold, the team invests in readiness (Steps 1--5 above) before proceeding. This ensures that extraction is a deliberate architectural decision, not a crisis response.
+
+\medskip
+\noindent
+\textbf{Compliance summary.} G4 migration readiness compliance holds when:
+\[
+  \omega_m = 1 \land \gamma = 1 \land \sigma = 1 \land \alpha_m = 1 \land \nu = 1 \land \mu_m \geq 0.9
+\]
 
 
 \subsection*{Documentation Guidelines}
