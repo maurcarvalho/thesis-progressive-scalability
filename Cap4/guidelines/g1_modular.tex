@@ -9,7 +9,7 @@ This research proposes that modularity in a monolith should be treated as an enf
 
 \subsection*{Conceptual Overview}
 Define clear boundaries around each bounded-context module so that:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Each module encapsulates its internal implementation and feature-level organization.
   \item Dependencies between modules occur only through explicitly declared and verifiable interfaces.
   \item Unintended coupling is prevented, enabling independent evolution of modules within a single deployable system.
@@ -18,14 +18,14 @@ Define clear boundaries around each bounded-context module so that:
 
 \subsection*{Applicability Conditions and Scope}
 G1 is applicable when a system is decomposed into logical modules within a single codebase. Inter-module dependencies must be explicitly declared and automatically verifiable, independent of packaging, deployment, or distribution decisions. This guideline assumes a two-level decomposition strategy:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Bounded Context Modules:} The codebase is decomposed into bounded-context modules (for example, under a \texttt{modules/} root), and each bounded context is treated as a first-class module boundary.
   \item \emph{Package-by-Feature Within Modules:} Inside each module, code is organized by feature (use cases, domain concepts, aggregates) to localize behavior and reduce scattering, without weakening the outer module boundary.
 \end{itemize}
 G1 focuses on enforcing the \emph{outer} boundary between bounded-context modules. The internal package-by-feature organization is treated as a complementary structuring mechanism, and its detailed rules are addressed in subsequent topics.
 
 \subsection*{Objectives}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Clear Declaration and Isolation:} Ensure each module is clearly identified (for example, via naming conventions, package control, or a descriptor) and remains isolated unless an explicit dependency is declared.
   \item \emph{Encapsulation:} Keep internal classes, data, and resources hidden within a module.
   \item \emph{Controlled Dependency:} Allow one module to depend on another only when explicitly declared.
@@ -35,7 +35,7 @@ G1 focuses on enforcing the \emph{outer} boundary between bounded-context module
 \end{itemize}
 
 \subsection*{Key Principles}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Provided Interface vs.\ Internal Components:}
     \begin{itemize}[noitemsep,topsep=1pt,leftmargin=1.5em]
       \item \emph{Provided Interface:} Public classes, services, APIs, or events explicitly exposed to other modules.
@@ -57,7 +57,7 @@ G1 focuses on enforcing the \emph{outer} boundary between bounded-context module
 
 \subsection*{Implementation Mechanisms}
 This research proposes implementing G1 through a combination of (i) structural encapsulation, (ii) explicit dependency declaration, and (iii) automated verification:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Structural encapsulation:} Separate public API packages from internal packages, and restrict visibility so that only the declared API is importable across module boundaries.
   \item \emph{Declarative dependency model:} Maintain a module descriptor that defines which modules are required and which are forbidden, and keep it version-controlled with boundary changes.
   \item \emph{Automated verification:} Fail the build when undeclared cross-module references are detected, and optionally verify event subscriptions and command usage against declared dependencies.
@@ -68,7 +68,7 @@ The following failure modes are frequently observed in codebases that lack expli
 
 \subsubsection*{Structural Anti-Patterns}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Convenience-Driven Imports:} Developers import internal classes from another module because the path is shorter or the type is already available. Over time, these imports create a web of hidden coupling that boundary checks cannot detect if enforcement is absent~\cite{parnas1972informationhiding}. This anti-pattern is captured by an increase in $C_{\mathrm{leak}}$.
 
   \item \emph{Shared Utility Creep:} A \texttt{shared/} or \texttt{common/} package grows to include domain-specific logic that belongs inside a bounded context~\cite{martin2012clean}. Modules become coupled through this shared layer rather than through explicit contracts. This is reflected in rising $C_{\mathrm{undecl}}$ when shared utilities reference module internals.
@@ -82,7 +82,7 @@ The following failure modes are frequently observed in codebases that lack expli
 
 \subsubsection*{Design-Level Anti-Patterns}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Extreme Granularity:} Teams slice the system into excessively narrow domains (StockCheck, ReservationHold, WarehouseAllocation, StockReplenishment) instead of grouping them under a cohesive bounded context (Inventory). Similarly, splitting User, Authentication, Authorization, and ProfileManagement into separate modules when they all belong to a single Identity context creates artificial boundaries that generate coupling without gaining isolation. Each micro-domain cannot fulfill a business workflow independently, forcing constant cross-module calls for routine operations like reserving stock during order placement or authenticating a user session. The result is high coupling across many small modules that share the same data and the same transaction boundaries, effectively recreating distributed complexity inside the monolith~\cite{dragoni2017microservices, fowler2014}. G1 requires that module boundaries align with bounded contexts~\cite{evans2003ddd} large enough to complete a workflow end-to-end and small enough to be owned by a single team.
 
   \item \emph{Speculative Generality:} The codebase accumulates extension points, abstract factories, strategy patterns, hooks, and metaprogramming constructs designed for hypothetical future requirements that may never materialize. Each speculative abstraction adds navigational complexity and implicit coupling: consumers depend on interfaces whose contracts are shaped by imagined use cases rather than observed needs. This anti-pattern directly contradicts the progressive scalability philosophy (G3), which advocates for proportional intervention driven by evidence, not by speculation. The YAGNI principle~\cite{extremeProgramming} applies at the architectural level: if a pattern is not required by a current bounded context interaction or a measured scaling bottleneck, it should not exist in the codebase. Removing speculative abstractions often improves both cohesion (fewer unused symbols per module) and coupling (fewer unnecessary interfaces crossing boundaries).
@@ -116,7 +116,7 @@ The metrics below operationalize modular boundary enforcement as measurable, aut
 \noindent
 \emph{Notation.} Let $M$ be the set of bounded-context modules. Let $R$ be the multiset of observed cross-module references, including static imports, dependency injection wiring, and event handler registrations. For a pair of modules $(A, B)$, let $\operatorname{refs}(A \to B) \subseteq R$ denote the references originating in $A$ that target symbols in $B$. Let $D \subseteq M \times M$ be the set of declared allowed dependencies (\emph{requires}) and $F \subseteq M \times M$ be the set of explicitly forbidden dependencies (\emph{forbids}), both defined in the module descriptor. Let $\operatorname{pub}(B)$ denote the set of symbols in module $B$'s declared public API surface.
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{Undeclared Dependency Reference Count} ($C_{\mathrm{undecl}}$). \\
   A reference from module $A$ to a symbol in module $B$ is \emph{undeclared} when the dependency $A \to B$ does not appear in the module descriptor. Undeclared references represent invisible coupling: they exist in the codebase but are not subject to architectural review. Every undeclared reference is a potential extraction blocker, because it will only surface when the modules are separated~\cite{deLauretis2019from}.
   \[
@@ -164,7 +164,7 @@ The metrics below operationalize modular boundary enforcement as measurable, aut
 This compound condition is evaluated on every commit by the boundary verification gate. A violation of any single metric blocks the commit, ensuring that boundary erosion is detected at the point of introduction rather than during a downstream extraction attempt. The metrics are designed to be composable: G2 extends them with maintainability dimensions, G3 with scalability signals, and G4 with extraction readiness indicators.
 
 \subsection*{Documentation Guidelines}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Module Descriptor:}
     Maintain a machine-readable descriptor (YAML, annotation, or code) that centralizes \emph{requires} and \emph{forbids} entries for each module.
   \item \emph{Change Log:}
@@ -173,7 +173,7 @@ This compound condition is evaluated on every commit by the boundary verificatio
 
 \subsection*{Tooling Capabilities Checklist}
 Any open-source or proprietary tool used to enforce modular boundaries should support:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Module Discovery:} Automatically identify modules via conventions (for example, module folders, annotations) or explicit configuration.
   \item \emph{Boundary Verification:} Perform automated checks during build/test to detect undeclared cross-module references and fail on violations.
   \item \emph{Event-Driven Enforcement:} Track published events and subscribers, enforcing that only modules with declared subscriptions handle specific events.
@@ -299,7 +299,7 @@ npm run test:integration
 Verify that bounded contexts are mechanically discoverable by path conventions, enabling static boundary checks.
 In Tiny Store, bounded contexts live under \texttt{libs/modules/<context>/}, and shared primitives live under \texttt{libs/shared/}.
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \DoMark\ Do: treat \texttt{libs/modules/<context>/} as the outer boundary for G1.
   \item \DontMark\ Don't: create ad-hoc bounded contexts inside \texttt{libs/shared/} without enforcement.
 \end{itemize}
@@ -309,7 +309,7 @@ Confirm that feature slices improve cohesion inside a module while the outer bou
 contract-based. Feature code (for example \texttt{src/features/}) may depend on \texttt{domain/} within
 the same module, but must not import other modules’ features or domain internals.
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \DoMark\ Do: allow \texttt{features/} $\rightarrow$ \texttt{domain/} dependencies inside the same module.
   \item \DontMark\ Don't: allow module $A$ feature code to import module $B$ feature or domain internals.
 \end{itemize}
