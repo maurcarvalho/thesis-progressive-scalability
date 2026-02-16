@@ -109,29 +109,59 @@ This gap compounds with growth. A single convenience import is harmless; hundred
 The metrics and enforcement gates introduced in this guideline (and extended throughout G2 through G6) represent a deliberate attempt to close this gap: translating what engineers already know into what the build system can verify on every commit.
 
 \subsection*{Metrics and Verification}
+
+The metrics below operationalize modular boundary enforcement as measurable, automated constraints. Each metric follows a three-layer structure: a plain-language description of what it captures and why it matters, a formal definition that enables unambiguous implementation, and an enforcement threshold that determines whether the boundary gate passes or fails. Together, they translate the principles discussed in the preceding sections into executable verification rules.
+
+\medskip
+\noindent
+\emph{Notation.} Let $M$ be the set of bounded-context modules. Let $R$ be the multiset of observed cross-module references, including static imports, dependency injection wiring, and event handler registrations. For a pair of modules $(A, B)$, let $\operatorname{refs}(A \to B) \subseteq R$ denote the references originating in $A$ that target symbols in $B$. Let $D \subseteq M \times M$ be the set of declared allowed dependencies (\emph{requires}) and $F \subseteq M \times M$ be the set of explicitly forbidden dependencies (\emph{forbids}), both defined in the module descriptor. Let $\operatorname{pub}(B)$ denote the set of symbols in module $B$'s declared public API surface.
+
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Undeclared Dependency Reference Count:}
-  Number of static references from module $A$ to module $B$ where $A \rightarrow B$ is not declared in the module descriptor.
+  \item \textbf{Undeclared Dependency Reference Count} ($C_{\mathrm{undecl}}$). \\
+  A reference from module $A$ to a symbol in module $B$ is \emph{undeclared} when the dependency $A \to B$ does not appear in the module descriptor. Undeclared references represent invisible coupling: they exist in the codebase but are not subject to architectural review. Every undeclared reference is a potential extraction blocker, because it will only surface when the modules are separated~\cite{deLauretis2019from}.
+  \[
+    C_{\mathrm{undecl}} = \sum_{A \neq B} \left|\left\{ r \in \operatorname{refs}(A \to B) : (A, B) \notin D \right\}\right|
+  \]
+  \emph{Threshold:} $C_{\mathrm{undecl}} = 0$. Any undeclared reference fails the boundary gate.
 
-  \item \emph{Forbidden Dependency Reference Count:}
-  Number of static references from module $A$ to module $B$ where $A \rightarrow B$ is explicitly forbidden.
+  \item \textbf{Forbidden Dependency Reference Count} ($C_{\mathrm{forbid}}$). \\
+  Some module pairs are explicitly forbidden from depending on each other, typically to prevent circular dependencies or to enforce layering constraints~\cite{martin2012clean}. A forbidden reference is one where the dependency $A \to B$ appears in the \emph{forbids} set. Unlike undeclared references (which may be oversight), forbidden references represent known architectural violations that have been explicitly prohibited.
+  \[
+    C_{\mathrm{forbid}} = \sum_{A \neq B} \left|\left\{ r \in \operatorname{refs}(A \to B) : (A, B) \in F \right\}\right|
+  \]
+  \emph{Threshold:} $C_{\mathrm{forbid}} = 0$. Any forbidden reference fails the boundary gate.
 
-  \item \emph{API-Only Dependency Ratio:}
-  For all cross-module references, the proportion that targets the provider module's declared public API surface (interfaces, exported packages, published events) rather than internal packages.
+  \item \textbf{Encapsulation Leakage Count} ($C_{\mathrm{leak}}$). \\
+  Encapsulation leakage occurs when a module consumes internal symbols (classes, functions, types, resources) from another module rather than using its declared public API surface. This violates the information hiding principle~\cite{parnas1972informationhiding}: consumers become coupled to implementation details that the provider should be free to change. Even when the dependency $A \to B$ is declared, references that bypass the public surface create fragile coupling that increases the blast radius of internal refactoring.
+  \[
+    C_{\mathrm{leak}} = \sum_{A \neq B} \left|\left\{ r \in \operatorname{refs}(A \to B) : \operatorname{target}(r) \notin \operatorname{pub}(B) \right\}\right|
+  \]
+  \emph{Threshold:} $C_{\mathrm{leak}} = 0$. All cross-module references must target the provider's public API surface.
 
-  \item \emph{Encapsulation Leakage Count:}
-  Number of external references to internal symbols (classes, packages, resources) that are not part of the provider module's declared public surface.
+  \item \textbf{Module Isolation Test Pass Rate} ($P_{\mathrm{iso}}$). \\
+  Static analysis can detect import-level violations, but some forms of coupling are only observable at runtime: implicit wiring through dependency injection containers, service locator patterns, or transitive module loading. The isolation test pass rate captures these hidden dependencies by executing each module's test suite with only the module and its declared dependencies available~\cite{fairbanks2010justenough}. A failing isolation test indicates that the module depends on runtime context from an undeclared module, even when its static imports appear compliant.
+  \[
+    P_{\mathrm{iso}} = \frac{|T_{\mathrm{pass}}|}{|T_{\mathrm{iso}}|}
+  \]
+  where $T_{\mathrm{iso}}$ is the set of module-scoped isolation tests and $T_{\mathrm{pass}} \subseteq T_{\mathrm{iso}}$ is the subset that passes.\\
+  \emph{Threshold:} $P_{\mathrm{iso}} = 100\%$. Any isolation test failure fails the boundary gate.
 
-  \item \emph{Module Isolation Test Pass Rate:}
-  Percentage of module-scoped tests that execute with only the module and its declared dependencies available (for example, module-level context loading).
-  Failures indicate hidden wiring to undeclared modules, even when imports look compliant.
-  
-  \item \emph{Event Subscription Boundary Violations (if events are used):}
-  Number of event handlers in module $A$ consuming events from module $B$ without a declared $A \rightarrow B$ dependency (or without a declared event subscription, depending on the enforcement model).
-
- \item \emph{Boundary Bypass Surface Count (optional):}
-  Number of occurrences of mechanisms that can bypass static boundaries (for example, reflection-based access, service locator patterns, dynamic class loading) within cross-module interaction paths. This metric is intended as a risk indicator even when no violations are detected statically.
+  \item \textbf{Event Subscription Boundary Violations} ($C_{\mathrm{event}}$). \\
+  In systems that use event-driven integration, a module may consume events from another module without declaring that dependency. This creates coupling that is invisible to static import analysis because the subscription is typically registered at runtime through the event bus infrastructure. Event subscription violations are particularly insidious because they couple modules through data flow rather than code structure, making the dependency harder to detect during code review~\cite{richardson2018microservices}.
+  \[
+    C_{\mathrm{event}} = \left|\left\{ (A, B) \in H : (A, B) \notin D \right\}\right|
+  \]
+  where $H$ is the set of $(subscriber, publisher)$ pairs derived from event handler registrations.\\
+  \emph{Threshold:} $C_{\mathrm{event}} = 0$. Every event subscription must correspond to a declared dependency.
 \end{itemize}
+
+\medskip
+\noindent
+\textbf{Compliance summary.} G1 boundary compliance holds when all five metrics satisfy their thresholds simultaneously:
+\[
+  C_{\mathrm{undecl}} = 0 \;\wedge\; C_{\mathrm{forbid}} = 0 \;\wedge\; C_{\mathrm{leak}} = 0 \;\wedge\; P_{\mathrm{iso}} = 100\% \;\wedge\; C_{\mathrm{event}} = 0
+\]
+This compound condition is evaluated on every commit by the boundary verification gate. A violation of any single metric blocks the commit, ensuring that boundary erosion is detected at the point of introduction rather than during a downstream extraction attempt. The metrics are designed to be composable: G2 extends them with maintainability dimensions, G3 with scalability signals, and G4 with extraction readiness indicators.
 
 \subsection*{Documentation Guidelines}
 \begin{itemize}[noitemsep,topsep=2pt]
