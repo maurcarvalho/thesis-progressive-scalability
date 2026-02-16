@@ -1,0 +1,450 @@
+# G5: Streamline Deployment Strategy {#sec:g5-streamline-deployment-strategy}
+
+This section presents G5, which focuses on designing a deployment strategy that reflects and reinforces the modular structure of the monolith. In this dissertation, deployment strategy is treated as a progressive concern: the system ships as a single artifact today, but the pipeline is module-aware from the outset, so that producing multiple deployment artifacts, when extraction occurs, is a configuration change rather than a pipeline rewrite. G5 ensures that the monorepo remains the single source of truth throughout the entire scalability spectrum defined in G3, from a unified monolith (L0) through selective extraction (L3).
+
+G5 is the second guideline in the Operational Fit Dimension. While G4 prepared the orders module with production-grade infrastructure (Kafka, Temporal, schema isolation), G5 addresses the deployment mechanics: how does the system that uses this infrastructure actually get built, containerized, and shipped? The guideline bridges the gap between architectural readiness (G4) and operational reality, ensuring that the CI/CD pipeline, container strategy, and infrastructure provisioning are aligned with the modular architecture rather than treating the monolith as an opaque blob.
+
+## Intent and Rationale {#intent-and-rationale .unnumbered}
+
+Deployment strategy in modular monoliths is frequently treated as trivial: "it is a monolith, so ship one artifact." This simplification is accurate at the start, but it creates a hidden cost. When extraction pressure arrives (G3, Level L3), teams discover that their CI/CD pipeline, Dockerfiles, and infrastructure provisioning assume a single-artifact world. Building a second artifact requires restructuring the pipeline, introducing new build targets, and often duplicating configuration. The deployment dimension becomes the bottleneck, not the code.
+
+The root cause is that most deployment pipelines are designed around *deployment units* ("what gets shipped") rather than *module boundaries* ("what changed and what depends on it"). A module-aware pipeline inverts this: it understands the dependency graph, runs only the tests and builds affected by a change, and can produce one or more deployment artifacts from the same monorepo without structural changes to the pipeline itself.
+
+G5 therefore treats deployment as a spectrum that mirrors G3's scalability spectrum. Just as the architecture progresses from vertical optimization (L0) to selective extraction (L3), the deployment strategy progresses from a single artifact to multiple artifacts produced from the same monorepo. The monorepo does not split. The build toolchain does not change. What changes is the number of entry points the pipeline packages into deployable images.
+
+This approach preserves three properties that splitting the repository would compromise:
+
+- *Atomic refactoring:* Cross-module changes (e.g., updating an event contract and all its consumers) are committed atomically in a single pull request, with all affected tests running in the same CI job.
+
+- *Shared toolchain:* Linting, formatting, type checking, and boundary verification (G1) run against the entire workspace, ensuring consistency across modules regardless of how they are deployed.
+
+- *Dependency graph as source of truth:* The Nx project graph encodes the same module boundaries enforced by G1, so the pipeline's understanding of "what changed" is always aligned with the architecture.
+
+## Conceptual Overview {#conceptual-overview .unnumbered}
+
+Deployment strategy is embedded by designing the CI/CD pipeline around module boundaries rather than deployment units:
+
+- The monorepo (Nx workspace) remains the single source of truth for all modules, shared libraries, and deployment configurations, regardless of how many services are extracted.
+
+- The pipeline understands the module dependency graph and uses it to scope builds, tests, and deployments to affected modules only.
+
+- Containerization is module-aware: each deployable target has its own Dockerfile (or Dockerfile target) that packages only the module and its transitive dependencies.
+
+- Infrastructure dependencies (Kafka, Temporal, databases) are provisioned as part of the deployment configuration from day one, not bolted on during extraction.
+
+## Applicability Conditions and Scope {#applicability-conditions-and-scope .unnumbered}
+
+G5 applies to modular monolith systems where:
+
+- The codebase is organized as a monorepo with explicit module boundaries, as established by G1.
+
+- The system uses or plans to use containerized deployment (Docker, OCI images).
+
+- The team seeks to maintain a single repository even as individual modules are extracted into independently deployable services.
+
+G5 does not prescribe specific CI/CD platforms (GitHub Actions, GitLab CI, Jenkins), container orchestrators (Kubernetes, ECS, Cloud Run), or infrastructure-as-code tools (Terraform, Pulumi, Helm). Its scope is limited to the deployment architecture: how the pipeline relates to module boundaries and how deployment artifacts are produced from the monorepo.
+
+## Objectives {#objectives .unnumbered}
+
+- *Module-aware CI/CD:* Ensure the pipeline understands the module dependency graph and scopes builds, tests, and deployments to affected modules only.
+
+- *Single-repo, multi-artifact capability:* Enable the monorepo to produce multiple deployment artifacts (Docker images) without splitting the repository or duplicating the build toolchain.
+
+- *Infrastructure-as-code from day one:* Provision production dependencies (Kafka, Temporal, databases) as part of the standard deployment configuration, so that extraction does not require new infrastructure provisioning.
+
+- *Consistent local and production environments:* Ensure that the local development environment (Docker Compose) mirrors the production deployment topology, reducing environment-specific failures.
+
+- *Rollback as a first-class operation:* Design deployments so that any release can be rolled back independently per deployment target, without requiring coordinated rollbacks across all modules.
+
+## Key Principles {#key-principles .unnumbered}
+
+- *The monorepo never splits:* Repository splitting is one of the most frequently cited reasons for migration failures. When modules move to separate repositories, atomic refactoring becomes impossible, shared library versioning introduces diamond dependency problems, and boundary verification (G1) can no longer run across the full codebase. G5 requires that all modules, whether deployed as a single monolith or as multiple services, remain in the same Nx workspace. The repository boundary and the deployment boundary are independent concerns.
+
+- *The dependency graph drives the pipeline:* Nx's `affected` command computes which projects are impacted by a given change, based on the project dependency graph. G5 uses this as the primary pipeline optimization: only affected modules are built, tested, and deployed. This reduces CI time proportionally to the size of the change rather than the size of the repository, and it ensures that deployment decisions are grounded in actual dependency relationships rather than file-path heuristics.
+
+- *One Dockerfile per deployment target, not per module:* A deployment target is the unit that gets packaged into a container image. In the monolith phase (D0), there is one deployment target: `apps/api`. When the orders module is extracted (D2), a second deployment target appears: `apps/orders-service`. Each target has its own Dockerfile that includes only the target's code and its transitive dependencies from the monorepo. Modules that are not deployment targets (e.g., `libs/modules/inventory`) are included as dependencies of whichever target consumes them.
+
+- *Infrastructure is a deployment dependency, not an afterthought:* G4 introduced Kafka, Temporal, and isolated database schemas. G5 ensures that these are provisioned as part of the deployment configuration: Docker Compose for local development, Kubernetes manifests (or equivalent) for production. When the system is a monolith, all infrastructure runs alongside a single application container. When a module is extracted, the infrastructure remains; only the application topology changes.
+
+- *Deployment frequency reflects module maturity:* Not all modules need the same deployment cadence. The monolith may deploy weekly, while an extracted high-traffic module (e.g., orders) deploys daily or on-demand. G5 supports heterogeneous deployment frequency by allowing each deployment target to have its own release pipeline, triggered independently by changes to its affected scope.
+
+## The Deployment Spectrum {#the-deployment-spectrum .unnumbered}
+
+G5 defines a three-level deployment spectrum that teams can traverse progressively. Each level builds on the previous one, and progression is driven by operational need rather than architectural ambition.
+
+::: {#tab:deployment-spectrum}
+  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  **Level**   **Strategy**      **Description**                                                                                                                                              **Trigger Condition**
+  ----------- ----------------- ------------------------------------------------------------------------------------------------------------------------------------------------------------ ------------------------------------------------------------------------------
+  D0          Single Artifact   One Docker image from `apps/api`. All modules ship together. Standard monolith deployment.                                                                   Default starting point.
+
+  D1          Module-Aware CI   Nx `affected` scopes tests and builds to changed modules. Still produces one artifact, but CI is faster and module-scoped.                                   CI times grow beyond acceptable thresholds due to repo size.
+
+  D2          Multi-Artifact    The monorepo produces multiple Docker images (e.g., `api` + `orders-service`). Shared libs remain in the repo. Each image has its own deployment pipeline.   G3 Level L3 triggered for a module; independent deployment cadence required.
+  -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+  : Deployment Spectrum for Modular Monoliths
+:::
+
+## Implementation Mechanisms: Tiny Store Deployment {#implementation-mechanisms-tiny-store-deployment .unnumbered}
+
+The following mechanisms demonstrate how G5 is applied to Tiny Store, progressing from D0 through D2.
+
+### D0: The Monolith Dockerfile {#d0-the-monolith-dockerfile .unnumbered}
+
+In the baseline state, Tiny Store is deployed as a single Docker image built from the `apps/api` project. The Dockerfile uses a multi-stage build to minimize image size and leverages Nx's build output.
+
+``` {#lst:g5-dockerfile-d0 .bash language="bash" caption="Monolith Dockerfile with multi-stage build ({\\ttfamily apps/api/Dockerfile})" label="lst:g5-dockerfile-d0"}
+# apps/api/Dockerfile
+FROM node:20-alpine AS base
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json package-lock.json ./
+RUN npm ci --production=false
+
+FROM base AS build
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npx nx build api --skip-nx-cache
+
+FROM base AS production
+ENV NODE_ENV=production
+COPY --from=build /app/apps/api/.next/standalone ./
+COPY --from=build /app/apps/api/.next/static ./apps/api/.next/static
+COPY --from=build /app/apps/api/public ./apps/api/public
+EXPOSE 3000
+CMD ["node", "apps/api/server.js"]
+```
+
+This single image contains all four bounded contexts (orders, inventory, payments, shipments), the shared infrastructure, and the composition root. It connects to Kafka, Temporal, and the database as external dependencies. Containerization is a day-one requirement, not something to "set up when needed."
+
+### D0: Docker Compose for Local Development {#d0-docker-compose-for-local-development .unnumbered}
+
+The local development environment mirrors production topology. Kafka, Temporal, and PostgreSQL run as containers alongside the application. This ensures that developers work against the same infrastructure from day one, eliminating "works on my machine" failures caused by in-memory substitutes.
+
+``` {#lst:g5-docker-compose .bash language="bash" caption="Docker Compose: full infrastructure from day one ({\\ttfamily docker-compose.yml})" label="lst:g5-docker-compose"}
+# docker-compose.yml -- infrastructure is a day-one requirement
+version: '3.8'
+services:
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    ports: ['3000:3000']
+    environment:
+      DATABASE_URL: postgres://tiny:store@postgres:5432/tinystore
+      KAFKA_BROKER: kafka:9092
+      TEMPORAL_ADDRESS: temporal:7233
+      ORDERS_SERVICE_URL: http://orders-service:3001
+    depends_on: [postgres, kafka, temporal]
+
+  orders-service:                      # D2: extracted service
+    build: { context: ., dockerfile: apps/orders-service/Dockerfile }
+    ports: ['3001:3001']
+    environment:
+      DB_HOST: postgres
+      DB_NAME: tinystore_orders
+      KAFKA_BROKER: kafka:9092
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on: [postgres, kafka, temporal]
+
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_DB: tinystore, POSTGRES_USER: tiny,
+      POSTGRES_PASSWORD: store }
+    volumes: ['pgdata:/var/lib/postgresql/data']
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qg
+
+  redis:
+    image: redis:7-alpine
+    ports: ['6379:6379']
+
+  temporal:
+    image: temporalio/auto-setup:1.24
+    environment: { DB: postgres12, POSTGRES_USER: tiny,
+      POSTGRES_PWD: store, POSTGRES_SEEDS: postgres }
+    depends_on: [postgres]
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    ports: ['16686:16686', '4318:4318']
+
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    volumes: ['./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml']
+
+  grafana:
+    image: grafana/grafana:10.3.0
+    volumes: ['./infra/grafana/provisioning:/etc/grafana/provisioning']
+    depends_on: [prometheus, jaeger]
+
+volumes:
+  pgdata:
+```
+
+### D1: Module-Aware CI with Nx Affected {#d1-module-aware-ci-with-nx-affected .unnumbered}
+
+As the repository grows, running all tests and builds on every commit becomes wasteful. D1 introduces Nx's `affected` command to scope CI to the modules impacted by a change. The pipeline structure does not change; only the scope of what runs is narrowed.
+
+``` {#lst:g5-ci-affected .bash language="bash" caption="Module-aware CI pipeline ({\\ttfamily .github/workflows/ci.yml})" label="lst:g5-ci-affected"}
+# .github/workflows/ci.yml
+name: CI
+on:
+  push: { branches: [main, 'feature/**'] }
+  pull_request: { branches: [main] }
+jobs:
+  affected:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: nx-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+      - run: npm ci
+
+      - name: Derive NX_BASE
+        id: nx-base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "NX_BASE=origin/${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "NX_BASE=HEAD~1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: npx nx affected --target=lint --base=${{ steps.nx-base.outputs.NX_BASE }}
+      - run: npx nx affected --target=test --base=${{ steps.nx-base.outputs.NX_BASE }}
+      - run: npx nx affected --target=build --base=${{ steps.nx-base.outputs.NX_BASE }}
+```
+
+The `affected` command uses Nx's project graph, the same graph that encodes G1's module boundaries, to determine which projects are impacted. A change to `libs/modules/orders` triggers tests for orders and for `apps/api` (which depends on orders), but not for inventory, payments, or shipments unless they are also affected. Boundary verification (`test:boundary`) always runs because it is inexpensive and catches architectural regressions regardless of which module changed.
+
+### D2: Multi-Artifact Extraction {#d2-multi-artifact-extraction .unnumbered}
+
+When G3's scalability spectrum triggers Level L3 for the orders module, the monorepo produces a second deployment artifact. The orders module becomes a standalone application (`apps/orders-service`) with its own Dockerfile, its own entry point, and its own deployment pipeline. The remaining modules continue to ship inside the original `apps/api` image.
+
+``` {#lst:g5-dockerfile-d2 .bash language="bash" caption="Extracted orders service Dockerfile ({\\ttfamily apps/orders-service/Dockerfile})" label="lst:g5-dockerfile-d2"}
+# apps/orders-service/Dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json nx.json tsconfig*.json ./
+COPY libs/modules/orders/ libs/modules/orders/
+COPY libs/shared/ libs/shared/
+COPY apps/orders-service/ apps/orders-service/
+RUN npm ci --production=false
+RUN npx nx build orders-service --prod
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+COPY --from=builder /app/dist/apps/orders-service ./
+COPY --from=builder /app/node_modules ./node_modules
+ENV NODE_ENV=production
+EXPOSE 3001
+CMD ["node", "main.js"]
+```
+
+Key observations:
+
+- The Dockerfile copies only `libs/modules/orders` and `libs/shared`, not other modules. Nx's project boundaries ensure that orders cannot import inventory, payments, or shipments (G1), so the image is self-contained.
+
+- The `orders-service` entry point connects to the same Kafka cluster and Temporal namespace as the monolith. The Temporal workflow code from G4 runs unchanged. The `KafkaEventPublisher` publishes to the same `orders.events` topic.
+
+- The monolith's Docker Compose is extended, not replaced. A new service entry for `orders-service` is added alongside the existing `api` service. Both connect to the same Kafka, Temporal, and PostgreSQL infrastructure.
+
+- The CI pipeline uses Nx to determine which deployment targets are affected by a change. A change to `libs/modules/orders` triggers builds for both `apps/api` and `apps/orders-service`. A change to `libs/modules/inventory` triggers only `apps/api`.
+
+Note that the Docker Compose configuration in Listing [\[lst:g5-docker-compose\]](#lst:g5-docker-compose){reference-type="ref" reference="lst:g5-docker-compose"} already includes the `orders-service` entry alongside the monolith, reflecting Tiny Store's design principle that both deployment topologies (D0 and D2) are supported from inception. The `orders-service` connects to a dedicated database schema (`tinystore_orders`), completing the schema isolation from G4. The `api` service routes order-related requests to `orders-service` via HTTP through the `ORDERS_SERVICE_URL` environment variable. This routing change is confined to the composition root; no domain logic changes.
+
+### Production Deployment with Kamal {#production-deployment-with-kamal .unnumbered}
+
+While Docker Compose serves local development, production deployment requires a tool that manages zero-downtime deploys, SSL termination, rolling restarts, and infrastructure provisioning on remote servers. Tiny Store uses Kamal [@kamal2024], a deployment tool from 37signals that deploys containerized applications to bare-metal or VPS servers via SSH, without requiring Kubernetes.
+
+Kamal is chosen because it matches the progressive scalability philosophy: deploy the simplest topology that meets current needs, and evolve when evidence warrants it. A single \$20/month Hetzner VPS running Kamal can serve the monolith with all its infrastructure (Postgres, Kafka, Temporal, Redis, Jaeger), while a comparable managed Kubernetes setup would cost \$200+/month before accounting for operational complexity. When scaling pressure arrives (G3, Level L3), Kamal scales horizontally by adding servers to the configuration, without changing the deployment tool.
+
+#### D0: Monolith deployment.
+
+The primary Kamal configuration (`config/deploy.yml`) deploys the monolith with all infrastructure managed as Kamal *accessories*:
+
+``` {#lst:g5-kamal-d0 .bash language="bash" caption="Kamal D0 configuration ({\\ttfamily config/deploy.yml}, trimmed)" label="lst:g5-kamal-d0"}
+# config/deploy.yml -- Kamal 2 deployment
+service: tiny-store
+image: maurcarvalho/tiny-store
+
+servers:
+  web:
+    hosts: [<%= ENV['DEPLOY_HOST'] %>]
+
+builder:
+  dockerfile: apps/api/Dockerfile
+  context: .
+
+env:
+  clear:
+    DATABASE_URL: postgres://tiny:store@tiny-store-postgres:5432/tinystore
+    KAFKA_BROKER: tiny-store-kafka:9092
+    TEMPORAL_ADDRESS: tiny-store-temporal:7233
+    REDIS_URL: redis://tiny-store-redis:6379
+    EVENT_TRANSPORT: kafka
+
+accessories:
+  postgres:
+    image: postgres:16-alpine
+    host: <%= ENV['DEPLOY_HOST'] %>
+    port: "5432:5432"
+    directories: [data:/var/lib/postgresql/data]
+  redis:
+    image: redis:7-alpine
+    host: <%= ENV['DEPLOY_HOST'] %>
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    host: <%= ENV['DEPLOY_HOST'] %>
+    port: "9092:9092"
+  temporal:
+    image: temporalio/auto-setup:1.24
+    host: <%= ENV['DEPLOY_HOST'] %>
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    host: <%= ENV['DEPLOY_HOST'] %>
+
+proxy:
+  ssl: true
+  host: <%= ENV['APP_HOST'] %>
+  app_port: 3000
+  healthcheck: { path: /api/health }
+```
+
+The accessories pattern is central to progressive deployment: Postgres, Kafka, Temporal, Redis, and Jaeger are provisioned by Kamal on the same server as the application. They persist across application deploys (Kamal manages their lifecycle independently), and they are shared across deployment targets when extraction occurs.
+
+#### D2: Adding the extracted orders service.
+
+A separate Kamal destination configuration (`config/deploy.orders-service.yml`) deploys the orders service alongside the monolith. Traefik, Kamal's built-in reverse proxy, routes requests based on path prefix:
+
+``` {#lst:g5-kamal-d2 .bash language="bash" caption="Kamal D2 configuration for orders service ({\\ttfamily config/deploy.orders-service.yml}, trimmed)" label="lst:g5-kamal-d2"}
+# config/deploy.orders-service.yml
+service: tiny-store-orders
+image: maurcarvalho/tiny-store-orders
+
+servers:
+  web:
+    hosts: [<%= ENV['DEPLOY_HOST'] %>]
+    labels:
+      traefik.http.routers.tiny-store-orders.rule: >
+        Host(`<%= ENV['APP_HOST'] %>`) && PathPrefix(`/api/orders`)
+      traefik.http.routers.tiny-store-orders.priority: "200"
+
+builder:
+  dockerfile: apps/orders-service/Dockerfile
+  context: .
+
+env:
+  clear:
+    DATABASE_URL: postgres://...?schema=orders  # isolated schema
+    KAFKA_BROKER: tiny-store-kafka:9092
+    TEMPORAL_ADDRESS: tiny-store-temporal:7233
+    EVENT_TRANSPORT: kafka
+
+# Accessories shared with main deploy.yml -- no redeclaration needed
+```
+
+#### Deployment scripts.
+
+Two shell scripts operationalize the D0 and D2 topologies:
+
+- `bin/deploy`: Deploys the monolith only (`kamal deploy`). First-time usage: `bin/deploy setup` provisions all accessories.
+
+- `bin/deploy-d2`: Deploys both the monolith and the orders service. Executes `kamal deploy` followed by `kamal deploy -d orders-service`.
+
+This progression from D0 to D2 is a deployment topology change, not a rewrite. The same Kafka topics, Temporal workflows, and ACL gateways from G4 operate identically in both topologies. The only difference is whether the orders module runs inside the monolith process or as a separate container behind Traefik's path-based routing.
+
+## Common Failure Modes and Anti-Patterns {#common-failure-modes-and-anti-patterns .unnumbered}
+
+- *Repository splitting during extraction:* Moving an extracted module to a separate repository breaks atomic refactoring, duplicates shared libraries, and disables workspace-wide boundary verification. The monorepo should remain unified; only deployment targets multiply.
+
+- *"Build everything" CI:* Running all tests and builds on every commit regardless of what changed. This wastes CI resources, slows feedback loops, and creates incentives to skip tests. Module-aware CI (D1) solves this without sacrificing correctness.
+
+- *Infrastructure bolted on during extraction:* Adding Kafka, Temporal, or database provisioning only when a module is extracted. This creates a "big bang" infrastructure change that compounds the risk of the extraction itself. G5 requires infrastructure-as-code from day one (D0).
+
+- *Monolithic Dockerfile for a modular system:* A single Dockerfile that copies the entire repository into the image, including modules that the deployment target does not use. This increases image size, extends build times, and leaks code that should not be present in a specific service's runtime.
+
+- *Coordinated deployments after extraction:* Requiring all deployment targets to be released simultaneously. This negates the independent deployment benefit that motivated extraction. Each target should have its own release pipeline, triggered by changes to its affected scope.
+
+## Metrics and Verification {#metrics-and-verification .unnumbered}
+
+G5 metrics assess whether the deployment strategy supports the modular architecture and enables progressive extraction.
+
+- *CI Scope Efficiency ($\eta_{\mathrm{CI}}$):* The ratio of modules tested to modules changed, measuring how effectively the pipeline scopes work to affected modules: $$\eta_{\mathrm{CI}} = \frac{|M_{\mathrm{changed}}| + |M_{\mathrm{transitively\_affected}}|}{|M_{\mathrm{tested}}|}$$ *Deployment meaning:* $\eta_{\mathrm{CI}} < 1$ indicates the pipeline tests modules that are not affected by the change (wasted work). $\eta_{\mathrm{CI}} = 1$ means the pipeline scope is optimal.\
+
+- *Build Time per Affected Scope ($T_{\mathrm{build}}$):* The wall-clock time to build and test only the affected modules for a given change. *Deployment meaning:* sustained increase in $T_{\mathrm{build}}$ for small changes indicates pipeline inefficiency or module dependency bloat.\
+
+- *Deployment Artifact Count ($N_{\mathrm{artifacts}}$):* The number of distinct deployment artifacts (Docker images) produced by the pipeline. *Deployment meaning:* $N_{\mathrm{artifacts}} = 1$ at D0; $N_{\mathrm{artifacts}} > 1$ at D2. Growth should track G3 Level L3 extractions.\
+
+- *Infrastructure Parity Score ($\pi$):* The proportion of production infrastructure dependencies (Kafka, Temporal, databases) that are also present in the local development environment (Docker Compose): $$\pi = \frac{|I_{\mathrm{local}}|}{|I_{\mathrm{production}}|}$$ *Deployment meaning:* $\pi < 1$ indicates environment drift that increases the risk of deployment failures. Target: $\pi = 1$.\
+
+- *Independent Deployment Rate ($\delta$):* The proportion of deployments that affect only a single deployment target (no coordinated multi-target releases): $$\delta = \frac{|D_{\mathrm{independent}}|}{|D|}$$ *Deployment meaning:* low $\delta$ after extraction indicates that modules are not truly independently deployable, suggesting residual coupling in the deployment pipeline or in shared state.\
+
+- *Rollback Success Rate ($R$):* The proportion of rollback attempts that succeed without requiring coordinated rollbacks of other targets. *Deployment meaning:* low $R$ indicates deployment coupling that G5 is designed to prevent.
+
+*Verification strategy:* G5 metrics are tracked from D0 onward. Even before extraction, $\eta_{\mathrm{CI}}$ and $T_{\mathrm{build}}$ provide early signals about pipeline efficiency. After extraction (D2), $\delta$ and $R$ verify that independent deployment is genuinely achievable. A declining $\delta$ after extraction indicates that the deployment strategy has not fully decoupled from the monolith, requiring investigation of shared infrastructure or coordinated release dependencies.
+
+## Documentation Guidelines {#documentation-guidelines .unnumbered}
+
+- *Deployment Target Registry:* Maintain a registry of all deployment targets in the monorepo, including: the Nx project that serves as the entry point, the Dockerfile path, the infrastructure dependencies, and the deployment cadence. This registry is the deployment equivalent of G1's module descriptor.
+
+- *Infrastructure-as-Code:* All infrastructure dependencies (Kafka topics, Temporal namespaces, database schemas) are defined in version-controlled configuration files (Docker Compose, Kubernetes manifests, Terraform modules). Changes to infrastructure follow the same review process as code changes.
+
+- *Extraction Runbook Extension:* G4's extraction runbook is extended with deployment steps: creating the new Dockerfile, adding the deployment target to CI, provisioning the dedicated database, and updating the routing configuration in the monolith's composition root.
+
+## Tooling Capabilities Checklist {#tooling-capabilities-checklist .unnumbered}
+
+Any open-source or proprietary tool used to support the deployment strategy should address:
+
+- *Dependency-aware build orchestration:* Compute affected projects from the module dependency graph and scope builds, tests, and deployments accordingly. Nx is the reference implementation in Tiny Store; alternatives include Turborepo and Bazel.
+
+- *Multi-target container builds:* Produce multiple Docker images from a single monorepo, each scoped to a specific deployment target and its transitive dependencies.
+
+- *Local infrastructure provisioning:* Run production dependencies (Kafka, Temporal, PostgreSQL) locally via Docker Compose with configuration parity to production.
+
+- *Pipeline-per-target:* Support independent CI/CD pipelines for each deployment target, triggered by changes to the target's affected scope.
+
+- *Rollback automation:* Enable per-target rollback without requiring coordinated rollbacks of other targets.
+
+## Reference Implementation {#reference-implementation .unnumbered}
+
+All code listings in this section correspond to files in the Tiny Store reference implementation:
+
+- `apps/api/Dockerfile`: Monolith multi-stage Docker build
+
+- `docker-compose.yml`: Full local development environment with all infrastructure
+
+- `.github/workflows/ci.yml`: Module-aware CI with Nx affected
+
+- `config/deploy.yml`: Kamal D0 configuration (monolith + accessories)
+
+- `config/deploy.orders-service.yml`: Kamal D2 configuration (extracted orders)
+
+- `bin/deploy`: D0 deployment script
+
+- `bin/deploy-d2`: D2 deployment script (monolith + orders service)
+
+- `nx.json`: Nx workspace configuration with caching and affected defaults
+
+## Literature Support Commentary {#literature-support-commentary .unnumbered}
+
+Deployment strategy in modular monoliths is one of the least explored topics in the academic literature. Microservices research extensively covers CI/CD pipelines, container orchestration, and independent deployment [@arya2024beyond; @johnson2024serviceweaver], but these discussions assume a multi-repository, multi-service baseline. Studies on monoliths [@montesi2021sliceable; @gravanis2021dont] acknowledge simplified deployment as a benefit but rarely analyze how deployment should evolve as modules are extracted.
+
+The monorepo approach is well-documented in industry practice, particularly at Google [@potvin2016monorepo] and in the Nx ecosystem, but its application to modular monolith architectures, where the repository structure explicitly encodes bounded-context boundaries and the deployment strategy must support progressive extraction, has not been systematically examined in academic literature.
+
+G5 fills this gap by defining a deployment spectrum (D0--D2) that mirrors G3's scalability spectrum, ensuring that deployment strategy evolves proportionally with architectural complexity. By keeping the monorepo as the single source of truth and using the module dependency graph to drive pipeline decisions, G5 preserves the benefits of monolithic simplicity (atomic refactoring, shared toolchain, unified boundary verification) while enabling the operational flexibility of multi-service deployment when extraction is justified.
+
+With G4's extraction-ready modules and the deployment artifacts defined here, G6 (Observability Patterns) closes the feedback loop by providing the monitoring infrastructure that validates each progression.
