@@ -16,7 +16,7 @@ G2 extends G1 from boundary correctness to boundary sustainability. While G1 mak
 \pagebreak
 \subsection*{Conceptual Overview}
 Maintainability is embedded by designing modules so that change remains local and predictable:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Each bounded context exposes a narrow and intentional public surface that represents stable capabilities rather than internal structure.
   \item Cross-module interaction occurs exclusively through explicit contracts.
   \item Dependency direction reflects responsibility and information flow, reducing the risk of cycles and cascading change.
@@ -25,7 +25,7 @@ Maintainability is embedded by designing modules so that change remains local an
 
 \subsection*{Applicability Conditions and Scope}
 G2 applies to systems organized as modular monoliths, where multiple bounded context modules coexist within a single codebase and are expected to evolve continuously. The guideline assumes that:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Module boundaries are explicitly defined and at least partially enforced, as established by G1.
   \item Each module has clear ownership and a well-defined responsibility.
   \item Architectural drift is a realistic risk during ongoing feature development.
@@ -34,7 +34,7 @@ G2 applies to systems organized as modular monoliths, where multiple bounded con
 G2 does not prescribe specific frameworks, build tools, or CI pipelines. Its scope is limited to metrics definition, design-time and code-level practices that directly influence long-term changeability.
 
 \subsection*{Objectives}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Bound the cost of change by limiting change propagation across modules.
   \item Stabilize dependency direction through disciplined layering and contract first boundaries.
   \item Constrain the growth of module public surfaces.
@@ -44,7 +44,7 @@ G2 does not prescribe specific frameworks, build tools, or CI pipelines. Its sco
 
 \pagebreak
 \subsection*{Key Principles}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Encapsulation before reuse:} Cross-module reuse of internal code is treated as a maintainability risk unless mediated through an explicit contract.
   \item \emph{Contract over structure:} Modules depend on declared interfaces or events, not on internal implementation details.
   \item \emph{Unidirectional dependency flow:} Dependency direction reflects responsibility and information flow, and cycles are considered maintainability violations.
@@ -54,7 +54,7 @@ G2 does not prescribe specific frameworks, build tools, or CI pipelines. Its sco
 
 \subsection*{Implementation Mechanisms}
 G2 is implemented through established software engineering practices rather than framework-specific mechanisms:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Layered internal structure:} Within each bounded context, code is organized into domain, application, and infrastructure concerns, ensuring that business rules remain insulated from volatile technical details.
   \item \emph{Explicit module entrypoints:} Each module exposes a single public surface that defines its externally visible capabilities.
   \item \emph{Contract-oriented collaboration:} Cross-module interaction occurs through synchronous interfaces or published domain events.
@@ -65,7 +65,7 @@ G2 is implemented through established software engineering practices rather than
 \subsection*{Common Failure Modes and Anti-Patterns}
 The following failure modes are frequently observed in modular monoliths that lack explicit maintainability discipline. Each anti-pattern increases the cost of change by expanding the blast radius of modifications, weakening ownership boundaries, or introducing hidden coupling. For each anti-pattern, G2 defines one or more metrics that make the degradation observable and verifiable.
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Cross-Module Internal Reuse:} Reusing internal classes or utilities from another module instead of interacting through a declared public API tightly couples the consumer to the provider's internal structure. Internal refactoring then forces coordinated changes across modules, undermining independent evolution. This anti-pattern is primarily detected through an increase in encapsulation leakage count ($C_{\mathrm{leak}}$) and a reduction in the API-only dependency ratio ($\rho_{\mathrm{api}}$).
 
   \item \emph{Implicit Dependency Introduction:} Dependencies introduced through configuration, dependency injection wiring, or reflection without explicit declaration bypass architectural review. Over time, they erode the reliability of dependency models and increase the effort required to assess change impact. This failure mode is reflected by an increase in undeclared dependency references ($C_{\mathrm{undecl}}$) and by reduced module isolation test pass rates ($P_{\mathrm{iso}}$).
@@ -84,15 +84,15 @@ Maintainability in G2 is assessed through a set of explicit, measurable structur
 
 G2 builds directly on the enforcement model introduced in G1. While G1 establishes the correctness of modular boundaries, G2 uses quantitative signals to assess whether those boundaries remain effective as the system evolves. The quality measurement baseline derived from G1 (Section~\ref{sec:g1-enforce-modular-boundaries}) is reused here as the foundation for maintainability verification.
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Notation:} Let $M$ be the set of bounded-context modules. Let $R$ be the multiset of observed cross-module references, including static imports, dependency injection wiring, and event handlers. Let $D \subseteq M \times M$ be the set of declared allowed dependencies (\emph{requires}) and $F \subseteq M \times M$ be the set of explicitly forbidden dependencies (\emph{forbids}).
 \end{itemize}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Structural maintainability metrics:} The following metrics make boundary erosion and architectural drift observable using structural signals derived from cross-module references.
 \end{itemize}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{Undeclared Dependency Reference Count:}
   Undeclared dependencies represent the most insidious form of architectural drift in modular systems. When developers introduce cross-module references without updating dependency declarations, they create hidden coupling that bypasses architectural review and violates the principle of explicit design \cite{parnas1972informationhiding}. This metric quantifies references between modules that exist in the codebase but are not documented in the module descriptor, making change impact analysis unreliable and undermining the architectural fitness function \cite{FordParsons2017}.
   \[
@@ -155,11 +155,11 @@ G2 builds directly on the enforcement model introduced in G1. While G1 establish
   \emph{Verification intent:} identify high-risk interaction paths that undermine architectural guarantees.
 \end{itemize}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Supplementary maintainability metrics:} Some maintainability risks emerge over time and are not fully captured by static dependency analysis alone. G2 therefore defines the following supplementary metrics to detect API inflation and feature-centric coupling.
 \end{itemize}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{Public API Surface Growth Rate:}
   The size of a module's public API surface directly impacts maintainability by creating downstream contractual obligations \cite{parnas1972informationhiding}. Each exported interface, handler, or event represents a commitment to external consumers that constrains internal refactoring freedom. Sustained growth in API surface area indicates that the module may be accumulating too many responsibilities or exposing internal concerns that should remain encapsulated. This longitudinal metric helps identify modules that are becoming increasingly difficult to evolve independently.
   \[
@@ -178,7 +178,7 @@ G2 builds directly on the enforcement model introduced in G1. While G1 establish
   \emph{Action:} reassign responsibilities, introduce clearer module contracts, or refactor feature orchestration logic.
 \end{itemize}
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Verification strategy and maintainability interpretation:} In G2, these metrics are treated as longitudinal signals of architectural health rather than isolated quality indicators. Increases in $C_{\mathrm{undecl}}$, $C_{\mathrm{leak}}$, or $C_{\mathrm{forbid}}$ indicate growing hidden coupling and rising cost of change. A declining $\rho_{\mathrm{api}}$ signals unstable dependency surfaces, while reductions in $P_{\mathrm{iso}}$ reveal erosion of modular isolation.
 
   By tracking these metrics over time and enforcing thresholds where appropriate, G2 enables early detection of architectural drift and supports timely refactoring while corrective actions remain localized and economically viable. The primary objective is not to eliminate change, but to ensure that its cost remains bounded as the system evolves.
@@ -192,7 +192,7 @@ G2 builds directly on the enforcement model introduced in G1. While G1 establish
 \]
 
 \subsection*{Documentation Guidelines}
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Dependency Direction Map:}
   Maintain a visual or textual map of the allowed dependency direction between modules. This map complements G1's module descriptor by making the intended information flow explicit and reviewable during architectural discussions.
 
@@ -205,7 +205,7 @@ G2 builds directly on the enforcement model introduced in G1. While G1 establish
 
 \subsection*{Tooling Capabilities Checklist}
 Any open-source or proprietary tool used to support maintainability should address:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Dependency Graph Visualization:} Generate and display the module dependency graph, highlighting cycles, undeclared dependencies, and forbidden references.
   \item \emph{API Surface Analysis:} Track the size and growth rate of each module's public surface over time ($G_{\mathrm{api}}$).
   \item \emph{Change Coupling Detection:} Identify modules that frequently change together across commits ($CCI$), signaling feature-centric coupling or blurred ownership.
@@ -215,7 +215,7 @@ Any open-source or proprietary tool used to support maintainability should addre
 
 \subsection*{Reference Implementation}
 G2's maintainability principles are demonstrated through the same Tiny Store reference implementation used in G1. The relevant structural artifacts are:
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \texttt{libs/modules/*/src/index.ts}: Module entrypoints that define the public surface for each bounded context
   \item \texttt{libs/shared/testing/src/module-boundary.spec.ts}: Boundary verification tests that enforce dependency direction and detect encapsulation leakage
   \item \texttt{apps/api/src/app/lib/register-listeners.ts}: Centralized event wiring that makes cross-module collaboration auditable
@@ -347,7 +347,7 @@ The key distinction between G1 and G2 enforcement is \emph{when} degradation bec
 
 This means G2 metrics must be \emph{tracked}, not just \emph{checked}. The recommended practice is to record the following values at each release milestone:
 
-\begin{itemize}[noitemsep,topsep=2pt]
+\begin{itemize}[itemsep=8pt,topsep=2pt]
   \item $|API_m|$ per module (from Step 2)
   \item $\rho_{\mathrm{api}}$ (from Step 4)
   \item Wiring density in \texttt{register-listeners.ts} (from Step 3)
