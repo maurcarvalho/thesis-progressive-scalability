@@ -525,7 +525,7 @@ This assumption creates a dangerous gap. When a module is extracted, the team mu
 
 Research on modular monoliths notes that monoliths lack comparable observability practices to microservices, treating the system as a ``single black box''~\cite{montesi2021sliceable}. G6 addresses this directly by making the monolith's internal module interactions as observable as inter-service communication in a distributed system. The key contribution is not the tooling itself, which is well-established, but the practice of introducing it at the module boundary level inside a monolith, creating continuity of observability across the entire scalability spectrum from L0 through L3.
 
-Together with G3's scalability spectrum, G4's extraction patterns, and G5's deployment pipeline, the observability infrastructure completes a self-reinforcing cycle where monitoring evidence drives scaling decisions.
+Together with G3's scalability spectrum, G4's extraction patterns, and G5's deployment pipeline, the observability infrastructure completes a self-reinforcing cycle where monitoring evidence drives scaling decisions. G6 concludes the Operational Fit dimension; the remaining guidelines (G7--G12), addressing Organizational Alignment and Guideline Orientation, are outlined in Chapter~\ref{chap:next-steps} as directions for future work.
 
 
 \subsection*{Reference Implementation}
