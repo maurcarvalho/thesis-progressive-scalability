@@ -348,7 +348,18 @@ git log --oneline -50 --name-only | \
          print c, ":", length(mods[c]), "modules"}'
 \end{lstlisting}
 
-In a healthy codebase, most commits touch a single module. When Payments and Shipments consistently change together (e.g., every shipment feature also modifies payment logic), it indicates that responsibility boundaries are blurred, even if no import violations exist. This is precisely the kind of degradation G2 is designed to surface: structurally valid code with economically unsustainable change patterns.
+In the Tiny Store baseline, the only multi-module commits are infrastructure changes (boundary refactoring, test additions) that intentionally touched all four modules simultaneously. No feature commit crosses module boundaries:
+
+\begin{lstlisting}[language=bash,caption={Co-change analysis output (baseline)},label={lst:g2-cci-output}]
+# Infrastructure commits (expected multi-module):
+62354e5  2 modules: payments, shipments    # test suites added
+2802a45  4 modules: inventory, orders,     # boundary refactoring
+         payments, shipments
+# Feature commits: none cross module boundaries
+# CCI = 0.0 for feature work (healthy baseline)
+\end{lstlisting}
+
+In a healthy codebase, most feature commits touch a single module. When Payments and Shipments consistently change together (e.g., every shipment feature also modifies payment logic), it indicates that responsibility boundaries are blurred, even if no import violations exist. This is precisely the kind of degradation G2 is designed to surface: structurally valid code with economically unsustainable change patterns.
 
 \subsubsection*{Step 6: Understand the Longitudinal Perspective}
 The key distinction between G1 and G2 enforcement is \emph{when} degradation becomes visible. G1 catches violations at the moment they are introduced (a failing test, a lint error). G2 catches degradation that accumulates over time: a public surface that grows by one export per sprint, a $\rho_{\mathrm{api}}$ that drops from 1.0 to 0.95 to 0.87 across releases, a $CCI$ that rises as features span more modules.
