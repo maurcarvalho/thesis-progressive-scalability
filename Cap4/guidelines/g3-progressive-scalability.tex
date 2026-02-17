@@ -80,6 +80,21 @@ G3 does not prescribe specific cloud providers, container orchestrators, or scal
 \end{itemize}
 
 
+\subsection*{Implementation Mechanisms}
+
+G3 is implemented through the following architectural mechanisms, all established from project inception:
+
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \emph{Module-scoped resource profiling:} Each module's resource consumption (CPU, memory, I/O, query volume) is attributable through instrumentation or naming conventions, enabling identification of scale points without distributed tracing.
+
+  \item \emph{Communication abstraction layer:} Inter-module communication passes through a contract-based abstraction (e.g., an event bus interface or a command dispatcher) that can be backed by in-process dispatch, an in-memory queue, or a distributed broker without changing the caller or handler.
+
+  \item \emph{Persistence port pattern:} Each module accesses its data through repository interfaces (ports) backed by a dedicated PostgreSQL schema from project inception. The concrete implementation is injected at composition time; when a module is extracted (L3), the repository adapter is re-bound to a dedicated database instance without changing domain logic. Schema ownership is documented in the module descriptor introduced in G1.
+
+  \item \emph{Scalability decision records:} When a module transitions between spectrum levels (e.g., from L0 to L1), the decision is recorded in an Architecture Decision Record (ADR) that captures the trigger condition, the intervention applied, the expected outcome, and the rollback path. This ensures that scaling decisions remain traceable and reversible.
+\end{itemize}
+
+
 \subsection*{The Progressive Scalability Spectrum}
 
 To make the gradient concrete, G3 proposes a four-level spectrum that teams can use to assess their current position and plan their next proportional intervention. Each level builds on the previous one, and progression is driven by evidence rather than anticipation.
@@ -377,21 +392,6 @@ READY for extraction
 
 \noindent
 The readiness score quantifies the $\varepsilon_m$ metric defined in the Metrics section. Teams run this check before any L3 extraction decision, ensuring that extraction is evidence-based rather than intuition-driven.
-
-\subsection*{Implementation Mechanisms}
-
-G3 is implemented through the following architectural mechanisms, all established from project inception:
-
-\begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Module-scoped resource profiling:} Each module's resource consumption (CPU, memory, I/O, query volume) is attributable through instrumentation or naming conventions, enabling identification of scale points without distributed tracing.
-
-  \item \emph{Communication abstraction layer:} Inter-module communication passes through a contract-based abstraction (e.g., an event bus interface or a command dispatcher) that can be backed by in-process dispatch, an in-memory queue, or a distributed broker without changing the caller or handler.
-
-  \item \emph{Persistence port pattern:} Each module accesses its data through repository interfaces (ports) backed by a dedicated PostgreSQL schema from project inception. The concrete implementation is injected at composition time; when a module is extracted (L3), the repository adapter is re-bound to a dedicated database instance without changing domain logic. Schema ownership is documented in the module descriptor introduced in G1.
-
-  \item \emph{Scalability decision records:} When a module transitions between spectrum levels (e.g., from L0 to L1), the decision is recorded in an Architecture Decision Record (ADR) that captures the trigger condition, the intervention applied, the expected outcome, and the rollback path. This ensures that scaling decisions remain traceable and reversible.
-\end{itemize}
-
 
 \subsection*{Common Failure Modes and Anti-Patterns}
 
