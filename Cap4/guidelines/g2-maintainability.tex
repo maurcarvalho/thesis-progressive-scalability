@@ -534,30 +534,42 @@ G1 cannot detect this: every exported symbol is a handler (not an entity or repo
 
 \vspace{0.5em}
 \subsubsection*{New Metrics: Tiny Store Baseline}
-The three additional maintainability metrics introduced in this guideline can be computed from the current Tiny Store state:
+The three additional maintainability metrics introduced in this guideline can be computed from the current Tiny Store state.
 
-\begin{lstlisting}[language=bash,caption={Computing G2 extended metrics},label={lst:g2-extended-metrics}]
-# Module Complexity Concentration (Gamma)
-# API surfaces: orders=20, inventory=16, payments=7, shipments=8
-# max=20, mean=12.75
-# Gamma = 20 / 12.75 = 1.57 (well below 3.0 threshold)
+\paragraph{Module Complexity Concentration ($\Gamma$).}
+The API surfaces for each module are: Orders~=~20, Inventory~=~16, Payments~=~7, Shipments~=~8. The largest surface is 20 (Orders) and the mean across all four modules is 12.75. Applying the definition:
 
-# Contract Stability Index (sigma_m)
-# Compare current index.ts exports with previous release
-# All modules retained their exports across the boundary
-# refactoring (handlers/DTOs/events/listeners unchanged)
-# sigma_m = 1.0 for all modules (stable baseline)
-
-# Fan-In Concentration (phi_m)
-# From the composition root imports:
-#   orders:    depended on by 0 domain modules (phi=0.0)
-#   inventory: depended on by 0 domain modules (phi=0.0)
-#   payments:  depended on by 0 domain modules (phi=0.0)
-#   shipments: depended on by 0 domain modules (phi=0.0)
-# All cross-module wiring goes through apps/api, not between
-# library modules directly. phi_m = 0.0 for all (healthy).
+\begin{lstlisting}[language=bash,caption={$\Gamma$ computation},label={lst:g2-gamma-baseline}]
+Gamma = max / mean = 20 / 12.75 = 1.57
 \end{lstlisting}
 
+\noindent
+A value of 1.57 is well below the 3.0 threshold, confirming that no single module dominates the system's public surface.
+
+\paragraph{Contract Stability Index ($\sigma_m$).}
+Comparing the current \texttt{index.ts} exports with the previous release, all modules retained their public symbols across the boundary refactoring: handlers, DTOs, events, and listeners remained unchanged.
+
+\begin{lstlisting}[language=bash,caption={$\sigma_m$ baseline},label={lst:g2-sigma-baseline}]
+sigma_m = 1.0 for all modules (zero contract churn)
+\end{lstlisting}
+
+\noindent
+A value of 1.0 indicates full contract stability, the ideal starting point for longitudinal tracking.
+
+\paragraph{Fan-In Concentration ($\phi_m$).}
+Fan-in measures how many other domain modules depend on a given module. In Tiny Store, all cross-module wiring flows through the composition root (\texttt{apps/api}), not between library modules directly:
+
+\begin{lstlisting}[language=bash,caption={$\phi_m$ baseline},label={lst:g2-phi-baseline}]
+orders:    depended on by 0 domain modules  (phi = 0.0)
+inventory: depended on by 0 domain modules  (phi = 0.0)
+payments:  depended on by 0 domain modules  (phi = 0.0)
+shipments: depended on by 0 domain modules  (phi = 0.0)
+\end{lstlisting}
+
+\noindent
+With $\phi_m = 0.0$ for all modules, no bounded context is a direct dependency of another, confirming healthy architectural isolation.
+
+\vspace{0.5em}
 \noindent
 All three metrics are at healthy baseline levels: $\Gamma = 1.57$ (no module dominates), $\sigma_m = 1.0$ (zero contract churn), and $\phi_m = 0.0$ (no direct cross-module fan-in). These values establish the $t_0$ reference for longitudinal tracking alongside the other G2 metrics.
 
