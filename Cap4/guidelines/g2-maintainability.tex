@@ -143,6 +143,34 @@ The following four metrics are unique to G2. They capture maintainability risks 
   \emph{Action:} reassign responsibilities, introduce clearer module contracts, or refactor feature orchestration logic.
 \end{itemize}
 
+\subsubsection*{Structural Health Metrics}
+
+\noindent
+The following metrics capture structural risks that are invisible to boundary enforcement and supplementary dependency analysis. They address uneven module growth, contract churn, and excessive fan-in: three failure modes that accumulate silently while all G1 and G2 structural checks remain green.
+
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \textbf{Module Complexity Concentration} ($\Gamma$). \\
+  As modular monoliths evolve, complexity tends to concentrate in a small number of modules that attract disproportionate feature development, becoming ``gravity wells'' that accumulate responsibilities beyond their original bounded context~\cite{martin2012clean}. When one module grows significantly larger than its peers in exported surface, internal size, or fan-in, it becomes the bottleneck for every cross-cutting change, even if its boundaries remain technically clean. This metric captures the ratio between the largest module's surface and the average, making uneven growth visible before it freezes the architecture.
+  \[
+    \Gamma = \frac{\max_{m \in M} |API_m|}{\frac{1}{|M|} \sum_{m \in M} |API_m|}
+  \]
+  \emph{Target:} $\Gamma \leq 3.0$. Values above 3.0 indicate that a single module dominates the system's public surface, warranting responsibility redistribution or module splitting.
+
+  \item \textbf{Contract Stability Index} ($\sigma_m$). \\
+  A module's public surface may remain constant in size while its contents churn: handlers are renamed, event schemas restructured, or DTOs reorganized across releases. This churn is invisible to the API surface growth rate ($G_{\mathrm{api}}$) but imposes significant coordination costs on downstream consumers, who must adapt to shifting contracts even when no new capability is added~\cite{parnas1972informationhiding}. The contract stability index captures this dimension by measuring the proportion of a module's public API that remains unchanged between measurement periods.
+  \[
+    \sigma_m = \frac{|\operatorname{API}_m(t) \cap \operatorname{API}_m(t - \Delta t)|}{|\operatorname{API}_m(t - \Delta t)|}
+  \]
+  \emph{Target:} $\sigma_m \geq 0.9$ per release cycle. A value below 0.9 indicates that more than 10\% of the module's public contract was modified, renamed, or removed, signaling instability that undermines downstream predictability.
+
+  \item \textbf{Fan-In Concentration} ($\phi_m$). \\
+  When a bounded context module is depended upon by a large proportion of other modules, it becomes a de facto shared library whose changes carry system-wide impact~\cite{yourdon1979structured}. High fan-in is expected for shared infrastructure (e.g., \texttt{shared-domain}, \texttt{shared-infrastructure}) but signals a design problem for domain modules: it means the module's responsibilities have expanded beyond its bounded context, or that other modules are coupling to its specifics rather than to stable abstractions. This metric measures the fraction of other modules that hold at least one dependency on module $m$.
+  \[
+    \phi_m = \frac{|\{A \in M \setminus \{m\} : \exists\, r \in \operatorname{refs}(A \to m)\}|}{|M| - 1}
+  \]
+  \emph{Target:} $\phi_m \leq 0.5$ for bounded context modules. No domain module should be depended upon by more than half the other modules in the system.
+\end{itemize}
+
 \noindent
 \emph{Verification strategy and maintainability interpretation.} In G2, these metrics are treated as longitudinal signals of architectural health rather than isolated quality indicators. Increases in $C_{\mathrm{undecl}}$, $C_{\mathrm{leak}}$, or $C_{\mathrm{forbid}}$ indicate growing hidden coupling and rising cost of change. A declining $\rho_{\mathrm{api}}$ signals unstable dependency surfaces, while reductions in $P_{\mathrm{iso}}$ reveal erosion of modular isolation. By tracking these metrics over time and enforcing thresholds where appropriate, G2 enables early detection of architectural drift and supports timely refactoring while corrective actions remain localized and economically viable. The primary objective is not to eliminate change, but to ensure that its cost remains bounded as the system evolves.
 
@@ -150,7 +178,7 @@ The following four metrics are unique to G2. They capture maintainability risks 
 \noindent
 \textbf{Compliance summary.} G2 maintainability compliance holds when:
 \[
-  C_{\mathrm{undecl}} = 0 \land C_{\mathrm{forbid}} = 0 \land C_{\mathrm{leak}} = 0 \land C_{\mathrm{event}} = 0 \land \rho_{\mathrm{api}} \geq 0.95 \land P_{\mathrm{iso}} = 1.0
+  C_{\mathrm{undecl}} = 0 \land C_{\mathrm{forbid}} = 0 \land C_{\mathrm{leak}} = 0 \land C_{\mathrm{event}} = 0 \land \rho_{\mathrm{api}} \geq 0.95 \land P_{\mathrm{iso}} = 1.0 \land \Gamma \leq 3.0 \land \sigma_m \geq 0.9 \land \phi_m \leq 0.5
 \]
 
 \subsection*{Documentation Guidelines}
@@ -505,6 +533,34 @@ G1 cannot detect this: every exported symbol is a handler (not an entity or repo
 \normalsize
 
 \vspace{0.5em}
+\subsubsection*{New Metrics: Tiny Store Baseline}
+The three additional maintainability metrics introduced in this guideline can be computed from the current Tiny Store state:
+
+\begin{lstlisting}[language=bash,caption={Computing G2 extended metrics},label={lst:g2-extended-metrics}]
+# Module Complexity Concentration (Gamma)
+# API surfaces: orders=20, inventory=16, payments=7, shipments=8
+# max=20, mean=12.75
+# Gamma = 20 / 12.75 = 1.57 (well below 3.0 threshold)
+
+# Contract Stability Index (sigma_m)
+# Compare current index.ts exports with previous release
+# All modules retained their exports across the boundary
+# refactoring (handlers/DTOs/events/listeners unchanged)
+# sigma_m = 1.0 for all modules (stable baseline)
+
+# Fan-In Concentration (phi_m)
+# From the composition root imports:
+#   orders:    depended on by 0 domain modules (phi=0.0)
+#   inventory: depended on by 0 domain modules (phi=0.0)
+#   payments:  depended on by 0 domain modules (phi=0.0)
+#   shipments: depended on by 0 domain modules (phi=0.0)
+# All cross-module wiring goes through apps/api, not between
+# library modules directly. phi_m = 0.0 for all (healthy).
+\end{lstlisting}
+
+\noindent
+All three metrics are at healthy baseline levels: $\Gamma = 1.57$ (no module dominates), $\sigma_m = 1.0$ (zero contract churn), and $\phi_m = 0.0$ (no direct cross-module fan-in). These values establish the $t_0$ reference for longitudinal tracking alongside the other G2 metrics.
+
 \noindent\emph{Key observation:} All three exercises pass G1's \texttt{test:boundary} gate. The degradation is only visible through G2's longitudinal metrics: dependency graph edges, API surface counts, wiring density, and change coupling analysis. This confirms that boundary correctness (G1) and boundary sustainability (G2) are complementary but distinct architectural concerns.
 
 \subsection*{Conclusion of the G2 Implementation}
