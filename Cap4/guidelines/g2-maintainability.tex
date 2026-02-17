@@ -303,7 +303,7 @@ done
 Expected baseline output:
 
 \begin{lstlisting}[language=bash,caption={API surface baseline},label={lst:g2-api-baseline}]
-orders:    16 exports  (4 handlers + 4 DTOs + 7 events + 5 listeners)
+orders:    20 exports  (4 handlers + 4 DTOs + 7 events + 5 listeners)
 inventory: 16 exports  (5 handlers + 5 DTOs + 3 events + 3 listeners)
 payments:   7 exports  (2 handlers + 2 DTOs + 2 events + 1 listener)
 shipments:  8 exports  (2 handlers + 2 DTOs + 3 events + 1 listener)
@@ -471,10 +471,10 @@ npm run test:boundary
 # All green
 
 # G2 analysis: coupling density and direction
-# Count handler instantiations in composition root:
-grep -c "new.*Handler" \
+# Count handler/listener instantiations in composition root:
+grep -c "new.*Handler\|new.*Listener\|new.*Repository" \
   apps/api/src/app/lib/register-listeners.ts
-# Was 11, now 12 -> wiring density increased
+# Was 12, now 13 -> wiring density increased
 
 # Trace the transitive dependency chain:
 # OrderPaid -> getPaymentHandler (Payments)
