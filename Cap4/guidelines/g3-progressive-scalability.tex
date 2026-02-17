@@ -55,6 +55,8 @@ G3 does not prescribe specific cloud providers, container orchestrators, or scal
   \item \emph{Establish data isolation from inception:} Structure persistence so that each module owns a dedicated schema from the first deployment, ensuring that extraction never requires data migration.
   \item \emph{Abstract infrastructure dependencies:} Ensure that modules interact with infrastructure (databases, caches, message brokers, external services) through ports or interfaces that can be re-bound to different implementations without changing business logic.
   \item \emph{Preserve extraction optionality:} Maintain the ability to extract any bounded context as an independent service, without this extraction being a prerequisite for scaling.
+  \item \emph{Measure scaling pressure at module level:} Collect and track module-scoped throughput profiles, latency variance, and data growth metrics so that scaling decisions are driven by observable evidence rather than speculation.
+  \item \emph{Record progression decisions:} Document each transition between spectrum levels as an Architecture Decision Record (ADR) that captures the trigger condition, the intervention applied, the expected outcome, and the rollback path.
 \end{itemize}
 
 
@@ -104,7 +106,8 @@ L3 & Selective Extraction & Deploy a bounded context as an independent service w
 The spectrum is not strictly linear: a team may apply L2 (data isolation) to one module while another module remains at L0. The key constraint is that each intervention at a given level should be justified by evidence that the previous level is insufficient for the module in question.
 
 
-\subsection*{Reference Implementation: Built-In Scalability Infrastructure}
+\subsection*{G3 Applied: Progressive Scalability in the Tiny Store}
+\label{sec:g3-applied}
 
 The Tiny Store reference implementation demonstrates that progressive scalability infrastructure is embedded from day one as an architectural requirement, not added later as a scaling patch. The following code listings show the actual production code that ships with the initial deployment.
 
@@ -375,7 +378,8 @@ READY for extraction
 \noindent
 The readiness score quantifies the $\varepsilon_m$ metric defined in the Metrics section. Teams run this check before any L3 extraction decision, ensuring that extraction is evidence-based rather than intuition-driven.
 
-\noindent
+\subsection*{Implementation Mechanisms}
+
 G3 is implemented through the following architectural mechanisms, all established from project inception:
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
