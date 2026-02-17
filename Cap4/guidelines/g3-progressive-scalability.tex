@@ -25,7 +25,10 @@ This spectrum makes the migration to microservices an \emph{option}, not an obli
 
 \subsection*{Conceptual Overview}
 
-Progressive scalability is embedded by designing modules so that growth is absorbed incrementally:
+Progressive scalability is embedded by designing modules so that growth is absorbed incrementally. Both synchronous and asynchronous communication channels are designed from inception: synchronous calls serve low-latency, consistency-critical paths, while asynchronous channels (event buses, message queues) absorb throughput divergence between modules. The choice between channels is driven by observed load patterns, not by speculative anticipation, and the transition from one to the other is a configuration change rather than a rewrite.
+
+Critically, scalability readiness must be \emph{automatically tracked}, not manually assessed. Module-level metrics (throughput profiles, latency variance, data ownership clarity) are collected continuously and evaluated against defined thresholds. When a metric crosses its threshold, the system signals that a specific module requires a specific intervention at a specific spectrum level, removing subjectivity from scaling decisions.
+
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Each module's resource consumption, throughput profile, and data growth trajectory are observable and attributable, enabling evidence-based scaling decisions.
   \item Communication between modules with divergent scaling needs can transition from synchronous to asynchronous without rewriting business logic.
@@ -111,9 +114,24 @@ Tiny Store includes a Redis-backed caching layer from day one, not as an optimiz
 
 \begin{lstlisting}[language=TypeScript,caption={CacheService with module-namespaced keys (cache.service.ts)},label={lst:cache-service}]
 export class CacheService {
+  private static instance: CacheService;
   private client: Redis;
   private defaultTtl: number;
   private globalPrefix: string;
+
+  private constructor() {
+    const config = getCacheConfig();
+    this.client = createRedisConnection(config);
+    this.defaultTtl = config.defaultTtl || 300;
+    this.globalPrefix = config.keyPrefix || 'tiny-store';
+  }
+
+  static getInstance(): CacheService {
+    if (!CacheService.instance) {
+      CacheService.instance = new CacheService();
+    }
+    return CacheService.instance;
+  }
 
   private buildKey(module: string, key: string): string {
     return `${this.globalPrefix}:${module}:${key}`;
@@ -132,8 +150,10 @@ export class CacheService {
     await this.client.set(fullKey, JSON.stringify(value), 'EX', ttl);
   }
 
-  async invalidatePattern(module: string, pattern: string): Promise<void> {
-    const keys = await this.client.keys(this.buildKey(module, pattern));
+  async invalidatePattern(module: string,
+                          pattern: string): Promise<void> {
+    const keys = await this.client.keys(
+      this.buildKey(module, pattern));
     if (keys.length > 0) await this.client.del(...keys);
   }
 }
@@ -174,13 +194,22 @@ Asynchronous processing is an architectural requirement, not a scaling patch. Th
 
 \begin{lstlisting}[language=TypeScript,caption={QueueService with module-scoped queues (queue.service.ts)},label={lst:queue-service}]
 export class QueueService {
+  private static instance: QueueService;
   private queues: Map<string, Queue> = new Map();
   private workers: Map<string, Worker> = new Map();
+
+  static getInstance(): QueueService {
+    if (!QueueService.instance) {
+      QueueService.instance = new QueueService();
+    }
+    return QueueService.instance;
+  }
 
   /** Convention: `module:purpose` e.g. `orders:fulfillment` */
   createQueue(name: string): Queue {
     if (this.queues.has(name)) return this.queues.get(name)!;
-    const queue = new Queue(name, { connection: getQueueConnection() });
+    const queue = new Queue(name,
+      { connection: getQueueConnection() });
     this.queues.set(name, queue);
     return queue;
   }
@@ -191,7 +220,8 @@ export class QueueService {
     return queue.add(queueName, data, opts);
   }
 
-  createWorker<T>(queueName: string, handler: Processor<T>): Worker<T> {
+  createWorker<T>(queueName: string,
+                  handler: Processor<T>): Worker<T> {
     if (this.workers.has(queueName))
       return this.workers.get(queueName)! as Worker<T>;
     const worker = new Worker<T>(queueName, handler, {
@@ -199,6 +229,13 @@ export class QueueService {
     });
     this.workers.set(queueName, worker);
     return worker;
+  }
+
+  async closeAll(): Promise<void> {
+    for (const w of this.workers.values()) await w.close();
+    for (const q of this.queues.values()) await q.close();
+    this.workers.clear();
+    this.queues.clear();
   }
 }
 \end{lstlisting}
@@ -240,14 +277,18 @@ Because BullMQ and Redis are present from day one, the team can introduce async 
 Schema isolation is a design decision made at project inception. Each module owns its data from the first deployment, ensuring that extraction never requires data migration. The \texttt{schema-isolation.ts} module creates per-module PostgreSQL schemas and provides module-scoped \texttt{DataSource} connections with isolated \texttt{search\_path}:
 
 \begin{lstlisting}[language=TypeScript,caption={Per-module PostgreSQL schema isolation (schema-isolation.ts)},label={lst:schema-isolation}]
-const MODULE_SCHEMAS = ['orders', 'inventory', 'payments', 'shipments'];
+const MODULE_SCHEMAS = [
+  'orders', 'inventory', 'payments', 'shipments'
+] as const;
 export type ModuleName = (typeof MODULE_SCHEMAS)[number];
+const moduleConnections = new Map<string, DataSource>();
 
 export async function createAllModuleSchemas(
   dataSource: DataSource,
 ): Promise<void> {
   for (const mod of MODULE_SCHEMAS) {
-    await dataSource.query(`CREATE SCHEMA IF NOT EXISTS "${mod}"`);
+    await dataSource.query(
+      `CREATE SCHEMA IF NOT EXISTS "${mod}"`);
   }
 }
 
@@ -256,6 +297,10 @@ export async function getModuleConnection(
   moduleName: ModuleName,
   entities: Function[],
 ): Promise<DataSource> {
+  if (moduleConnections.has(moduleName)) {
+    const existing = moduleConnections.get(moduleName)!;
+    if (existing.isInitialized) return existing;
+  }
   const options: DataSourceOptions = {
     ...baseOptions,
     name: `module-${moduleName}`,
@@ -263,14 +308,16 @@ export async function getModuleConnection(
     entities,
     ...(baseOptions.type === 'postgres' ? {
       extra: {
-        ...baseOptions.extra,
-        options: `-c search_path="${moduleName}",public`,
+        ...(baseOptions as any).extra,
+        options:
+          `-c search_path="${moduleName}",public`,
       },
     } : {}),
   } as DataSourceOptions;
 
   const ds = new DataSource(options);
   await ds.initialize();
+  moduleConnections.set(moduleName, ds);
   return ds;
 }
 \end{lstlisting}
@@ -283,19 +330,24 @@ Each module operates within its own PostgreSQL schema from the first \texttt{doc
 The readiness score provides the evidence that drives progression decisions. Tiny Store includes an automated extraction readiness calculator that scores each module across five dimensions:
 
 \begin{lstlisting}[language=TypeScript,caption={Extraction readiness scoring dimensions (extraction-readiness.ts)},label={lst:readiness-score}]
-// Scoring dimensions (total: 100 points)
+// Usage: npx ts-node tools/metrics/extraction-readiness.ts
+//        --module orders
+
 const checks: CheckResult[] = [
-  checkCrossModuleImports(moduleName),  // 25pts: 0 imports = full score
-  checkEventBusUsage(moduleName),       // 20pts: events + listeners
-  checkACLLayer(moduleName),            // 15pts: anti-corruption layer
-  checkDatabaseSchema(moduleName),      // 20pts: dedicated schema
-  checkVersionedEvents(moduleName),     // 20pts: versioned contracts
+  checkCrossModuleImports(moduleName),  // 25pts
+  checkEventBusUsage(moduleName),       // 20pts
+  checkACLLayer(moduleName),            // 15pts
+  checkDatabaseSchema(moduleName),      // 20pts
+  checkVersionedEvents(moduleName),     // 20pts
 ];
 
-// Readiness thresholds
+const percentage =
+  Math.round((totalScore / totalMax) * 100);
+
 if (percentage >= 80) console.log('READY for extraction');
 else if (percentage >= 60) console.log('NEARLY READY');
-else if (percentage >= 40) console.log('PARTIAL -- significant work needed');
+else if (percentage >= 40)
+  console.log('PARTIAL -- significant work needed');
 else console.log('NOT READY -- major refactoring required');
 \end{lstlisting}
 
@@ -357,56 +409,60 @@ G3 is implemented through the following architectural mechanisms, all establishe
 \end{itemize}
 
 
+\subsection*{The Scalability Readiness Gap}
+
+G1 and G2 ensure that module boundaries are correct and sustainable. Yet a system can satisfy both guidelines and still be \emph{unable to scale proportionally}. The gap arises because boundary enforcement and maintainability tracking say nothing about whether the architecture is \emph{prepared} for scaling interventions. A module with perfect boundary discipline and stable contracts may still share a database schema with three other modules, communicate exclusively through synchronous calls, and depend on infrastructure through concrete implementations. When load arrives, the team discovers that scaling requires a coordinated migration rather than a surgical intervention.
+
+This is the Scalability Readiness Gap: the distance between a structurally sound modular monolith and one that can absorb growth through proportional, reversible interventions. G3's metrics close this gap by making infrastructure preparation, communication flexibility, and data ownership visible and measurable from the first deployment.
+
+
 \subsection*{Metrics and Verification}
 
 G3 metrics are designed to make scaling pressure observable at the module level and to verify that the architectural preparation for progressive scalability is in place. They complement the structural metrics defined in G1 and G2 by adding resource, throughput, and isolation dimensions.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Module Throughput Profile ($\Theta_m$):}
-  In modular monoliths, load distribution is rarely uniform across bounded contexts. Some modules handle high-frequency operations while others manage occasional administrative tasks \cite{richardson2018microservices}. When modules with significantly different throughput requirements are connected through synchronous calls, the slower modules become bottlenecks that constrain the entire system's performance. This metric quantifies throughput divergence across modules to identify candidates for asynchronous decoupling before bottlenecks manifest as user-visible latency.
+  \item \textbf{Module Throughput Profile ($\Theta_m$).} \\
+  Quantifies throughput divergence across modules to identify candidates for asynchronous decoupling before bottlenecks manifest as user-visible latency~\cite{richardson2018microservices}.
   \[
     \Delta\Theta = \max_{m \in M} \Theta_m - \min_{m \in M} \Theta_m
   \]
-  \emph{Target:} Monitor $\Delta\Theta$ growth; trigger async decoupling when divergence exceeds 2:1 ratio between connected modules. \\
+  \emph{Target:} Monitor $\Delta\Theta$ growth; trigger L1 async decoupling when divergence exceeds 2:1 ratio between connected modules.
 
-  \item \textbf{Module Latency Variance ($\sigma^2_{L,m}$):}
-  Consistent response times are a hallmark of well-architected systems, while high variance typically indicates resource contention, inefficient queries, or synchronous dependencies on overloaded modules \cite{martin2012clean}. In progressive scalability, latency variance serves as an early warning signal: modules experiencing high variance under load are candidates for vertical optimization or asynchronous decoupling before their instability propagates to dependent modules.
-  The variance of response latency for operations within module $m$:
+  \item \textbf{Module Latency Variance ($\sigma^2_{L,m}$).} \\
+  Measures response time consistency within a module. High variance under load signals resource contention, inefficient queries, or synchronous dependencies on overloaded modules, making the module a candidate for L0 vertical optimization or L1 async decoupling~\cite{martin2012clean}.
   \[
     \sigma^2_{L,m} = \mathbb{E}[(L_m - \mu_{L,m})^2]
   \]
-  \emph{Target:} Monitor $\sigma^2_{L,m}$ growth; investigate when variance increases significantly under load. \\
+  \emph{Target:} Monitor $\sigma^2_{L,m}$ growth; investigate when variance increases $>2\times$ baseline under load.
 
-  \item \textbf{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$):}
-  Synchronous inter-module communication creates tight temporal coupling that propagates latency and failures across module boundaries \cite{dragoni2017microservices}. While synchronous calls are necessary for some operations, excessive synchronous communication prevents modules from scaling independently and creates cascading failure scenarios. This metric quantifies the proportion of synchronous versus asynchronous interactions, providing a foundation for identifying where asynchronous decoupling can improve system resilience.
+  \item \textbf{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$).} \\
+  Quantifies the proportion of synchronous versus asynchronous inter-module interactions. Excessive synchronous communication prevents modules from scaling independently and creates cascading failure scenarios~\cite{dragoni2017microservices}.
   \[
     \rho_{\mathrm{sync}} = \frac{|I_{\mathrm{sync}}|}{|I_{\mathrm{sync}}| + |I_{\mathrm{async}}|}
   \]
-  where $I_{\mathrm{sync}}$ and $I_{\mathrm{async}}$ are the sets of synchronous and asynchronous inter-module interactions, respectively.
-  \emph{Target:} $\rho_{\mathrm{sync}} \leq 0.3$ (majority of inter-module communication asynchronous). \\
+  \emph{Target:} $\rho_{\mathrm{sync}} \leq 0.3$ (majority of inter-module communication asynchronous).
 
-  \item \textbf{Data Ownership Clarity Index ($\omega$):}
-  Clear data ownership is fundamental to achieving data isolation and enabling selective scaling of individual modules \cite{evans2003ddd}. When multiple modules access the same database tables directly, they become tightly coupled through the data layer, preventing independent schema evolution and blocking future extraction scenarios. This metric measures the proportion of data structures that have unambiguous ownership, providing early visibility into data coupling that would otherwise only become apparent when attempting data isolation or service extraction.
+  \item \textbf{Data Ownership Clarity Index ($\omega$).} \\
+  Measures the proportion of data structures with unambiguous single-module ownership. Shared tables create invisible coupling that prevents data isolation (L2) and blocks extraction (L3)~\cite{evans2003ddd}.
   \[
     \omega = \frac{|T_{\mathrm{single\text{-}owner}}|}{|T|}
   \]
   where $T$ is the set of all tables and $T_{\mathrm{single\text{-}owner}}$ is the subset accessed by only one module.
-  \emph{Target:} $\omega \to 1$ (all data structures have clear ownership). \\
+  \emph{Target:} $\omega = 1.0$ (all data structures have unambiguous ownership).
 
-  \item \textbf{Infrastructure Abstraction Coverage ($\alpha$):}
-  Modules that access infrastructure dependencies directly become tightly coupled to specific technologies, preventing seamless transitions between scalability levels \cite{martin2012clean}. For example, a module that uses database drivers directly cannot easily transition from a shared database to a dedicated instance without code changes. This metric quantifies the proportion of infrastructure access that is mediated through abstractions, ensuring that scalability interventions remain deployment topology changes rather than code rewrites.
+  \item \textbf{Infrastructure Abstraction Coverage ($\alpha$).} \\
+  Quantifies the proportion of infrastructure access mediated through ports or interfaces. Direct infrastructure dependencies freeze the architecture at its current scale point, making spectrum-level transitions require code rewrites rather than configuration changes~\cite{martin2012clean}.
   \[
     \alpha = \frac{|A_{\mathrm{abstracted}}|}{|A|}
   \]
-  \emph{Target:} $\alpha = 1$ (all infrastructure access through abstractions). \\
+  \emph{Target:} $\alpha = 1.0$ (all infrastructure access through abstractions).
 
-  \item \textbf{Extraction Readiness Score ($\varepsilon_m$):}
-  Service extraction should be an evidence-based architectural decision, not an emergency response to performance crises \cite{wolfart2021modernizing}. This composite metric synthesizes multiple architectural health signals to quantify how prepared a module is for independent deployment. A high readiness score indicates that extraction would be a low-risk topology change; a low score reveals preparation debt that must be addressed before extraction becomes viable. This metric provides the objective foundation for L3 decisions and prevents premature extraction of unprepared modules.
+  \item \textbf{Extraction Readiness Score ($\varepsilon_m$).} \\
+  Composite metric synthesizing boundary health (G1), maintainability (G2), and scalability preparation (G3) to quantify how prepared a module is for independent deployment. A high score indicates extraction would be a low-risk topology change; a low score reveals preparation debt~\cite{wolfart2021modernizing}.
   \[
     \varepsilon_m = f\!\left(C_{\mathrm{undecl}}^{(m)},\; C_{\mathrm{leak}}^{(m)},\; \omega_m,\; \alpha_m,\; \rho_{\mathrm{sync}}^{(m)}\right)
   \]
-  where $C_{\mathrm{undecl}}^{(m)}$ and $C_{\mathrm{leak}}^{(m)}$ are the G1/G2 violation counts scoped to module $m$, and $\omega_m$, $\alpha_m$, $\rho_{\mathrm{sync}}^{(m)}$ are the G3 metrics scoped to module $m$.
-  \emph{Target:} $\varepsilon_m \geq 0.8$ before considering L3 extraction for module $m$. \\
+  \emph{Target:} $\varepsilon_m \geq 0.8$ before considering L3 extraction for module $m$.
 \end{itemize}
 
 \noindent
@@ -445,7 +501,7 @@ Any open-source or proprietary tool used to support progressive scalability shou
 
 \subsection*{Literature Support Commentary}
 
-Scalability in the academic literature is predominantly framed as a property of distributed systems. Studies on microservices scalability~\cite{arya2024beyond, blinowski2022monolithic, berry2024isItWorth} provide empirical evidence on horizontal scaling, but consistently assume that distribution is a prerequisite. Jatkiewicz and Okrój~\cite{jatkiewicz2023differences} quantify these differences in performance, scalability, and cost between microservice and monolithic deployments, further illustrating that the trade-offs are context-dependent rather than universal. Conversely, studies that advocate for monoliths or modular monoliths~\cite{montesi2021sliceable, gravanis2021dont, deLauretis2019from} acknowledge that monoliths can serve moderate scaling needs but rarely formalize \emph{how} scaling should be approached incrementally within a monolithic boundary. Industry experience reports echo this sentiment: Segment's engineering team documented their retreat from microservices back to a monolith~\cite{segment2023}, Auth0 described the operational toll of premature distribution~\cite{auth02019}, and Medium's engineering team argued that monoliths remain viable at significant scale~\cite{medium2019}. Lima and Silva~\cite{lima2024accelerating} further show that monolithic architectures can accelerate early-stage development when combined with MVP practices, reinforcing the case for deferring distribution until evidence warrants it.
+Scalability in the academic literature is predominantly framed as a property of distributed systems. Empirical studies on microservices scalability provide evidence on horizontal scaling but consistently assume that distribution is a prerequisite~\cite{arya2024beyond, blinowski2022monolithic, berry2024isItWorth}. Comparative analyses of performance, scalability, and cost between microservice and monolithic deployments further illustrate that the trade-offs are context-dependent rather than universal~\cite{jatkiewicz2023differences}. Conversely, studies that advocate for monoliths or modular monoliths acknowledge that monoliths can serve moderate scaling needs but rarely formalize \emph{how} scaling should be approached incrementally within a monolithic boundary~\cite{montesi2021sliceable, gravanis2021dont, deLauretis2019from}. Industry experience reports echo this pattern: documented retreats from microservices back to monoliths~\cite{segment2023}, accounts of the operational toll of premature distribution~\cite{auth02019}, and arguments that monoliths remain viable at significant scale~\cite{medium2019} all reinforce that distribution is not a universal solution. Research on accelerating early-stage development through monolithic architectures combined with MVP practices further supports deferring distribution until evidence warrants it~\cite{lima2024accelerating}.
 
 The ``sliceable monolith'' proposal comes closest to the progressive scalability concept, keeping the system unified until a slice needs independent deployment~\cite{montesi2021sliceable}. However, that model focuses on deployment granularity rather than on the intermediate architectural interventions (async boundaries, data isolation) that G3 formalizes. Similarly, the ``write as a monolith, deploy as microservices'' model addresses the deployment dimension but does not provide guidance on how to prepare the monolith's internal architecture for selective scaling~\cite{ghemawat2023towards}.
 
@@ -465,3 +521,11 @@ The code listings in this section are drawn from the Tiny Store reference implem
   \item \texttt{libs/shared/infrastructure/src/database/schema-isolation.ts}: Per-module PostgreSQL schemas (L2)
   \item \texttt{tools/metrics/extraction-readiness.ts}: Extraction readiness score calculator ($\varepsilon_m$)
 \end{itemize}
+
+\subsection*{Conclusion of the G3 Implementation}
+
+This section demonstrated that scalability in a modular monolith is not a binary property that requires distribution to achieve, but a gradient that can be traversed through deliberate, proportional interventions. G1 ensures that module boundaries are correct; G2 ensures that they remain sustainable over time; G3 ensures that the resulting modular structure can absorb growth without requiring a wholesale architectural transformation.
+
+The progressive scalability spectrum (L0--L3) provides a concrete decision framework: vertical optimization before async decoupling, async decoupling before data isolation, data isolation before extraction. Each level is triggered by observable metrics rather than speculative anticipation, and each intervention is reversible if conditions change. The Tiny Store reference implementation demonstrates that the infrastructure for all four levels (Redis caching, BullMQ queues, per-module PostgreSQL schemas, extraction readiness scoring) can be embedded from the first deployment, making scalability a structural property of the architecture rather than a future migration project.
+
+With boundaries enforced (G1), maintainability preserved (G2), and scalability infrastructure prepared (G3), the architecture is structurally ready for growth. However, when a module's extraction readiness score indicates that L3 is warranted, the team needs a systematic process for preparing that module for independent deployment. G4 addresses this concern by defining the migration readiness criteria, event-driven communication contracts, and saga orchestration patterns that transform extraction from an emergency response into a controlled, evidence-based topology change.
