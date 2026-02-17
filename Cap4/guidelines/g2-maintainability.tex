@@ -35,11 +35,13 @@ G2 does not prescribe specific frameworks, build tools, or CI pipelines. Its sco
 
 \subsection*{Objectives}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item Bound the cost of change by limiting change propagation across modules.
-  \item Stabilize dependency direction through disciplined layering and contract-first boundaries.
-  \item Constrain the growth of module public surfaces.
-  \item Detect architectural drift automatically through longitudinal metric tracking before it becomes structurally expensive to reverse.
-  \item Preserve the option for incremental refactoring and future decomposition.
+  \item \emph{Bounded Cost of Change:} Limit change propagation across modules so that most modifications remain confined to a single bounded context.
+  \item \emph{Stable Dependency Direction:} Stabilize dependency direction through disciplined layering and contract-first boundaries, preventing cycles and cascading change.
+  \item \emph{Controlled API Surface:} Constrain the growth of module public surfaces to preserve internal refactoring freedom and minimize downstream contractual obligations.
+  \item \emph{Change Impact Predictability:} Ensure that the blast radius of any modification is assessable before implementation, through explicit dependency graphs and stable interaction contracts.
+  \item \emph{Automated Drift Detection:} Detect architectural drift automatically through longitudinal metric tracking before it becomes structurally expensive to reverse.
+  \item \emph{Independent Module Testability:} Ensure that each module remains independently testable using only its declared dependencies, validating that isolation holds at runtime as well as at the static level.
+  \item \emph{Incremental Evolution:} Preserve the option for incremental refactoring and future decomposition without requiring system-wide coordination.
 \end{itemize}
 
 \pagebreak
@@ -542,4 +544,4 @@ This section demonstrated that maintainability in a modular monolith cannot be r
 
 The tutorial introduced maintainability-specific tooling (dependency graph extraction, API surface counting, wiring density measurement, and co-change analysis) that operationalizes G2's metrics on a real codebase. The exercises showed that each failure mode produces a specific, measurable signal: a new module-to-module edge that did not exist at baseline ($C_{\mathrm{undecl}}$), a transitive orchestration chain that expands the blast radius of composition root changes, and a growing public surface that creates contractual obligations faster than the module can absorb them ($G_{\mathrm{api}}$). None of these violations were caught by G1's boundary tests; they required longitudinal tracking to become visible.
 
-Together, G1 and G2 establish a layered defense for progressive scalability. G1 provides the immediate, binary gate that prevents structural violations. G2 provides the longitudinal, quantitative signals that detect gradual erosion before it becomes irreversible. With both guidelines in place, the architecture retains the option to evolve incrementally (adding modules, extracting services, or scaling selectively) while keeping the cost of change bounded and predictable as the system grows.
+Together, G1 and G2 establish a layered defense for progressive scalability. G1 provides the immediate, binary gate that prevents structural violations. G2 provides the longitudinal, quantitative signals that detect gradual erosion before it becomes irreversible. With both guidelines in place, the architecture retains the option to evolve incrementally while keeping the cost of change bounded and predictable as the system grows. The next question is \emph{how} that incremental evolution should proceed: which scaling interventions are proportional to which bottlenecks, and in what order. This transition motivates Guideline G3, which formalizes progressive scalability as a structured, evidence-driven spectrum.
