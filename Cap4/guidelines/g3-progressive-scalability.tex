@@ -49,14 +49,20 @@ G3 does not prescribe specific cloud providers, container orchestrators, or scal
 
 
 \subsection*{Objectives}
+
+\emph{Research contributions:}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Identify module-level scale points:} Determine which modules are likely to experience disproportionate load, data growth, or throughput demands, and make these scale points visible in the architecture.
-  \item \emph{Enable asynchronous decoupling:} Design inter-module communication so that synchronous call paths can be replaced with asynchronous channels without modifying domain logic or violating module contracts.
-  \item \emph{Establish data isolation from inception:} Structure persistence so that each module owns a dedicated schema from the first deployment, ensuring that extraction never requires data migration.
-  \item \emph{Abstract infrastructure dependencies:} Ensure that modules interact with infrastructure (databases, caches, message brokers, external services) through ports or interfaces that can be re-bound to different implementations without changing business logic.
-  \item \emph{Preserve extraction optionality:} Maintain the ability to extract any bounded context as an independent service, without this extraction being a prerequisite for scaling.
-  \item \emph{Measure scaling pressure at module level:} Collect and track module-scoped throughput profiles, latency variance, and data growth metrics so that scaling decisions are driven by observable evidence rather than speculation.
-  \item \emph{Record progression decisions:} Document each transition between spectrum levels as an Architecture Decision Record (ADR) that captures the trigger condition, the intervention applied, the expected outcome, and the rollback path.
+  \item \emph{Formalize scalability as a gradient:} Define a progression spectrum (L0--L3) that replaces the binary monolith-or-microservices framing with a sequence of proportional, reversible interventions, each justified by evidence rather than anticipation.
+  \item \emph{Quantify progression triggers:} Establish module-level metrics ($\Delta\Theta$, $\rho_{\mathrm{sync}}$, $\omega$, $\alpha$) that determine when a specific module should transition from one spectrum level to the next, removing subjectivity from scaling decisions.
+  \item \emph{Provide a composite extraction readiness metric:} Synthesize boundary health (G1), maintainability signals (G2), and scalability preparation (G3) into a per-module extraction readiness score ($\varepsilon_m$) that grounds L3 decisions in architectural evidence.
+\end{itemize}
+
+\emph{Implementation objectives:}
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \emph{Embed scalability infrastructure from inception:} Design the architecture so that the infrastructure for all spectrum levels (caching, async channels, schema isolation) exists from the first deployment, making progression a configuration change rather than a migration project.
+  \item \emph{Abstract infrastructure as a replaceable dependency:} Ensure modules interact with infrastructure through ports or interfaces that can be re-bound across spectrum levels without modifying domain logic.
+  \item \emph{Preserve extraction optionality:} Maintain the ability to extract any bounded context as an independent service while positioning extraction as the last resort, not the first reflex.
+  \item \emph{Record progression decisions:} Document each spectrum-level transition as an Architecture Decision Record (ADR) that captures the trigger condition, the intervention applied, the expected outcome, and the rollback path.
 \end{itemize}
 
 
@@ -392,6 +398,46 @@ READY for extraction
 
 \noindent
 The readiness score quantifies the $\varepsilon_m$ metric defined in the Metrics section. Teams run this check before any L3 extraction decision, ensuring that extraction is evidence-based rather than intuition-driven.
+
+\subsubsection*{G3 Metrics: Tiny Store Baseline}
+
+With the infrastructure in place, the G3 metrics can be computed from the current Tiny Store state to establish the $t_0$ reference for longitudinal tracking.
+
+\emph{Spectrum position:} All four modules currently operate at L0 (vertical optimization). No module has triggered the L1 threshold because inter-module communication is already event-driven from inception, and no throughput divergence has been observed under the current test workload.
+
+\emph{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$):} All 23 inter-module interactions in the composition root flow through \texttt{eventBus.subscribe}, with zero synchronous cross-module calls at the library level. Handler instantiations in \texttt{register-listeners.ts} serve event callbacks, not direct synchronous invocations.
+
+\begin{lstlisting}[language=bash,caption={$\rho_{\mathrm{sync}}$ computation},label={lst:g3-rho-sync}]
+rho_sync = 0 / (0 + 23) = 0.0
+\end{lstlisting}
+
+\noindent
+A value of 0.0 confirms that all inter-module communication is asynchronous, well below the 0.3 threshold.
+
+\emph{Data Ownership Clarity Index ($\omega$):} Tiny Store defines 5 entities across 4 modules (Orders: 1, Inventory: 2, Payments: 1, Shipments: 1). Each entity resides exclusively within its owning module's schema. Cross-module data needs are mediated through the ACL layer (e.g., \texttt{PaymentGateway} interface in Orders), not through direct table access.
+
+\begin{lstlisting}[language=bash,caption={$\omega$ computation},label={lst:g3-omega}]
+omega = 5 / 5 = 1.0
+\end{lstlisting}
+
+\noindent
+A value of 1.0 confirms unambiguous single-module ownership for all data structures.
+
+\emph{Infrastructure Abstraction Coverage ($\alpha$):} All modules access infrastructure through the \texttt{@tiny-store/shared-infrastructure} layer (cache, queue, database, event bus). TypeORM decorators appear in entity definitions, which is expected; the access \emph{pattern} (repositories, data sources) routes through shared abstractions.
+
+\begin{lstlisting}[language=bash,caption={$\alpha$ computation},label={lst:g3-alpha}]
+alpha = 1.0
+\end{lstlisting}
+
+\emph{Extraction Readiness Score ($\varepsilon_m$):} Running the readiness calculator on the Orders module (the largest and most connected) yields 90/100, with the only deduction coming from event contracts that lack explicit versioning. All other modules score comparably or higher due to smaller surfaces.
+
+\begin{lstlisting}[language=bash,caption={$\varepsilon_m$ for Orders},label={lst:g3-epsilon}]
+epsilon_orders = 90 / 100 = 0.90
+\end{lstlisting}
+
+\vspace{0.5em}
+\noindent
+All G3 metrics are at healthy baseline levels: $\rho_{\mathrm{sync}} = 0.0$ (fully async), $\omega = 1.0$ (clear data ownership), $\alpha = 1.0$ (fully abstracted), $\varepsilon_{\mathrm{orders}} = 0.90$ (extraction-ready). These values confirm that the Tiny Store architecture satisfies G3 compliance from inception. The metrics establish the $t_0$ reference: any future degradation (a new synchronous cross-module call, a shared table, a direct infrastructure dependency) will be visible as a measurable regression against this baseline.
 
 \subsection*{Common Failure Modes and Anti-Patterns}
 
