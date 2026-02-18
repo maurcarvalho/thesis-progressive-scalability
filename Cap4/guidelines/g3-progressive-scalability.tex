@@ -45,7 +45,7 @@ G3 applies to modular monolith systems that satisfy the following conditions:
   \item The system is expected to grow in load, data volume, or team size, but the timing and distribution of that growth are uncertain.
 \end{itemize}
 
-G3 does not prescribe specific cloud providers, container orchestrators, or scaling technologies. Its scope is limited to architectural preparation: the design decisions and structural properties that make scaling interventions feasible, proportional, and reversible. The guideline is agnostic to whether the system ultimately remains a monolith, becomes a set of microservices, or stabilizes at an intermediate state.
+G3 does not prescribe specific cloud providers, container orchestrators, or scaling technologies. Its scope is limited to architectural preparation: the design decisions and structural properties that make scaling interventions feasible, proportional, and reversible. The guideline is agnostic to whether the system ultimately remains a monolith, becomes a set of microservices, or stabilizes at an intermediate state. G3's scalability metrics, particularly the extraction readiness score ($\varepsilon_m$), provide the quantitative trigger for G4 (Migration Readiness), which addresses how to prepare a specific module for independent deployment once evidence warrants it.
 
 
 \subsection*{Objectives}
@@ -399,11 +399,68 @@ READY for extraction
 \noindent
 The readiness score quantifies the $\varepsilon_m$ metric defined in the Metrics section. Teams run this check before any L3 extraction decision, ensuring that extraction is evidence-based rather than intuition-driven.
 
+\subsubsection*{L3: Selective Extraction: What Extraction Looks Like}
+
+When $\varepsilon_{\mathrm{orders}}$ indicates that L3 is warranted, extraction is a \emph{topology change}, not a code rewrite. The domain logic, repository interfaces, and event handlers remain unchanged; what changes is how infrastructure adapters are bound and where the process runs. The following Docker Compose snippet illustrates what extracting the Orders module would look like:
+
+\begin{lstlisting}[language=yaml,caption={L3 extraction: Orders as an independent service (illustrative)},label={lst:g3-l3-extraction}]
+services:
+  orders-service:
+    build:
+      context: .
+      dockerfile: apps/orders/Dockerfile
+    environment:
+      DATABASE_URL: postgres://orders:secret@orders-db:5432/orders
+      EVENT_BUS: kafka://kafka:9092
+      EVENT_TOPIC: tiny-store.orders
+    depends_on:
+      - orders-db
+      - kafka
+
+  orders-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: orders
+      POSTGRES_USER: orders
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - orders-data:/var/lib/postgresql/data
+
+  # Remaining modules continue in the monolith
+  monolith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://app:secret@main-db:5432/tinystore
+      EVENT_BUS: kafka://kafka:9092
+    depends_on:
+      - main-db
+      - kafka
+
+volumes:
+  orders-data:
+\end{lstlisting}
+
+\noindent
+Three infrastructure changes occur at extraction, none of which touch domain logic:
+
+\begin{enumerate}[itemsep=4pt,topsep=2pt]
+  \item The \texttt{OrderRepository} adapter is re-bound to a dedicated PostgreSQL instance (\texttt{orders-db}) instead of the shared database's \texttt{orders} schema.
+  \item The event bus switches from in-process dispatch to a Kafka topic (\texttt{tiny-store.orders}), using the same event contracts defined since inception.
+  \item The Orders module runs in its own container with an independent deployment pipeline.
+\end{enumerate}
+
+\noindent
+Because G3's infrastructure abstractions (persistence ports, communication abstraction layer) have been in place since day one, this extraction requires no changes to \texttt{OrderService}, \texttt{OrderRepository}, or any event handler. The domain logic is \emph{identical} in the extracted service and in the monolith. This is the payoff of progressive scalability: when extraction is finally warranted, it is a controlled topology change rather than a rewrite.
+
 \subsubsection*{G3 Metrics: Tiny Store Baseline}
 
 With the infrastructure in place, the G3 metrics can be computed from the current Tiny Store state to establish the $t_0$ reference for longitudinal tracking.
 
 \emph{Spectrum position:} All four modules currently operate at L0 (vertical optimization). No module has triggered the L1 threshold because inter-module communication is already event-driven from inception, and no throughput divergence has been observed under the current test workload.
+
+\emph{Note on runtime metrics:} Module Throughput Profile ($\Theta_m$) and Module Latency Variance ($\sigma^2_{L,m}$) are runtime metrics whose $t_0$ baselines are established through load testing rather than static code analysis. The static metrics below ($\rho_{\mathrm{sync}}$, $\omega$, $\alpha$, $\varepsilon_m$) can be computed from the codebase at any point.
 
 \emph{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$):} All 23 inter-module interactions in the composition root flow through \texttt{eventBus.subscribe}, with zero synchronous cross-module calls at the library level. Handler instantiations in \texttt{register-listeners.ts} serve event callbacks, not direct synchronous invocations.
 
@@ -508,10 +565,18 @@ G3 metrics are designed to make scaling pressure observable at the module level 
   \emph{Target:} $\alpha = 1.0$ (all infrastructure access through abstractions).
 
   \item \textbf{Extraction Readiness Score ($\varepsilon_m$).} \\
-  Composite metric synthesizing boundary health (G1), maintainability (G2), and scalability preparation (G3) to quantify how prepared a module is for independent deployment. A high score indicates extraction would be a low-risk topology change; a low score reveals preparation debt~\cite{wolfart2021modernizing}.
+  Composite metric synthesizing boundary health (G1), maintainability (G2), and scalability preparation (G3) to quantify how prepared a module is for independent deployment. A high score indicates extraction would be a low-risk topology change; a low score reveals preparation debt~\cite{wolfart2021modernizing}. The weights are derived from the reference implementation's scoring dimensions (\texttt{extraction-readiness.ts}):
   \[
-    \varepsilon_m = f\!\left(C_{\mathrm{undecl}}^{(m)},\; C_{\mathrm{leak}}^{(m)},\; \omega_m,\; \alpha_m,\; \rho_{\mathrm{sync}}^{(m)}\right)
+    \varepsilon_m = 0.25 \cdot b_m + 0.20 \cdot (1 - \rho_{\mathrm{sync}}^{(m)}) + 0.15 \cdot a_m + 0.20 \cdot \omega_m + 0.20 \cdot v_m
   \]
+  where:
+  \begin{itemize}[itemsep=2pt,topsep=2pt]
+    \item $b_m$ is \emph{boundary compliance}: 1 if module $m$ has no undeclared cross-module imports, 0 otherwise (from G1);
+    \item $(1 - \rho_{\mathrm{sync}}^{(m)})$ is \emph{async readiness}: the proportion of inter-module interactions that are event-driven;
+    \item $a_m$ is \emph{ACL coverage}: the proportion of cross-module interactions mediated through anti-corruption layers (from G2);
+    \item $\omega_m$ is \emph{database schema isolation}: as defined above;
+    \item $v_m$ is \emph{event contract versioning coverage}: the proportion of published events with explicit version schemas.
+  \end{itemize}
   \emph{Target:} $\varepsilon_m \geq 0.8$ before considering L3 extraction for module $m$.
 \end{itemize}
 
@@ -522,7 +587,7 @@ G3 metrics are designed to make scaling pressure observable at the module level 
 \noindent
 \textbf{Compliance summary.} G3 progressive scalability compliance holds when:
 \[
-  \rho_{\mathrm{sync}} \leq 0.3 \land \omega \to 1 \land \alpha = 1 \land \varepsilon_m \geq 0.8 \text{ for extraction candidates}
+  \rho_{\mathrm{sync}} \leq 0.3 \land \omega = 1 \land \alpha = 1 \land \varepsilon_m \geq 0.8 \text{ for extraction candidates}
 \]
 
 
@@ -553,7 +618,7 @@ Any open-source or proprietary tool used to support progressive scalability shou
 
 The academic literature on software scalability exhibits a persistent structural gap. Empirical studies on microservices consistently provide evidence on horizontal scaling but frame distribution as a prerequisite for scalability rather than one option among several~\cite{arya2024beyond, blinowski2022monolithic, berry2024isItWorth}. Comparative analyses of performance, scalability, and cost between microservice and monolithic deployments demonstrate that the trade-offs are context-dependent, yet stop short of proposing what a team should do \emph{between} these two endpoints~\cite{jatkiewicz2023differences}. Studies that advocate for monoliths or modular monoliths acknowledge that monolithic architectures can serve moderate scaling needs but do not formalize how scaling should be approached incrementally within a monolithic boundary~\cite{montesi2021sliceable, gravanis2021dont, deLauretis2019from}. Industry experience reports reinforce this pattern: documented retreats from microservices~\cite{segment2023}, accounts of premature distribution's operational toll~\cite{auth02019}, and arguments that monoliths remain viable at significant scale~\cite{medium2019} all suggest that distribution is not a universal solution. Research on accelerating early-stage development through monolithic architectures combined with MVP practices further supports deferring distribution until evidence warrants it~\cite{lima2024accelerating}.
 
-Two proposals come closest to the progressive scalability concept. The ``sliceable monolith'' keeps the system unified until a slice needs independent deployment~\cite{montesi2021sliceable}, but focuses on \emph{deployment granularity} (when to slice) rather than on the intermediate architectural interventions (async boundaries, data isolation, infrastructure abstraction) that precede extraction. Similarly, the ``write as a monolith, deploy as microservices'' model addresses the deployment dimension but provides no guidance on how to prepare the monolith's internal architecture for selective scaling~\cite{ghemawat2023towards}. The evolutionary architecture perspective provides the philosophical foundation, arguing that architectural properties should be preserved through fitness functions and incremental adaptation~\cite{FordParsons2017}, but does not operationalize this principle for scaling decisions at the module level.
+Two proposals come closest to the progressive scalability concept. The ``sliceable monolith'' keeps the system unified until a slice needs independent deployment~\cite{montesi2021sliceable}, but focuses on \emph{deployment granularity} (when to slice) rather than on the intermediate architectural interventions (async boundaries, data isolation, infrastructure abstraction) that precede extraction. The Strangler Fig pattern~\cite{stranglerPatterns} offers an established incremental migration strategy, but it operates at the application boundary (routing external requests to old or new implementations) rather than addressing the internal modular preparation that precedes extraction. Similarly, the ``write as a monolith, deploy as microservices'' model addresses the deployment dimension but provides no guidance on how to prepare the monolith's internal architecture for selective scaling~\cite{ghemawat2023towards}. The evolutionary architecture perspective provides the philosophical foundation, arguing that architectural properties should be preserved through fitness functions and incremental adaptation~\cite{FordParsons2017}, but does not operationalize this principle for scaling decisions at the module level.
 
 \emph{The gap is threefold.} A systematic review of the SLR corpus reveals that no existing work provides:
 
