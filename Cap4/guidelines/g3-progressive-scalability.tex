@@ -86,6 +86,13 @@ G3 does not prescribe specific cloud providers, container orchestrators, or scal
 \end{itemize}
 
 
+\subsection*{The Scalability Readiness Gap}
+
+G1 and G2 ensure that module boundaries are correct and sustainable. Yet a system can satisfy both guidelines and still be \emph{unable to scale proportionally}. The gap arises because boundary enforcement and maintainability tracking say nothing about whether the architecture is \emph{prepared} for scaling interventions. A module with perfect boundary discipline and stable contracts may still share a database schema with three other modules, communicate exclusively through synchronous calls, and depend on infrastructure through concrete implementations. When load arrives, the team discovers that scaling requires a coordinated migration rather than a surgical intervention.
+
+This is the Scalability Readiness Gap: the distance between a structurally sound modular monolith and one that can absorb growth through proportional, reversible interventions. G3's metrics close this gap by making infrastructure preparation, communication flexibility, and data ownership visible and measurable from the first deployment.
+
+
 \subsection*{Implementation Mechanisms}
 
 G3 is implemented through the following architectural mechanisms, all established from project inception:
@@ -101,7 +108,7 @@ G3 is implemented through the following architectural mechanisms, all establishe
 \end{itemize}
 
 
-\subsection*{The Progressive Scalability Spectrum}
+\subsubsection*{The Progressive Scalability Spectrum}
 
 To make the gradient concrete, G3 proposes a four-level spectrum that teams can use to assess their current position and plan their next proportional intervention. Each level builds on the previous one, and progression is driven by evidence rather than anticipation.
 
@@ -127,7 +134,7 @@ L3 & Selective Extraction & Deploy a bounded context as an independent service w
 The spectrum is not strictly linear: a team may apply L2 (data isolation) to one module while another module remains at L0. The key constraint is that each intervention at a given level should be justified by evidence that the previous level is insufficient for the module in question.
 
 
-\subsection*{G3 Applied: Progressive Scalability in the Tiny Store}
+\subsubsection*{G3 Applied: Progressive Scalability in the Tiny Store}
 \label{sec:g3-applied}
 
 The Tiny Store reference implementation demonstrates that progressive scalability infrastructure is embedded from day one as an architectural requirement, not added later as a scaling patch. The following code listings show the actual production code that ships with the initial deployment.
@@ -349,59 +356,9 @@ export async function getModuleConnection(
 \noindent
 Each module operates within its own PostgreSQL schema from the first \texttt{docker-compose up}. Cross-module data access is mediated through published contracts (events or API calls), never through direct table queries. When L3 extraction occurs, the module's schema migrates to a dedicated database instance, a deployment topology change, not a data migration.
 
-\subsubsection*{Extraction Readiness Score}
-
-The readiness score provides the evidence that drives progression decisions. Tiny Store includes an automated extraction readiness calculator that scores each module across five dimensions:
-
-\begin{lstlisting}[language=TypeScript,caption={Extraction readiness scoring dimensions (extraction-readiness.ts)},label={lst:readiness-score}]
-// Usage: npx ts-node tools/metrics/extraction-readiness.ts
-//        --module orders
-
-const checks: CheckResult[] = [
-  checkCrossModuleImports(moduleName),  // 25pts
-  checkEventBusUsage(moduleName),       // 20pts
-  checkACLLayer(moduleName),            // 15pts
-  checkDatabaseSchema(moduleName),      // 20pts
-  checkVersionedEvents(moduleName),     // 20pts
-];
-
-const percentage =
-  Math.round((totalScore / totalMax) * 100);
-
-if (percentage >= 80) console.log('READY for extraction');
-else if (percentage >= 60) console.log('NEARLY READY');
-else if (percentage >= 40)
-  console.log('PARTIAL -- significant work needed');
-else console.log('NOT READY -- major refactoring required');
-\end{lstlisting}
-
-\noindent
-Example output for the orders module:
-
-\begin{verbatim}
-Extraction Readiness Score: orders
-==================================================
-Cross-module imports [==========] 25/25
-  No cross-module imports found
-Event-driven communication [==========] 20/20
-  Events: yes, Listeners: yes
-ACL layer [==========] 15/15
-  ACL adapter found for orders
-Database schema isolation [==========] 20/20
-  Schema 'orders' configured
-Versioned event contracts [=====-----] 10/20
-  Event contracts exist but no versioning
-==================================================
-TOTAL SCORE: 90/100 (90/100)
-READY for extraction
-\end{verbatim}
-
-\noindent
-The readiness score quantifies the $\varepsilon_m$ metric defined in the Metrics section. Teams run this check before any L3 extraction decision, ensuring that extraction is evidence-based rather than intuition-driven.
-
 \subsubsection*{L3: Selective Extraction: What Extraction Looks Like}
 
-When $\varepsilon_{\mathrm{orders}}$ indicates that L3 is warranted, extraction is a \emph{topology change}, not a code rewrite. The domain logic, repository interfaces, and event handlers remain unchanged; what changes is how infrastructure adapters are bound and where the process runs. The following Docker Compose snippet illustrates what extracting the Orders module would look like:
+When $\varepsilon_{\mathrm{orders}}$ indicates that L3 is warranted, extraction is a \emph{topology change}, not a code rewrite. The domain logic, repository interfaces, and event handlers remain unchanged; what changes is how infrastructure adapters are bound and where the process runs. The following Docker Compose snippet illustrates what extracting the Orders module would look like (this configuration is illustrative; it is not yet part of the Tiny Store repository):
 
 \begin{lstlisting}[language=yaml,caption={L3 extraction: Orders as an independent service (illustrative)},label={lst:g3-l3-extraction}]
 services:
@@ -454,6 +411,56 @@ Three infrastructure changes occur at extraction, none of which touch domain log
 \noindent
 Because G3's infrastructure abstractions (persistence ports, communication abstraction layer) have been in place since day one, this extraction requires no changes to \texttt{OrderService}, \texttt{OrderRepository}, or any event handler. The domain logic is \emph{identical} in the extracted service and in the monolith. This is the payoff of progressive scalability: when extraction is finally warranted, it is a controlled topology change rather than a rewrite.
 
+\subsubsection*{Extraction Readiness Score}
+
+The readiness score provides the evidence that drives progression decisions. Tiny Store includes an automated extraction readiness calculator that scores each module across five dimensions:
+
+\begin{lstlisting}[language=TypeScript,caption={Extraction readiness scoring dimensions (extraction-readiness.ts)},label={lst:readiness-score}]
+// Usage: npx ts-node tools/metrics/extraction-readiness.ts
+//        --module orders
+
+const checks: CheckResult[] = [
+  checkCrossModuleImports(moduleName),  // 25pts
+  checkEventBusUsage(moduleName),       // 20pts
+  checkACLLayer(moduleName),            // 15pts
+  checkDatabaseSchema(moduleName),      // 20pts
+  checkVersionedEvents(moduleName),     // 20pts
+];
+
+const percentage =
+  Math.round((totalScore / totalMax) * 100);
+
+if (percentage >= 80) console.log('READY for extraction');
+else if (percentage >= 60) console.log('NEARLY READY');
+else if (percentage >= 40)
+  console.log('PARTIAL -- significant work needed');
+else console.log('NOT READY -- major refactoring required');
+\end{lstlisting}
+
+\noindent
+Example output for the orders module:
+
+\begin{verbatim}
+Extraction Readiness Score: orders
+==================================================
+Cross-module imports [==========] 25/25
+  No cross-module imports found
+Event-driven communication [==========] 20/20
+  Events: yes, Listeners: yes
+ACL layer [==========] 15/15
+  ACL adapter found for orders
+Database schema isolation [==========] 20/20
+  Schema 'orders' configured
+Versioned event contracts [=====-----] 10/20
+  Event contracts exist but no versioning
+==================================================
+TOTAL SCORE: 90/100 (90/100)
+READY for extraction
+\end{verbatim}
+
+\noindent
+The readiness score quantifies the $\varepsilon_m$ metric defined in the Metrics section. Teams run this check before any L3 extraction decision, ensuring that extraction is evidence-based rather than intuition-driven.
+
 \subsubsection*{G3 Metrics: Tiny Store Baseline}
 
 With the infrastructure in place, the G3 metrics can be computed from the current Tiny Store state to establish the $t_0$ reference for longitudinal tracking.
@@ -462,10 +469,10 @@ With the infrastructure in place, the G3 metrics can be computed from the curren
 
 \emph{Note on runtime metrics:} Module Throughput Profile ($\Theta_m$) and Module Latency Variance ($\sigma^2_{L,m}$) are runtime metrics whose $t_0$ baselines are established through load testing rather than static code analysis. The static metrics below ($\rho_{\mathrm{sync}}$, $\omega$, $\alpha$, $\varepsilon_m$) can be computed from the codebase at any point.
 
-\emph{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$):} All 23 inter-module interactions in the composition root flow through \texttt{eventBus.subscribe}, with zero synchronous cross-module calls at the library level. Handler instantiations in \texttt{register-listeners.ts} serve event callbacks, not direct synchronous invocations.
+\emph{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$):} All inter-module interactions in the composition root flow through \texttt{eventBus.subscribe}, with zero synchronous cross-module calls at the library level. Handler instantiations in \texttt{register-listeners.ts} serve event callbacks, not direct synchronous invocations.
 
 \begin{lstlisting}[language=bash,caption={$\rho_{\mathrm{sync}}$ computation},label={lst:g3-rho-sync}]
-rho_sync = 0 / (0 + 23) = 0.0
+rho_sync = 0 / (0 + N) = 0.0  % N = total event subscriptions
 \end{lstlisting}
 
 \noindent
@@ -496,6 +503,19 @@ epsilon_orders = 90 / 100 = 0.90
 \noindent
 All G3 metrics are at healthy baseline levels: $\rho_{\mathrm{sync}} = 0.0$ (fully async), $\omega = 1.0$ (clear data ownership), $\alpha = 1.0$ (fully abstracted), $\varepsilon_{\mathrm{orders}} = 0.90$ (extraction-ready). These values confirm that the Tiny Store architecture satisfies G3 compliance from inception. The metrics establish the $t_0$ reference: any future degradation (a new synchronous cross-module call, a shared table, a direct infrastructure dependency) will be visible as a measurable regression against this baseline.
 
+\subsubsection*{Reference Implementation: Source Files}
+
+The code listings in this section are drawn from the Tiny Store reference implementation. The relevant source files are:
+
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \texttt{libs/shared/infrastructure/src/cache/cache.service.ts}: Module-namespaced Redis caching (L0)
+  \item \texttt{libs/shared/infrastructure/src/cache/cache.decorator.ts}: Read-through caching decorator (L0)
+  \item \texttt{libs/shared/infrastructure/src/queue/queue.service.ts}: Module-scoped BullMQ queues (L1)
+  \item \texttt{libs/modules/orders/src/jobs/order-confirmation-email.job.ts}: Async email decoupling (L1)
+  \item \texttt{libs/shared/infrastructure/src/database/schema-isolation.ts}: Per-module PostgreSQL schemas (L2)
+  \item \texttt{tools/metrics/extraction-readiness.ts}: Extraction readiness score calculator ($\varepsilon_m$)
+\end{itemize}
+
 \subsection*{Common Failure Modes and Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
@@ -514,13 +534,6 @@ All G3 metrics are at healthy baseline levels: $\rho_{\mathrm{sync}} = 0.0$ (ful
   \item \emph{Infrastructure Lock-In Through Concrete Dependencies:}
   Embedding infrastructure-specific code (e.g., direct database driver calls, cloud SDK invocations) in domain or application logic. This prevents the module from transitioning between spectrum levels without rewriting business logic, effectively freezing the architecture at its current scale point.
 \end{itemize}
-
-
-\subsection*{The Scalability Readiness Gap}
-
-G1 and G2 ensure that module boundaries are correct and sustainable. Yet a system can satisfy both guidelines and still be \emph{unable to scale proportionally}. The gap arises because boundary enforcement and maintainability tracking say nothing about whether the architecture is \emph{prepared} for scaling interventions. A module with perfect boundary discipline and stable contracts may still share a database schema with three other modules, communicate exclusively through synchronous calls, and depend on infrastructure through concrete implementations. When load arrives, the team discovers that scaling requires a coordinated migration rather than a surgical intervention.
-
-This is the Scalability Readiness Gap: the distance between a structurally sound modular monolith and one that can absorb growth through proportional, reversible interventions. G3's metrics close this gap by making infrastructure preparation, communication flexibility, and data ownership visible and measurable from the first deployment.
 
 
 \subsection*{Metrics and Verification}
@@ -632,20 +645,7 @@ G3 addresses all three gaps. The L0--L3 Progressive Scalability Spectrum (Table~
 
 The scalability levels defined here provide the trigger criteria for G4 (Migration Readiness), which prepares individual modules for extraction when the evidence warrants it.
 
-\subsection*{Reference Implementation: Source Files}
-
-The code listings in this section are drawn from the Tiny Store reference implementation. The relevant source files are:
-
-\begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \texttt{libs/shared/infrastructure/src/cache/cache.service.ts}: Module-namespaced Redis caching (L0)
-  \item \texttt{libs/shared/infrastructure/src/cache/cache.decorator.ts}: Read-through caching decorator (L0)
-  \item \texttt{libs/shared/infrastructure/src/queue/queue.service.ts}: Module-scoped BullMQ queues (L1)
-  \item \texttt{libs/modules/orders/src/jobs/order-confirmation-email.job.ts}: Async email decoupling (L1)
-  \item \texttt{libs/shared/infrastructure/src/database/schema-isolation.ts}: Per-module PostgreSQL schemas (L2)
-  \item \texttt{tools/metrics/extraction-readiness.ts}: Extraction readiness score calculator ($\varepsilon_m$)
-\end{itemize}
-
-\subsection*{Conclusion of the G3 Implementation}
+\subsection*{Conclusion}
 
 This section demonstrated that scalability in a modular monolith is not a binary property that requires distribution to achieve, but a gradient that can be traversed through deliberate, proportional interventions. G1 ensures that module boundaries are correct; G2 ensures that they remain sustainable over time; G3 ensures that the resulting modular structure can absorb growth without requiring a wholesale architectural transformation.
 
