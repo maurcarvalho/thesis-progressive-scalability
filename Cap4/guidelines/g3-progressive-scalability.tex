@@ -503,6 +503,131 @@ epsilon_orders = 90 / 100 = 0.90
 \noindent
 All G3 metrics are at healthy baseline levels: $\rho_{\mathrm{sync}} = 0.0$ (fully async), $\omega = 1.0$ (clear data ownership), $\alpha = 1.0$ (fully abstracted), $\varepsilon_{\mathrm{orders}} = 0.90$ (extraction-ready). These values confirm that the Tiny Store architecture satisfies G3 compliance from inception. The metrics establish the $t_0$ reference: any future degradation (a new synchronous cross-module call, a shared table, a direct infrastructure dependency) will be visible as a measurable regression against this baseline.
 
+\subsection*{Exercise Walkthrough: Controlled Violations and Signals}
+
+This tutorial assumes the G1 and G2 baselines are passing. You will run three exercises, each introducing a scalability preparation anti-pattern that passes G1 and G2 gates but degrades G3 metrics. The exercises target the three static G3 metrics: $\rho_{\mathrm{sync}}$ (synchronous coupling), $\omega$ (data ownership), and $\alpha$ (infrastructure abstraction). Each exercise follows the same structure: introduce a single, controlled change; run the G3 gate; observe the metric regression; and apply the fix.
+
+To keep the summary compact, the table uses the G3 metric notation introduced earlier. $\rho_{\mathrm{sync}}$ denotes the cross-module synchronous call ratio (lower is better), $\omega$ denotes the data ownership clarity index (1.0 = perfect), and $\alpha$ denotes infrastructure abstraction coverage (1.0 = perfect).
+
+\subsubsection*{Exercise summary}
+\small
+\noindent
+\begin{tabularx}{\linewidth}{p{0.06\linewidth} X p{0.24\linewidth} p{0.20\linewidth}}
+\textbf{Ex.} & \textbf{What you change} & \textbf{Run} & \textbf{Signal / metric} \\
+0 & Establish G3 baseline & \texttt{test:scalability} & pass (baseline) \\
+1 & Sync cross-module import in shipments & \texttt{test:scalability} & fail, $\rho_{\mathrm{sync}}\uparrow$ \\
+2 & Raw SQL to inventory's table from orders & \texttt{test:scalability} & fail, $\omega\downarrow$ \\
+3 & Direct \texttt{ioredis} import in inventory & \texttt{test:scalability} & fail, $\alpha\downarrow$ \\
+\end{tabularx}
+\normalsize
+
+\subsubsection*{Exercises}
+\begin{itemize}[noitemsep,topsep=2pt]
+
+  \item \emph{Exercise 0: Establish the G3 Scalability Baseline.}
+  Run the scalability readiness gate to confirm all metrics are at their healthy $t_0$ values.
+
+  \begin{lstlisting}[language=bash,caption={G3 baseline check},label={lst:g3-ex0-baseline}]
+npm run test:scalability
+# All green: rho_sync=0.0, omega=1.0, alpha=1.0, epsilon>=0.8
+  \end{lstlisting}
+
+  Record the baseline values: $\rho_{\mathrm{sync}} = 0.0$, $\omega = 1.0$, $\alpha = 1.0$, $\varepsilon_m \geq 0.8$ for all modules. These are the $t_0$ reference points; any degradation in subsequent exercises will be visible as a measurable regression.\newline
+
+  \newline\item \emph{Exercise 1: Synchronous Cross-Module Call ($\rho_{\mathrm{sync}}\uparrow$).}
+  Demonstrate that synchronous cross-module imports degrade extraction readiness even when they pass G1 and G2. Introduce the violation by modifying \texttt{libs/modules/shipments/src/features/create-shipment/service.ts} to import and call \texttt{GetPaymentHandler} from the payments module.
+
+  \begin{lstlisting}[language=TypeScript,caption={Violation: synchronous cross-module import},label={lst:g3-ex1-violation}]
+/**
+ * (*@\color{red}{$\times$}@*) VIOLATION: synchronous cross-module import.
+ * Shipments now depends on payments at compile time.
+ */
+import { GetPaymentHandler } from '@tiny-store/modules-payments';
+
+// In the service constructor:
+this.getPaymentHandler = new GetPaymentHandler(dataSource);
+
+// In execute():
+const payment = await this.getPaymentHandler.handle(dto.orderId);
+if (payment.status !== 'processed') {
+  throw new Error('Payment not confirmed');
+}
+  \end{lstlisting}
+
+  Why G1 and G2 pass: the import uses the public entrypoint (\texttt{@tiny-store/modules-payments}), so G1 sees no encapsulation leak. G2's maintainability metrics ($\rho_{\mathrm{api}}$, fan-in) remain within thresholds because the dependency is through a public API.\newline
+
+  Run enforcement.
+
+  \begin{lstlisting}[language=bash,caption={Run G3 gate after Exercise 1},label={lst:g3-ex1-run}]
+npm run test:scalability
+  \end{lstlisting}
+
+  Expected signal: the $\rho_{\mathrm{sync}}$ test fails. The scalability gate detects a direct import from \texttt{@tiny-store/modules-payments} inside the shipments module source. $\rho_{\mathrm{sync}}$ rises from 0.0 because there is now a synchronous cross-module interaction alongside the 23 async subscriptions.\newline
+  Metric impact: $\rho_{\mathrm{sync}}\uparrow$, $\varepsilon_{\mathrm{shipments}}\downarrow$.\newline
+  Fix: enrich the \texttt{OrderPaid} event payload to include payment status and ID. The shipments module receives all necessary data through the async event, eliminating the synchronous dependency.\newline
+  Reference file: \texttt{exercises/g3/ex1-sync-payment-check.ts}\newline
+
+  \newline\item \emph{Exercise 2: Shared Table Access ($\omega\downarrow$).}
+  Demonstrate that cross-module data access defeats data ownership even without import violations. Introduce the violation by adding a raw SQL query in the orders module that reads from inventory's \texttt{products} table.
+
+  \begin{lstlisting}[language=TypeScript,caption={Violation: cross-module table access},label={lst:g3-ex2-violation}]
+/**
+ * (*@\color{red}{$\times$}@*) VIOLATION: orders reads inventory's 'products' table directly.
+ */
+const productRows = await this.dataSource.query(
+  `SELECT "stockQuantity" FROM products WHERE sku = $1`,
+  [item.sku]
+);
+  \end{lstlisting}
+
+  Why G1 and G2 pass: there is no import from \texttt{@tiny-store/modules-inventory}. The query is raw SQL executed through the DataSource---no boundary test detects cross-module table access. G2 sees no change in module-level dependencies.\newline
+
+  Run enforcement.
+
+  \begin{lstlisting}[language=bash,caption={Run G3 gate after Exercise 2},label={lst:g3-ex2-run}]
+npm run test:scalability
+  \end{lstlisting}
+
+  Expected signal: the $\omega$ test fails. The data ownership check detects that the \texttt{products} table (owned by inventory) is referenced via SQL in the orders module source. $\omega$ drops below 1.0 because one entity now has two accessing modules.\newline
+  Metric impact: $\omega\downarrow$, $\varepsilon_{\mathrm{orders}}\downarrow$.\newline
+  Fix: expose stock availability through an event (\texttt{InventoryUpdated} with current stock levels) or a query handler in the inventory module, consumed through the composition root. The orders module should never reference another module's tables.\newline
+  Reference file: \texttt{exercises/g3/ex2-shared-inventory-view.ts}\newline
+
+  \newline\item \emph{Exercise 3: Direct Infrastructure Dependency ($\alpha\downarrow$).}
+  Demonstrate that bypassing the shared infrastructure layer compromises extraction readiness. Introduce the violation by adding a direct \texttt{ioredis} import in the inventory module.
+
+  \begin{lstlisting}[language=TypeScript,caption={Violation: direct infrastructure import},label={lst:g3-ex3-violation}]
+/**
+ * (*@\color{red}{$\times$}@*) VIOLATION: direct infrastructure dependency.
+ * Module imports ioredis instead of @tiny-store/shared-infrastructure.
+ */
+import Redis from 'ioredis';
+
+const redis = new Redis({
+  host: process.env['REDIS_HOST'] || 'localhost',
+  port: parseInt(process.env['REDIS_PORT'] || '6379'),
+});
+
+// In execute():
+const cached = await redis.get(`product:${productId}`);
+  \end{lstlisting}
+
+  Why G1 and G2 pass: \texttt{ioredis} is a third-party npm package, not another module. G1 boundary tests only check for cross-module imports. G2 sees no maintainability regression.\newline
+
+  Run enforcement.
+
+  \begin{lstlisting}[language=bash,caption={Run G3 gate after Exercise 3},label={lst:g3-ex3-run}]
+npm run test:scalability
+  \end{lstlisting}
+
+  Expected signal: the $\alpha$ test fails. The infrastructure abstraction check detects a direct import of \texttt{ioredis} in the inventory module source. $\alpha$ drops below 1.0 because one module now has a hard-coded infrastructure dependency.\newline
+  Metric impact: $\alpha\downarrow$, $\varepsilon_{\mathrm{inventory}}\downarrow$.\newline
+  Fix: use a \texttt{CacheService} from \texttt{@tiny-store/shared-infrastructure} instead of importing Redis directly. This ensures that infrastructure configuration is injectable and the module can be extracted without carrying hard-coded connection details.\newline
+  Reference file: \texttt{exercises/g3/ex3-direct-redis-import.ts}
+\end{itemize}
+
+The exercise walkthrough confirms that G3 enforcement catches scalability preparation regressions that G1 and G2 leave undetected. Each violation---synchronous coupling, shared data access, direct infrastructure dependency---would be invisible to boundary and maintainability gates alone. The G3 scalability readiness tests make these degradations measurable and actionable, preserving the option to extract modules independently as the system grows.
+
 \subsubsection*{Reference Implementation: Source Files}
 
 The code listings in this section are drawn from the Tiny Store reference implementation. The relevant source files are:
