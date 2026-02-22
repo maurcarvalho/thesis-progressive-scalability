@@ -2,7 +2,7 @@
 
 This chapter presents the core academic potential contribution of this research: a set of twelve architectural guidelines designed to support software startups in adopting modular monolithic architectures that preserve scalability, maintainability, and internal modularity. These guidelines are grounded in the gaps and trade-offs identified through the systematic literature review and reflect the specific architectural tensions faced by early-stage software teams operating under conditions of limited resources, rapid iteration, and evolving requirements. Rather than offering a static framework, the guidelines aim to function as decision-making heuristics, designed to be actionable principles that inform architectural evolution without prescribing a single and rigid path.
 
-The guidelines are organized according to the four analytical dimensions introduced in Chapter~\ref{sec:relatedwork}: Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation. 
+The guidelines are organized according to the four analytical dimensions introduced in Chapter~\ref{sec:relatedwork}: Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation.
 
 
 \begin{figure}[htb]
@@ -17,12 +17,12 @@ The guidelines are organized according to the four analytical dimensions introdu
 Figure~\ref{fig:guideline-dimensions} shows the four guideline dimensions used in this research to guide the evaluation of modular monolith architectures in startup environments:
 
 \begin{itemize}
-  \item \textbf{Architectural Design.} Covers criteria related to the software’s internal structure. Guideline G1 enforces clear module boundaries, G2 evaluates maintainability over time, and G3 assesses the system’s scalability potential.
-  
+  \item \textbf{Architectural Design.} Covers criteria related to the software's internal structure. Guideline G1 enforces clear module boundaries, G2 evaluates maintainability over time, and G3 designs for progressive scalability.
+
   \item \textbf{Operational Fit.} Addresses the operational requirements needed to support production enthronements. Guideline G4 checks migration readiness (for example, transitioning toward microservices), G5 focuses on deployment strategy and automation, and G6 considers observability levels (logging, metrics, monitoring).
-  
-  \item \textbf{Organizational Alignment.} Focuses on aligning the software architecture with the organization’s structure. Guideline G7 examines team organization according to Conway’s Law, G8 evaluates DevOps maturity, and G9 assesses how easily new team members can be onboarded without technical friction.
-  
+
+  \item \textbf{Organizational Alignment.} Focuses on aligning the software architecture with the organization's structure. Guideline G7 examines team organization according to Conway's Law, G8 evaluates DevOps maturity, and G9 assesses how easily new team members can be onboarded without technical friction.
+
   \item \textbf{Guideline Orientation.} Refers to high-level recommendations that steer design decisions without imposing rigid rules. Guideline G10 emphasizes practical, actionable patterns, G11 highlights the need to adapt recommendations to the specific business context, and G12 points out that trade-offs and dilemmas exist rather than unbreakable dogma.
 \end{itemize}
 
@@ -68,7 +68,7 @@ Participants will receive a summarized description of G1 in advance to facilitat
 
 \subsection*{Optional Online Survey}
 
-An online survey instrument may be deployed to capture structured feedback on G1 at scale. The survey will include Likert scale ratings on the clarity and usefulness of G1 along with free text fields for additional comments. For example, one question could read: \textit{“On a scale from one to five, how feasible is G1: Enforce Modular Boundaries in your current environment?”} If implemented, this survey will complement the qualitative depth of interviews with broader quantitative insights. Survey distribution will target relevant Slack workspaces, LinkedIn groups focused on cloud native architecture and local meetup organizers. The aim is to receive at least fifteen to twenty responses from practitioners.
+An online survey instrument may be deployed to capture structured feedback on G1 at scale. The survey will include Likert scale ratings on the clarity and usefulness of G1 along with free text fields for additional comments. For example, one question could read: \textit{"On a scale from one to five, how feasible is G1: Enforce Modular Boundaries in your current environment?"} If implemented, this survey will complement the qualitative depth of interviews with broader quantitative insights. Survey distribution will target relevant Slack workspaces, LinkedIn groups focused on cloud native architecture and local meetup organizers. The aim is to receive at least fifteen to twenty responses from practitioners.
 
 \subsection*{Analysis Approach}
 
