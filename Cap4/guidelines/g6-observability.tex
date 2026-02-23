@@ -10,7 +10,7 @@ G6 completes the Operational Fit Dimension (G4--G6). While G4 prepared the modul
 
 Monolithic systems are traditionally treated as observability black boxes. Application Performance Monitoring (APM) tools report aggregate metrics, such as total request latency, overall error rate, and database query time, but these metrics do not distinguish between modules. When the system slows down, the team knows \emph{that} something is slow, but not \emph{which module} is responsible, \emph{which cross-module interaction} is the bottleneck, or \emph{whether the problem is localized} to a single bounded context.
 
-This opacity creates two problems. First, it prevents evidence-based scaling decisions: G3's metrics ($\Theta_m$, $\sigma^2_{L,m}$, $\Delta\Theta$) require module-level attribution that aggregate APM cannot provide. Second, it makes post-extraction comparison impossible: if the team cannot measure module-level performance before extraction, they have no baseline against which to evaluate whether extraction improved or degraded the system.
+This opacity creates two problems. First, it prevents evidence-based scaling decisions: G3's metrics (module throughput, latency variance, throughput divergence) require module-level attribution that aggregate APM cannot provide. Second, it makes post-extraction comparison impossible: if the team cannot measure module-level performance before extraction, they have no baseline against which to evaluate whether extraction improved or degraded the system.
 
 Microservices solve this problem by default, because each service is a separate process with its own metrics endpoint, its own log stream, and its own trace context. G6 achieves the same visibility inside the monolith by scoping observability to module boundaries. The key insight is that the instrumentation is identical: OpenTelemetry spans, structured log entries with module context, and Prometheus metrics with module labels work the same way whether the module runs in-process or as a separate service. Because this instrumentation is embedded from project inception, the team builds observability muscle, establishes baselines, and validates that the monitoring infrastructure is production-ready as part of normal development. The same dashboards and traces survive extraction unchanged because they were module-scoped from day one.
 
@@ -19,7 +19,7 @@ Microservices solve this problem by default, because each service is a separate 
 Module-scoped observability is embedded through three complementary pillars, each applied at the module boundary:
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Structured logging with module context:} Every log entry carries the originating module name, a correlation ID that tracks requests across module boundaries, and structured fields (JSON) that enable programmatic querying. Log aggregation tools (e.g., Loki, Elasticsearch) can filter by module without code changes after extraction.
-  \item \emph{Module-scoped metrics via OpenTelemetry:} Each module emits latency, throughput, and error rate metrics tagged with the module name. These metrics feed directly into G3's trigger conditions ($\Theta_m$, $\sigma^2_{L,m}$) and G4's extraction readiness assessment. Prometheus scrapes the metrics endpoint; Grafana visualizes them. The same setup works before and after extraction.
+  \item \emph{Module-scoped metrics via OpenTelemetry:} Each module emits latency, throughput, and error rate metrics tagged with the module name. These metrics feed directly into G3's trigger conditions (throughput profiles, latency variance) and G4's extraction readiness assessment. Prometheus scrapes the metrics endpoint; Grafana visualizes them. The same setup works before and after extraction.
   \item \emph{Distributed tracing inside the monolith:} OpenTelemetry spans are created for each module handler invocation, each Temporal workflow and activity execution, and each Kafka producer/consumer interaction. A single trace visualizes the full order fulfillment flow across module boundaries, making cross-module latency and failure propagation observable. Jaeger (or any OpenTelemetry-compatible backend) displays the traces. After extraction, the trace context propagates over the network automatically via OpenTelemetry's context propagation.
 \end{itemize}
 
@@ -158,7 +158,7 @@ export function getModuleMeter(moduleName: string): ModuleMetrics {
 }
 \end{lstlisting}
 
-These metrics are exported to Prometheus via OpenTelemetry's Prometheus exporter. A Grafana dashboard displays per-module latency distributions, throughput ($\Theta_m$ from G3), and error rates. The same dashboard works after extraction because the metric names and attributes are unchanged.
+These metrics are exported to Prometheus via OpenTelemetry's Prometheus exporter. A Grafana dashboard displays per-module latency distributions, throughput (module throughput profiles from G3), and error rates. The same dashboard works after extraction because the metric names and attributes are unchanged.
 
 \subsubsection*{Distributed Tracing Across Module Boundaries}
 
@@ -380,8 +380,8 @@ These alerts feed directly into G3's trigger conditions: \texttt{HighErrorRate} 
 The reference implementation includes a pre-configured Grafana dashboard (\texttt{infra/grafana/dashboards/module-overview.json}) with four panels that provide the observability surface required by G3 and G4:
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Request Rate per Module:} \texttt{sum(rate(\{\_\_name\_\_=\textasciitilde".+\_requests\_total"\}[5m])) by (module)}: visualizes $\Theta_m$ from G3.
-  \item \emph{P95 Latency per Module:} \texttt{histogram\_quantile(0.95, ...)}: tracks $\sigma^2_{L,m}$ and triggers L0/L1 interventions.
+  \item \emph{Request Rate per Module:} \texttt{sum(rate(\{\_\_name\_\_=\textasciitilde".+\_requests\_total"\}[5m])) by (module)}: visualizes module throughput from G3.
+  \item \emph{P95 Latency per Module:} \texttt{histogram\_quantile(0.95, ...)}: tracks latency variance and triggers L0/L1 interventions.
   \item \emph{Error Rate per Module:} per-module error rate for alert correlation.
   \item \emph{Kafka Consumer Lag:} consumer group lag by topic, signaling cross-module backpressure.
 \end{itemize}
@@ -415,41 +415,41 @@ Because all metrics are tagged with \texttt{module} labels from inception, the s
 G6 metrics assess the completeness and effectiveness of the observability implementation across modules.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Trace Completeness Rate ($\tau$):}
+  \item \textbf{Trace Completeness:}
   Incomplete traces represent critical observability gaps that leave teams debugging in the dark when issues cross module boundaries \cite{FordParsons2017}. When a request flows through multiple modules but some spans are missing, the causal chain breaks down, making it impossible to identify where latency accumulates or where errors originate. This metric quantifies how reliably the distributed tracing infrastructure captures complete execution paths across module boundaries, directly impacting the team's ability to maintain system health after extraction.
   \[
     \tau = \frac{|F_{\mathrm{traced}}|}{|F|}
   \]
   where $F$ is the set of all cross-module flows and $F_{\mathrm{traced}}$ is the subset with complete traces.
-  \emph{Target:} $\tau \geq 0.95$ (comprehensive trace coverage across module boundaries). \\
+  \emph{Target:} comprehensive trace coverage across module boundaries ($\tau \geq 0.95$). \\
 
-  \item \textbf{Metric Coverage per Module ($\kappa_m$):}
+  \item \textbf{Metric Coverage (per module):}
   Uninstrumented operations create blind spots in performance monitoring that prevent evidence-based scaling decisions and accurate system health assessment \cite{martin2012clean}. When some module operations emit metrics while others don't, the resulting throughput and latency calculations become skewed and unreliable. This metric ensures comprehensive instrumentation coverage across all public operations of a module, providing the complete performance picture required for G3's scalability assessments and G4's extraction readiness evaluations.
   \[
     \kappa_m = \frac{|O_{\mathrm{instrumented}}^{(m)}|}{|O^{(m)}|}
   \]
-  \emph{Target:} $\kappa_m = 1$ (complete metrics coverage for all module operations). \\
+  \emph{Target:} complete metrics coverage for all module operations ($\kappa_m = 1$). \\
 
-  \item \textbf{Log Module Attribution Rate ($\lambda$):}
+  \item \textbf{Log Attribution Rate:}
   Unattributed log entries severely hamper debugging efforts in modular systems by forcing engineers to manually correlate events across module boundaries without clear ownership or request context \cite{fairbanks2010justenough}. When log entries lack module attribution and trace correlation, troubleshooting becomes a time-consuming search through unstructured text rather than a focused investigation guided by structured metadata. This metric ensures that all log output can be efficiently filtered by module and correlated with distributed traces.
   \[
     \lambda = \frac{|L_{\mathrm{attributed}}|}{|L|}
   \]
-  \emph{Target:} $\lambda = 1$ (all log entries include module and trace context). \\
+  \emph{Target:} all log entries include module and trace context ($\lambda = 1$). \\
 
-  \item \textbf{Alert Precision ($\alpha_{\mathrm{alert}}$):}
+  \item \textbf{Alert Precision:}
   Application-wide alerts create unnecessary alert fatigue and slow incident response by failing to pinpoint which specific module requires attention \cite{FordParsons2017}. When alerts fire at the system level rather than the module level, on-call engineers must perform additional investigation to isolate the problem area, increasing mean time to recovery and reducing confidence in the alerting system. This metric ensures that alerts provide actionable specificity that directly guides incident response efforts.
   \[
     \alpha_{\mathrm{alert}} = \frac{|A_{\mathrm{module\text{-}scoped}}|}{|A|}
   \]
-  \emph{Target:} $\alpha_{\mathrm{alert}} \geq 0.8$ (majority of alerts provide module-level precision). \\
+  \emph{Target:} majority of alerts provide module-level precision ($\alpha_{\mathrm{alert}} \geq 0.8$). \\
 
-  \item \textbf{Baseline Coverage ($\beta$):}
+  \item \textbf{Baseline Coverage:}
   Without pre-extraction performance baselines, teams cannot objectively evaluate whether service extraction improved or degraded system performance, making architectural decisions based on incomplete data \cite{wolfart2021modernizing}. Performance changes observed after extraction could be caused by the network boundary, concurrent load changes, or unrelated code modifications. This metric ensures comprehensive baseline collection before any extraction event, enabling accurate before-and-after performance comparisons that validate architectural decisions.
   \[
     \beta = \frac{|M_{\mathrm{baselined}}|}{|M|}
   \]
-  \emph{Threshold:} $\beta = 1$ before any G3 Level L3 extraction. \\
+  \emph{Threshold:} complete baseline coverage ($\beta = 1$) before any G3 Level L3 extraction. \\
 
   \item \textbf{Mean Time to Detect (MTTD):}
   Delayed detection of performance degradation allows problems to compound and affect more users, ultimately increasing both the technical impact and business cost of incidents \cite{FordParsons2017}. Fast detection enables proactive response that can prevent minor issues from escalating into major outages. This metric quantifies the effectiveness of the entire observability stack in translating performance anomalies into actionable alerts, serving as the primary measure of observability system health.
@@ -461,7 +461,7 @@ G6 metrics assess the completeness and effectiveness of the observability implem
 \end{itemize}
 
 \noindent
-\emph{Verification strategy:} G6 metrics are assessed as part of the extraction readiness review (G4). Before any module is extracted, $\tau$, $\kappa_m$, $\lambda$, and $\beta$ must meet threshold values. After extraction, the same metrics are compared against the pre-extraction baseline to verify that observability survived the topology change. A drop in $\tau$ after extraction indicates that trace context propagation is failing across the network boundary, requiring investigation of OpenTelemetry context propagation configuration.
+\emph{Verification strategy:} G6 metrics are assessed as part of the extraction readiness review (G4). Before any module is extracted, trace completeness, metric coverage, log attribution, and baseline coverage must meet threshold values. After extraction, the same metrics are compared against the pre-extraction baseline to verify that observability survived the topology change. A drop in trace completeness after extraction indicates that trace context propagation is failing across the network boundary, requiring investigation of OpenTelemetry context propagation configuration.
 
 \medskip
 \noindent
@@ -477,7 +477,7 @@ G6 metrics assess the completeness and effectiveness of the observability implem
   For each module, document the available dashboards, the metric names and their meaning, the expected alert thresholds, and the debugging workflow (``when this alert fires, check this dashboard, then look at this trace''). This runbook is part of the module's operational documentation and should be reviewed during G4's extraction readiness assessment.
 
   \item \emph{Dashboard Registry:}
-  Maintain a registry of Grafana dashboards organized by module and by guideline dimension. Each dashboard should include: the G3 scalability metrics ($\Theta_m$, $\sigma^2_{L,m}$, $\Delta\Theta$), the G4 readiness indicators, and the G6 observability health metrics ($\tau$, $\kappa_m$).
+  Maintain a registry of Grafana dashboards organized by module and by guideline dimension. Each dashboard should include: the G3 scalability metrics (throughput profiles, latency variance, throughput divergence), the G4 readiness indicators, and the G6 observability health metrics (trace completeness, metric coverage).
 
   \item \emph{Performance Baseline Archive:}
   Before any extraction, record the module's performance baseline (latency percentiles, throughput range, error rate distribution) as a versioned document. This baseline serves as the reference for post-extraction comparison.
@@ -511,7 +511,7 @@ Table~\ref{tab:observability-maturity} defines the observability maturity levels
 O0 (None) & None & None & None & None \\
 O1 (Application) & App-wide & Global counters & Unstructured & Single overview \\
 O2 (Module-scoped) & Per-module spans & Module counters & Structured, tagged & Per-module \\
-O3 (Cross-boundary) & Cross-module correlation & $\Theta_m$, $\kappa_m$ & Trace-linked & Per-module + flow \\
+O3 (Cross-boundary) & Cross-module correlation & throughput, metric coverage & Trace-linked & Per-module + flow \\
 \hline
 \end{tabular}
 \end{table}
