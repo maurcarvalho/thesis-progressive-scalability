@@ -11,8 +11,39 @@
 \newglossaryentry{D1}{name={\ensuremath{D_1}}, description={Module-Aware CI: Nx \texttt{affected} scopes tests and builds to changed modules; still produces one artifact, but CI is faster and module-scoped}, sort={D1}}
 \newglossaryentry{D2}{name={\ensuremath{D_2}}, description={Multi-Artifact: the monorepo produces multiple Docker images (e.g., \texttt{api} + \texttt{orders-service}); shared libraries remain in the repo; each image has its own deployment pipeline}, sort={D2}}
 
-% ── Metrics ──
-\newglossaryentry{ERS}{name={\ensuremath{ERS}}, description={Extraction Readiness Score: composite metric (0--100) assessing a module's readiness for independent deployment, based on coupling, cohesion, and data isolation criteria}, sort={ERS}}
+% ── Metrics: G1 (Boundary Enforcement) ──
+\newglossaryentry{BV}{name={Boundary Violations}, description={Consolidated count of undeclared ($C_{\mathrm{undecl}}$), forbidden ($C_{\mathrm{forbid}}$), and event-subscription ($C_{\mathrm{event}}$) references across modules. Target: 0}, sort={BV}}
+\newglossaryentry{EV}{name={Encapsulation Violations}, description={Count of cross-module references that bypass the provider's public API surface ($C_{\mathrm{leak}}$). Target: 0}, sort={EV}}
+\newglossaryentry{IPR}{name={Isolation Pass Rate}, description={Proportion of module-scoped tests passing with only declared dependencies ($P_{\mathrm{iso}}$). Target: 100\%}, sort={IPR}}
+
+% ── Metrics: G2 (Maintainability) ──
+\newglossaryentry{ADR_metric}{name={API Discipline Ratio}, description={Proportion of cross-module references targeting public API surfaces ($\rho_{\mathrm{api}}$). Target: $\geq 95\%$}, sort={ADR}}
+\newglossaryentry{ASS}{name={API Surface Stability}, description={Growth rate ($G_{\mathrm{api}}$) and contract stability ($\sigma_m$) of module public surfaces. Target: stable}, sort={ASS}}
+\newglossaryentry{RDist}{name={Responsibility Distribution}, description={Complexity concentration ($\Gamma$) and fan-in concentration ($\phi_m$). Target: balanced ($\Gamma \leq 3.0$, $\phi_m \leq 0.5$)}, sort={RD}}
+\newglossaryentry{CCI}{name={Change Coupling Index}, description={Co-change frequency across modules ($CCI$). Target: $\leq 0.2$}, sort={CCI}}
+
+% ── Metrics: G3 (Progressive Scalability) ──
+\newglossaryentry{SyncR}{name={Sync Ratio}, description={Proportion of synchronous cross-module calls ($\rho_{\mathrm{sync}}$). Target: $\leq 30\%$}, sort={SR}}
+\newglossaryentry{DataOwn}{name={Data Ownership}, description={Proportion of tables with unambiguous single-module ownership ($\omega$). Target: 100\%}, sort={DO}}
+\newglossaryentry{AbsCov}{name={Abstraction Coverage}, description={Proportion of infrastructure access mediated through ports ($\alpha$). Target: 100\%}, sort={AC}}
+\newglossaryentry{ERS}{name={Extraction Readiness}, description={Composite metric (0--1.0) synthesizing G1 boundary health, G2 maintainability, and G3 scalability preparation per module ($\varepsilon_m$). Target: $\geq 0.8$ for extraction candidates}, sort={ERS}}
+
+% ── Metrics: G4 (Migration Readiness) ──
+\newglossaryentry{ACLCov}{name={ACL Coverage}, description={Proportion of cross-module integration points protected by anti-corruption layers ($\gamma$). Target: 1.0}, sort={ACLCov}}
+\newglossaryentry{SagaComp}{name={Saga Completeness}, description={Proportion of cross-module workflows with defined compensating actions ($\sigma$). Target: 1.0}, sort={SagaComp}}
+\newglossaryentry{APIVer}{name={API Version Coverage}, description={Proportion of public APIs carrying version metadata ($\nu$). Target: 1.0}, sort={APIVer}}
+
+% ── Metrics: G5 (Deployment Strategy) ──
+\newglossaryentry{CIScopeEff}{name={CI Scope Efficiency}, description={Proportion of CI work scoped to affected modules ($\eta_{\mathrm{CI}}$). Target: 1.0}, sort={CIScopeEff}}
+\newglossaryentry{InfraParity}{name={Infrastructure Parity}, description={Development-production infrastructure parity score ($\pi$). Target: 1.0}, sort={InfraParity}}
+\newglossaryentry{IndepDeploy}{name={Independent Deployment Rate}, description={Proportion of deployments that are module-independent ($\delta$). Target: $\geq 0.8$ after extraction}, sort={IndepDeploy}}
+
+% ── Metrics: G6 (Observability) ──
+\newglossaryentry{TraceComp}{name={Trace Completeness}, description={Proportion of cross-module requests with end-to-end traces ($\tau$). Target: $\geq 0.95$}, sort={TraceComp}}
+\newglossaryentry{MetricCov}{name={Metric Coverage}, description={Proportion of module operations emitting latency, throughput, and error metrics ($\kappa_m$). Target: 1.0}, sort={MetricCov}}
+\newglossaryentry{LogAttr}{name={Log Attribution Rate}, description={Proportion of log entries including module and trace context ($\lambda$). Target: 1.0}, sort={LogAttr}}
+\newglossaryentry{AlertPrec}{name={Alert Precision}, description={Proportion of alerts providing module-level precision ($\alpha_{\mathrm{alert}}$). Target: $\geq 0.8$}, sort={AlertPrec}}
+\newglossaryentry{BaselineCov}{name={Baseline Coverage}, description={Proportion of modules with pre-extraction performance baselines ($\beta$). Target: 1.0 before L3 extraction}, sort={BaselineCov}}
 
 % ── Guideline Identifiers ──
 \newglossaryentry{Gn}{name={\ensuremath{G_n}}, description={Guideline identifier, where \ensuremath{n \in \{1, \ldots, 12\}}. $G_1$--$G_6$ are detailed in this work; $G_7$--$G_{12}$ are deferred to future research}, sort={Gn}}
