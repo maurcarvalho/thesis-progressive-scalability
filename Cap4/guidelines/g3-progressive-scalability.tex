@@ -107,7 +107,7 @@ To make the gradient concrete, G3 proposes a four-level spectrum that teams can 
 \caption{Progressive Scalability Spectrum for Modular Monoliths}
 \label{tab:scalability-spectrum}
 \rowcolors{2}{gray!5}{white}
-\begin{tabularx}{\linewidth}{p{0.04\linewidth} p{0.14\linewidth} X p{0.28\linewidth}}
+\begin{tabularx}{\linewidth}{p{0.04\linewidth} >{\raggedright\arraybackslash\hyphenpenalty=10000}p{0.14\linewidth} X p{0.28\linewidth}}
 \toprule
 \textbf{Level} & \textbf{Intervention} & \textbf{Description} & \textbf{Metric Trigger} \\
 \midrule
@@ -118,6 +118,8 @@ L3 & Selective Extraction & Deploy a bounded context as an independent service w
 \bottomrule
 \end{tabularx}
 \end{table}
+
+\input{Cap4/guidelines/fig-spectrum-flow}
 
 \noindent
 The spectrum is not strictly linear: a team may apply L2 (data isolation) to one module while another module remains at L0. The key constraint is that each intervention at a given level should be justified by evidence that the previous level is insufficient for the module in question.

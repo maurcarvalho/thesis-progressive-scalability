@@ -1,0 +1,40 @@
+% Progressive Scalability Spectrum — Bidirectional Flow Diagram
+% Requires: \usepackage{tikz}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  node distance=3.2cm,
+  level/.style={
+    rectangle, rounded corners=4pt, draw=black!70, fill=gray!8,
+    minimum width=2.2cm, minimum height=1.6cm, align=center,
+    font=\small\bfseries
+  },
+  fwd/.style={->, >=stealth, thick, black!70},
+  bwd/.style={<-, >=stealth, thin, black!40, dashed},
+  trigger/.style={font=\scriptsize, align=center, text=black!80},
+  rollback/.style={font=\scriptsize, align=center, text=black!50},
+]
+
+% Nodes
+\node[level] (L0) {L0\\[2pt]\footnotesize Vertical\\[-1pt]\footnotesize Optimization};
+\node[level, right of=L0] (L1) {L1\\[2pt]\footnotesize Async\\[-1pt]\footnotesize Decoupling};
+\node[level, right of=L1] (L2) {L2\\[2pt]\footnotesize Data\\[-1pt]\footnotesize Isolation};
+\node[level, right of=L2] (L3) {L3\\[2pt]\footnotesize Selective\\[-1pt]\footnotesize Extraction};
+
+% Forward arrows (metric triggers)
+\draw[fwd] (L0.east) -- node[above, trigger] {sync ratio $> 0.3$\\[1pt]throughput 2:1} (L1.west);
+\draw[fwd] (L1.east) -- node[above, trigger] {data ownership\\[1pt]$< 1.0$} (L2.west);
+\draw[fwd] (L2.east) -- node[above, trigger] {extraction readiness\\[1pt]$\geq 0.8$} (L3.west);
+
+% Backward arrows (rollback paths)
+\draw[bwd] ([yshift=-3pt]L0.east) -- node[below, rollback] {adapter swap\\(low cost)} ([yshift=-3pt]L1.west);
+\draw[bwd] ([yshift=-3pt]L1.east) -- node[below, rollback] {adapter rebind\\(medium cost)} ([yshift=-3pt]L2.west);
+\draw[bwd] ([yshift=-3pt]L2.east) -- node[below, rollback] {re-embed\\(high cost)} ([yshift=-3pt]L3.west);
+
+% Annotation
+\node[below=1.4cm of L1, anchor=north, font=\footnotesize\itshape, text=black!60, align=center] (note) {Each module progresses independently.\\Most modules remain at L0--L1.};
+
+\end{tikzpicture}
+\caption{Progressive Scalability Spectrum: metric-driven progression (solid) and rollback paths (dashed). Each module traverses the spectrum independently based on its own metric signals.}
+\label{fig:spectrum-flow}
+\end{figure}
