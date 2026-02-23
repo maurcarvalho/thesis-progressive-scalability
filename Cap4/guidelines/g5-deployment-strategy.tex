@@ -395,12 +395,12 @@ This progression from D0 to D2 is a deployment topology change, not a rewrite. T
 G5 metrics assess whether the deployment strategy supports the modular architecture and enables progressive extraction.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{CI Scope Efficiency ($\eta_{\mathrm{CI}}$):}
+  \item \textbf{CI Scope Efficiency:}
   Inefficient CI pipelines that run all tests for every change create feedback delays and resource waste that discourage frequent commits and rapid iteration \cite{fairbanks2010justenough}. Module-aware pipelines should scope builds and tests precisely to the modules affected by a change, ensuring that CI time grows with change size rather than repository size. This metric quantifies how effectively the pipeline leverages the module dependency graph to eliminate unnecessary work, directly impacting developer velocity and CI cost efficiency.
   \[
     \eta_{\mathrm{CI}} = \frac{|M_{\mathrm{changed}}| + |M_{\mathrm{transitively\_affected}}|}{|M_{\mathrm{tested}}|}
   \]
-  \emph{Target:} $\eta_{\mathrm{CI}} = 1$ (perfect scope efficiency, testing only affected modules). \\
+  \emph{Target:} perfect scope efficiency, testing only affected modules ($\eta_{\mathrm{CI}} = 1$). \\
 
   \item \textbf{Build Time per Affected Scope ($T_{\mathrm{build}}$):}
   Build times that grow superlinearly with repository size eventually become bottlenecks that impede rapid iteration and continuous deployment \cite{FordParsons2017}. Even with perfect scope efficiency, build times can degrade due to module dependency bloat, inefficient test suites, or suboptimal toolchain configuration. This metric tracks the actual wall-clock time required to build and test only the affected modules, providing early warning when pipeline performance begins to constrain development velocity.
@@ -417,19 +417,19 @@ G5 metrics assess whether the deployment strategy supports the modular architect
   \]
   \emph{Target:} $N_{\mathrm{artifacts}}$ should align with G3 extraction decisions (start at 1, grow with L3 triggers). \\
 
-  \item \textbf{Infrastructure Parity Score ($\pi$):}
+  \item \textbf{Infrastructure Parity:}
   Development-production environment mismatches are a primary source of deployment failures, integration bugs, and delayed feedback loops \cite{martin2012clean}. When developers work against simplified infrastructure (in-memory databases, mock message brokers) that differs from production, integration issues surface only during deployment, creating expensive debugging cycles. This metric quantifies how closely the local development environment mirrors production infrastructure, ensuring that integration issues are caught early in the development cycle.
   \[
     \pi = \frac{|I_{\mathrm{local}}|}{|I_{\mathrm{production}}|}
   \]
-  \emph{Target:} $\pi = 1$ (complete development-production infrastructure parity). \\
+  \emph{Target:} complete development-production infrastructure parity ($\pi = 1$). \\
 
-  \item \textbf{Independent Deployment Rate ($\delta$):}
+  \item \textbf{Independent Deployment Rate:}
   Independent deployment is one of the primary benefits justifying service extraction, enabling teams to release features without coordinating with other services or waiting for system-wide release windows \cite{richardson2018microservices}. When extracted services still require coordinated deployments, it indicates that coupling has migrated from code dependencies to shared deployment state, undermining the operational benefits that motivated extraction. This metric quantifies how successfully the deployment architecture has preserved independent evolution.
   \[
     \delta = \frac{|D_{\mathrm{independent}}|}{|D|}
   \]
-  \emph{Target:} $\delta \geq 0.8$ after extraction (majority of deployments are independent). \\
+  \emph{Target:} majority of deployments are independent after extraction ($\delta \geq 0.8$). \\
 
   \item \textbf{Rollback Success Rate ($R$):}
   Rollback capability is a critical operational requirement for production systems, enabling rapid recovery from deployment issues without complex coordination procedures \cite{FordParsons2017}. When rollbacks require coordinated reversions across multiple services, the system exhibits deployment coupling that negates the operational benefits of service extraction. This metric measures how well the deployment architecture supports independent rollback operations, providing confidence for rapid deployment and quick recovery.
@@ -440,7 +440,7 @@ G5 metrics assess whether the deployment strategy supports the modular architect
 \end{itemize}
 
 \noindent
-\emph{Verification strategy:} G5 metrics are tracked from D0 onward. Even before extraction, $\eta_{\mathrm{CI}}$ and $T_{\mathrm{build}}$ provide early signals about pipeline efficiency. After extraction (D2), $\delta$ and $R$ verify that independent deployment is genuinely achievable. A declining $\delta$ after extraction indicates that the deployment strategy has not fully decoupled from the monolith, requiring investigation of shared infrastructure or coordinated release dependencies.
+\emph{Verification strategy:} G5 metrics are tracked from D0 onward. Even before extraction, CI scope efficiency and build time provide early signals about pipeline efficiency. After extraction (D2), independent deployment rate and rollback success verify that independent deployment is genuinely achievable. A declining independent deployment rate after extraction indicates that the deployment strategy has not fully decoupled from the monolith, requiring investigation of shared infrastructure or coordinated release dependencies.
 
 \medskip
 \noindent
