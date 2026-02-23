@@ -20,7 +20,7 @@ This spectrum makes the migration to microservices an \emph{option}, not an obli
 
 Progressive scalability is embedded by designing modules so that growth is absorbed incrementally. The key architectural decision is that both synchronous and asynchronous communication channels are available as part of the system's foundational design: synchronous calls serve low-latency, consistency-critical paths, while asynchronous channels (event buses, message queues) absorb throughput divergence. The choice between channels is driven by observed load patterns, not by speculative anticipation, and the transition from one to the other is a configuration change rather than a rewrite.
 
-Critically, scalability readiness must be \emph{automatically tracked}, not manually assessed. Module-level metrics (throughput profiles, latency variance, data ownership clarity) are collected continuously and evaluated against defined thresholds. When a metric crosses its threshold, the system signals that a specific module requires a specific intervention at a specific spectrum level, removing subjectivity from scaling decisions. Equally important, the architecture must ensure that each intervention is reversible and that its effects remain contained within the module under pressure. A well-designed progressive scalability posture satisfies six structural properties:
+Critically, scalability readiness must be \emph{automatically tracked}, not manually assessed. Module-level metrics (throughput profiles, latency variance, data ownership clarity) are collected continuously and evaluated against defined thresholds. When a metric crosses its threshold, the system signals that a specific module requires a specific intervention at a specific spectrum level, removing subjectivity from scaling decisions. Equally important, the architecture must ensure that each intervention is reversible and that its effects remain contained within the module under pressure. A well-designed progressive scalability posture satisfies five structural properties:
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item Each module's resource consumption, throughput profile, and data growth trajectory are observable and attributable, enabling evidence-based scaling decisions.
@@ -28,7 +28,6 @@ Critically, scalability readiness must be \emph{automatically tracked}, not manu
   \item Persistence is designed so that schema ownership can be narrowed from shared to module-scoped without data migration crises.
   \item Infrastructure dependencies (databases, caches, queues, external APIs) are accessed through abstractions that decouple business logic from deployment topology.
   \item Each spectrum-level intervention is reversible: if conditions change or the intervention proves unnecessary, the system can retreat to a lower level without architectural damage.
-  \item Performance degradation or failure in one module does not cascade to others; scaling pressure remains localized, matching the localized nature of the interventions.
 \end{itemize}
 
 \subsection*{Applicability Conditions and Scope}
