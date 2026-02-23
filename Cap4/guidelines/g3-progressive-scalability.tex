@@ -107,14 +107,14 @@ To make the gradient concrete, G3 proposes a four-level spectrum that teams can 
 \caption{Progressive Scalability Spectrum for Modular Monoliths}
 \label{tab:scalability-spectrum}
 \rowcolors{2}{gray!5}{white}
-\begin{tabularx}{\linewidth}{p{0.04\linewidth} p{0.14\linewidth} p{0.28\linewidth} p{0.22\linewidth} p{0.20\linewidth}}
+\begin{tabularx}{\linewidth}{p{0.04\linewidth} p{0.14\linewidth} X p{0.28\linewidth}}
 \toprule
-\textbf{Level} & \textbf{Intervention} & \textbf{Description} & \textbf{Trigger Condition} & \textbf{Rollback Path} \\
+\textbf{Level} & \textbf{Intervention} & \textbf{Description} & \textbf{Metric Trigger} \\
 \midrule
-L0 & Vertical Optimization & Resource tuning, caching, query optimization, concurrency improvements within the monolith. No structural change. & Module-level latency or throughput degradation detected. & Disable cache or revert config; no structural change to undo. \\
-L1 & Async Decoupling & Replace synchronous inter-module calls with asynchronous channels (event bus, message queue) for modules with divergent throughput. & Synchronous calls between modules create backpressure or latency spikes under load. & Rebind communication adapter to synchronous dispatcher; business logic unchanged. \\
-L2 & Data Isolation & Separate module-scoped persistence (dedicated schemas, read replicas, or separate databases) for modules with divergent data access patterns. & Shared database contention, conflicting consistency requirements, or schema evolution friction. & Rebind repository adapter to shared schema; data stays in module-owned tables. \\
-L3 & Selective Extraction & Deploy a bounded context as an independent service with its own runtime, persistence, and deployment pipeline. & L0--L2 exhausted; module requires independent scaling, independent release cadence, or technology heterogeneity. & Re-embed module in monolith process; reconnect to shared infrastructure adapters. Highest rollback cost. \\
+L0 & Vertical Optimization & Resource tuning, caching, query optimization, concurrency improvements within the monolith. No structural change. & Throughput divergence or latency variance exceeds baseline. \\
+L1 & Async Decoupling & Replace synchronous inter-module calls with asynchronous channels for modules with divergent throughput. & Sync ratio $> 0.3$ between connected modules with $>$2:1 throughput divergence. \\
+L2 & Data Isolation & Separate module-scoped persistence (dedicated schemas, read replicas, or separate databases) for modules with divergent data access patterns. & Data ownership $< 1.0$ or shared database contention detected. \\
+L3 & Selective Extraction & Deploy a bounded context as an independent service with its own runtime, persistence, and deployment pipeline. & Extraction readiness $\geq 0.8$ and L0--L2 interventions insufficient. \\
 \bottomrule
 \end{tabularx}
 \end{table}
