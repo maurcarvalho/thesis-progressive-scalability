@@ -56,7 +56,7 @@ G4 does not prescribe when to extract. That decision belongs to G3's scalability
   Each module has its own domain model, its own vocabulary, and its own invariants. When module $A$ consumes data from module $B$, it should not depend on $B$'s internal representation. An anti-corruption layer (ACL) sits at the boundary and translates $B$'s published model into $A$'s internal model. This decouples the evolution of both modules: $B$ can refactor its internals without breaking $A$, and $A$ can evolve its model without requiring changes in $B$~\cite{evans2003ddd}.
 
   \item \emph{Data ownership is non-negotiable:}
-  Shared database tables are the single largest obstacle to extraction. When two modules read from or write to the same table, they are coupled at the persistence level regardless of how clean their code-level boundaries are. G4 requires that each module owns its data exclusively. Cross-module data access occurs through the module's public API or through published events, never through direct database queries. This principle builds on G3's Data Ownership Clarity Index ($\omega$) and treats $\omega = 1$ as a prerequisite for extraction readiness.
+  Shared database tables are the single largest obstacle to extraction. When two modules read from or write to the same table, they are coupled at the persistence level regardless of how clean their code-level boundaries are. G4 requires that each module owns its data exclusively. Cross-module data access occurs through the module's public API or through published events, never through direct database queries. This principle builds on G3's data ownership metric and treats full data ownership as a prerequisite for extraction readiness.
 
   \item \emph{Eventual consistency is the default for cross-module workflows:}
   Monoliths often rely on database transactions to maintain consistency across modules. This works in-process but fails across network boundaries. G4 replaces cross-module transactions with saga patterns: each module performs its local operation and publishes an event; downstream modules react and either continue the workflow or trigger a compensating action. The saga pattern is already implicit in Tiny Store's event-driven choreography (OrderPlaced $\to$ InventoryReserved $\to$ PaymentProcessed $\to$ ShipmentCreated); G4 makes it explicit and robust.
@@ -108,7 +108,7 @@ The following steps describe how to bring the orders module from its baseline st
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Step 1: Isolate the orders schema.}
-  Create a dedicated database schema (or namespace) for orders. Migrate the \texttt{orders} and \texttt{order\_items} tables into this schema. Update the orders repository to use the isolated schema. Verify that no other module queries these tables directly (G3's $\omega$ metric should increase toward 1).
+  Create a dedicated database schema (or namespace) for orders. Migrate the \texttt{orders} and \texttt{order\_items} tables into this schema. Update the orders repository to use the isolated schema. Verify that no other module queries these tables directly (G3's data ownership metric should increase toward 1.0).
 
   \item \emph{Step 2: Abstract the event bus behind a port, with Kafka as the production adapter.}
   Kafka is included from inception as part of the modular monolith's infrastructure. The system defines an \texttt{IEventPublisher} interface (port) in the shared infrastructure layer, with two adapters: an in-memory \texttt{EventBus} for development and testing, and a \texttt{KafkaEventBusAdapter} for production. A factory function selects the adapter based on the \texttt{EVENT\_TRANSPORT} environment variable. This makes event transport a configuration decision from day one, not a migration step.
@@ -529,7 +529,7 @@ The extraction process consists of eight automated steps:
 \begin{enumerate}[itemsep=8pt,topsep=2pt]
   \item \emph{Entity Discovery:} Parse TypeScript source files to identify \texttt{@Entity} decorators and their associated database tables. This step ensures that all database artifacts belonging to the module are discovered programmatically rather than maintained in a separate manifest.
 
-  \item \emph{Database Migration:} Create a dedicated PostgreSQL database for the extracted service and migrate data from the shared SQLite database. This step materializes the data ownership principle (G3's $\omega = 1$) by providing the module with an isolated persistence layer.
+  \item \emph{Database Migration:} Create a dedicated PostgreSQL database for the extracted service and migrate data from the shared SQLite database. This step materializes the data ownership principle (G3's data ownership = 1.0) by providing the module with an isolated persistence layer.
 
   \item \emph{Service Scaffolding:} Generate a complete Express-based service application with TypeORM configuration, health check endpoints, and integration with the existing module handlers. The scaffolded service uses the same Temporal workflow definitions and Kafka event publishers as the monolith, ensuring behavioral equivalence.
 
@@ -636,44 +636,44 @@ This operationalization of G4's principles provides production teams with the co
 G4 metrics assess whether a module is structurally prepared for extraction, complementing G1's boundary metrics, G2's maintainability metrics, and G3's scalability metrics.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Data Ownership Clarity ($\omega_m$):}
+  \item \textbf{Data Ownership (per module):}
   Shared database tables represent the single largest obstacle to service extraction, creating coupling at the persistence layer that survives any amount of code-level decoupling \cite{evans2003ddd}. When modules access the same tables directly, extraction requires complex data migration and schema splitting that often fails in production. This metric, inherited from G3 but scoped to the candidate module, quantifies how cleanly the module's data boundaries are established, providing the foundation for zero-migration extraction.
-  Reused from G3, scoped to the candidate module. $\omega_m = 1$ means the module owns all its tables exclusively. $\omega_m < 1$ indicates shared tables that block extraction.
+  Reused from G3, scoped to the candidate module. A value of 1.0 means the module owns all its tables exclusively. A value below 1.0 indicates shared tables that block extraction.
   \[
     \omega_m = \frac{|T_{\mathrm{module\text{-}only}}|}{|T_m|}
   \]
-  \emph{Threshold:} $\omega_m = 1$ (complete data ownership before extraction). \\
+  \emph{Threshold:} complete data ownership ($\omega_m = 1$) before extraction. \\
 
-  \item \textbf{Anti-Corruption Layer Coverage ($\gamma$):}
+  \item \textbf{ACL Coverage:}
   Without explicit translation boundaries, upstream modules' internal model changes propagate directly to downstream consumers, creating tight coupling that prevents independent evolution \cite{evans2003ddd}. Anti-corruption layers serve as contractual buffers that translate between domain models, ensuring that one module's refactoring doesn't cascade into breaking changes for its consumers. This metric quantifies how well protected the module's integration points are from external model changes, directly impacting its ability to evolve independently after extraction.
   \[
     \gamma = \frac{|I_{\mathrm{ACL}}|}{|I|}
   \]
   where $I$ is the set of all cross-module integration points and $I_{\mathrm{ACL}}$ is the subset mediated by an ACL.
-  \emph{Target:} $\gamma = 1$ (all integration points protected by ACLs). \\
+  \emph{Target:} all integration points protected by ACLs ($\gamma = 1$). \\
 
-  \item \textbf{Saga Completeness ($\sigma$):}
+  \item \textbf{Saga Completeness:}
   Cross-module workflows that rely on database transactions for consistency will fail catastrophically after extraction, when ACID guarantees no longer span module boundaries \cite{richardson2018microservices}. Saga patterns replace atomic transactions with choreographed sequences that include explicit compensating actions for each step, ensuring that distributed workflows can recover from partial failures. This metric measures how comprehensively the module's workflows have been prepared for the eventual consistency requirements of distributed deployment.
   \[
     \sigma = \frac{|W_{\mathrm{compensated}}|}{|W|}
   \]
   where $W$ is the set of cross-module workflows involving the candidate module.
-  \emph{Target:} $\sigma = 1$ (all workflows have compensating actions defined). \\
+  \emph{Target:} all workflows have compensating actions defined ($\sigma = 1$). \\
 
-  \item \textbf{Infrastructure Abstraction Coverage ($\alpha_m$):}
+  \item \textbf{Abstraction Coverage (per module):}
   Modules that directly depend on infrastructure implementations become coupled to specific deployment topologies, making extraction a code rewrite rather than a configuration change \cite{martin2012clean}. Infrastructure abstraction through ports and adapters ensures that domain logic remains independent of whether the module runs in-process or as an independent service. This metric, inherited from G3 but critically important for extraction, quantifies how much of the module's infrastructure access has been properly abstracted.
   Reused from G3, scoped to the candidate module. Measures whether infrastructure dependencies (event bus, database, cache) are accessed through ports.
   \[
     \alpha_m = \frac{|A_{\mathrm{abstracted,m}}|}{|A_m|}
   \]
-  \emph{Threshold:} $\alpha_m = 1$ (all infrastructure access through ports). \\
+  \emph{Threshold:} all infrastructure access through ports ($\alpha_m = 1$). \\
 
-  \item \textbf{API Version Coverage ($\nu$):}
+  \item \textbf{API Version Coverage:}
   Independent deployment is one of the primary benefits of service extraction, but it requires that services can evolve their APIs without forcing simultaneous updates across all consumers \cite{parnas1972informationhiding}. Unversioned APIs create coordination bottlenecks that eliminate the deployment independence that justified extraction in the first place. This metric ensures that the module's public contracts can support backward-compatible evolution, preserving independent deployment capabilities after extraction.
   \[
     \nu = \frac{|E_{\mathrm{versioned}}|}{|E|}
   \]
-  \emph{Target:} $\nu = 1$ (all public APIs carry version metadata). \\
+  \emph{Target:} all public APIs carry version metadata ($\nu = 1$). \\
 
   \item \textbf{Composite Migration Readiness Score ($\mu_m$):}
   Service extraction should be driven by objective readiness assessment rather than urgency or intuition \cite{wolfart2021modernizing}. This composite score synthesizes all preparation dimensions into a single indicator that can guide extraction timing decisions. A high readiness score indicates that extraction will be a low-risk configuration change; a low score reveals specific preparation gaps that must be addressed before extraction becomes viable. This metric transforms extraction from a reactive crisis response into a proactive architectural decision based on measurable readiness.
