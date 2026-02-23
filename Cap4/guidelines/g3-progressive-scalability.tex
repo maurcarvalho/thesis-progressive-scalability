@@ -69,18 +69,16 @@ G3 does not prescribe specific cloud providers, container orchestrators, or scal
   \item \emph{Asynchronous boundaries as scalability seams:}
   The boundary between two modules becomes a scalability seam when their throughput requirements diverge. Introducing an asynchronous channel (event bus, message queue) at this seam absorbs load spikes in the producer without propagating backpressure to the consumer, and vice versa. The key constraint is that asynchronous boundaries must respect the contracts established in G1 and the stability properties maintained by G2.
 
-  \item \emph{Schema isolation is established from project inception:}
-  Each module owns a dedicated PostgreSQL schema established at project start. Cross-module data access is mediated exclusively through published contracts (events or API calls), never through direct table queries. This design decision, made as an initial architectural decision rather than deferred to a future migration, ensures that data isolation is a structural property of the system rather than a prerequisite to be satisfied before extraction.
+  \item \emph{Data isolation is established from project inception:}
+  Each module owns a dedicated database schema (or equivalent namespace) established at project start. Cross-module data access is mediated exclusively through published contracts (events or API calls), never through direct table queries. This design decision, made as an initial architectural choice rather than deferred to a future migration, ensures that data isolation is a structural property of the system rather than a prerequisite to be satisfied before extraction.
 
   \item \emph{Infrastructure as a replaceable dependency:}
-  Modules should depend on infrastructure through ports (interfaces) rather than concrete implementations. This is not an abstract design preference but a scalability prerequisite: when a module must move from an in-process event bus to a distributed message broker, or from a shared PostgreSQL instance to a dedicated read replica, the change should be confined to the infrastructure adapter, not the domain logic.
+  Modules should depend on infrastructure through ports (interfaces) rather than concrete implementations. This is not an abstract design preference but a scalability prerequisite: when a module must move from an in-process event bus to a distributed message broker, or from a shared database to a dedicated instance, the change should be confined to the infrastructure adapter, not the domain logic.
 
   \item \emph{Extraction is the last resort, not the first reflex:}
   Extracting a module into an independent service introduces network boundaries, distributed failure modes, deployment complexity, and operational overhead. G3 positions extraction at the end of the scalability spectrum, after vertical optimization, async decoupling, and data isolation have been exhausted or proven insufficient. This ordering preserves system simplicity for as long as possible while ensuring that extraction remains feasible when genuinely needed.
 \end{itemize}
 
-
-\pagebreak
 \subsection*{Implementation Mechanisms}
 
 G3 is implemented through the following architectural mechanisms, all established at project start:
@@ -90,7 +88,7 @@ G3 is implemented through the following architectural mechanisms, all establishe
 
   \item \emph{Communication abstraction layer:} Operationalizing the \emph{asynchronous boundaries as scalability seams} principle (above), inter-module communication passes through a contract-based abstraction (e.g., an event bus interface or a command dispatcher) that can be backed by in-process dispatch, an in-memory queue, or a distributed broker without changing the caller or handler.
 
-  \item \emph{Persistence port pattern:} Operationalizing \emph{schema isolation from inception} and \emph{infrastructure as a replaceable dependency}, each module accesses its data through repository interfaces (ports) backed by a dedicated PostgreSQL schema established at project start. The concrete implementation is injected at composition time; when a module is extracted (L3), the repository adapter is re-bound to a dedicated database instance without changing domain logic. Schema ownership is documented in the module descriptor introduced in G1.
+  \item \emph{Persistence port pattern:} Operationalizing \emph{data isolation from inception} and \emph{infrastructure as a replaceable dependency}, each module accesses its data through repository interfaces (ports) backed by a dedicated database schema established at project start. The concrete implementation (e.g., a PostgreSQL schema with isolated \texttt{search\_path}) is injected at composition time; when a module is extracted (L3), the repository adapter is re-bound to a dedicated database instance without changing domain logic. Schema ownership is documented in the module descriptor introduced in G1.
 
   \item \emph{Scalability decision records:} When a module transitions between spectrum levels (e.g., from L0 to L1), the decision is recorded in an Architecture Decision Record (ADR) that captures the trigger condition, the intervention applied, the expected outcome, and the rollback path. This ensures that scaling decisions remain traceable and reversible.
 \end{itemize}
