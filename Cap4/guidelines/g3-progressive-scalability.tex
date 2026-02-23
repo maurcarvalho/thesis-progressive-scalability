@@ -27,6 +27,8 @@ Critically, scalability readiness must be \emph{automatically tracked}, not manu
   \item Communication between modules with divergent scaling needs can transition from synchronous to asynchronous without rewriting business logic.
   \item Persistence is designed so that schema ownership can be narrowed from shared to module-scoped without data migration crises.
   \item Infrastructure dependencies (databases, caches, queues, external APIs) are accessed through abstractions that decouple business logic from deployment topology.
+  \item Each spectrum-level intervention is reversible: if conditions change or the intervention proves unnecessary, the system can retreat to a lower level without architectural damage.
+  \item Performance degradation or failure in one module does not cascade to others; scaling pressure remains localized, matching the localized nature of the interventions.
 \end{itemize}
 
 \subsection*{Applicability Conditions and Scope}
