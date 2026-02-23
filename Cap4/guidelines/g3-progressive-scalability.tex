@@ -75,6 +75,9 @@ G3 does not prescribe specific cloud providers, container orchestrators, or scal
   \item \emph{Infrastructure as a replaceable dependency:}
   Modules should depend on infrastructure through ports (interfaces) rather than concrete implementations. This is not an abstract design preference but a scalability prerequisite: when a module must move from an in-process event bus to a distributed message broker, or from a shared database to a dedicated instance, the change should be confined to the infrastructure adapter, not the domain logic.
 
+  \item \emph{Every intervention is reversible by design:}
+  Each spectrum-level transition preserves the option to retreat if conditions change or the intervention proves unnecessary. Reversibility is not an afterthought but a design constraint: infrastructure abstractions, communication channels, and data isolation boundaries are structured so that rolling back to a lower spectrum level requires configuration changes, not architectural rework.
+
   \item \emph{Extraction is the last resort, not the first reflex:}
   Extracting a module into an independent service introduces network boundaries, distributed failure modes, deployment complexity, and operational overhead. G3 positions extraction at the end of the scalability spectrum, after vertical optimization, async decoupling, and data isolation have been exhausted or proven insufficient. This ordering preserves system simplicity for as long as possible while ensuring that extraction remains feasible when genuinely needed.
 \end{itemize}
