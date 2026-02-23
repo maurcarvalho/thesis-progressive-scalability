@@ -68,13 +68,13 @@ G2 is implemented through established software engineering practices rather than
 The following failure modes are frequently observed in modular monoliths that lack explicit maintainability discipline. Each anti-pattern increases the cost of change by expanding the blast radius of modifications, weakening ownership boundaries, or introducing hidden coupling. For each anti-pattern, G2 defines one or more metrics that make the degradation observable and verifiable.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Cross-Module Internal Reuse:} Reusing internal classes or utilities from another module instead of interacting through a declared public API tightly couples the consumer to the provider's internal structure~\cite{parnas1972informationhiding}. Internal refactoring then forces coordinated changes across modules, undermining independent evolution. This anti-pattern is primarily detected through an increase in encapsulation leakage count ($C_{\mathrm{leak}}$) and a reduction in the API-only dependency ratio ($\rho_{\mathrm{api}}$).
+  \item \emph{Cross-Module Internal Reuse:} Reusing internal classes or utilities from another module instead of interacting through a declared public API tightly couples the consumer to the provider's internal structure~\cite{parnas1972informationhiding}. Internal refactoring then forces coordinated changes across modules, undermining independent evolution. This anti-pattern is primarily detected through an increase in encapsulation leakage and a reduction in the API discipline ratio.
 
-  \item \emph{Implicit Dependency Introduction:} Dependencies introduced through configuration, dependency injection wiring, or reflection without explicit declaration bypass architectural review~\cite{fairbanks2010justenough}. Over time, they erode the reliability of dependency models and increase the effort required to assess change impact. This failure mode is reflected by an increase in undeclared dependency references ($C_{\mathrm{undecl}}$) and by reduced module isolation test pass rates ($P_{\mathrm{iso}}$).
+  \item \emph{Implicit Dependency Introduction:} Dependencies introduced through configuration, dependency injection wiring, or reflection without explicit declaration bypass architectural review~\cite{fairbanks2010justenough}. Over time, they erode the reliability of dependency models and increase the effort required to assess change impact. This failure mode is reflected by an increase in undeclared dependency references and by reduced module isolation test pass rates.
 
-  \item \emph{Bidirectional or Cyclic Dependencies:} Allowing modules to depend on each other directly or indirectly introduces cycles that prevent independent evolution~\cite{martin2012clean,yourdon1979structured}. Cycles increase cognitive load and coordination cost and are expensive to remove once established. This anti-pattern is detected through forbidden dependency references ($C_{\mathrm{forbid}}$) and explicit cycle analysis of the module dependency graph.
+  \item \emph{Bidirectional or Cyclic Dependencies:} Allowing modules to depend on each other directly or indirectly introduces cycles that prevent independent evolution~\cite{martin2012clean,yourdon1979structured}. Cycles increase cognitive load and coordination cost and are expensive to remove once established. This anti-pattern is detected through forbidden dependency references and explicit cycle analysis of the module dependency graph.
 
-  \item \emph{Overloaded Module APIs:} Uncontrolled growth of a module's public surface leads to unstable interfaces and defensive design~\cite{parnas1972informationhiding}. Refactoring becomes increasingly risky, and internal structure gradually freezes. This failure mode is indicated by a declining API-only dependency ratio ($\rho_{\mathrm{api}}$) and sustained growth of the module's public API surface over time.
+  \item \emph{Overloaded Module APIs:} Uncontrolled growth of a module's public surface leads to unstable interfaces and defensive design~\cite{parnas1972informationhiding}. Refactoring becomes increasingly risky, and internal structure gradually freezes. This failure mode is indicated by a declining API discipline ratio and sustained growth of the module's public API surface over time.
 
   \item \emph{Feature-Centric Coupling Across Modules:} When features span multiple modules without clear ownership, features rather than modules become the primary unit of change. This pattern increases coordination cost and dilutes accountability~\cite{FordParsons2017}. It is weakly visible in static dependencies but becomes evident through repeated cross-module co-changes and elevated architectural drift incidents.
 \end{itemize}
@@ -91,8 +91,30 @@ This gap between boundary correctness and boundary sustainability is the central
 \subsection*{Metrics and Verification}
 Maintainability in G2 is assessed through a set of explicit, measurable structural signals that capture boundary erosion, hidden coupling, and architectural drift over time. These metrics operationalize maintainability as a bounded cost of change by making the growth of coupling, dependency instability, and encapsulation violations observable and verifiable.
 
-G2 builds directly on the enforcement model introduced in G1. While G1 establishes the correctness of modular boundaries, G2 uses quantitative signals to assess whether those boundaries remain effective as the system evolves. The quality measurement baseline derived from G1 (Section~\ref{sec:g1-enforce-modular-boundaries}) is reused here as the foundation for maintainability verification.
+G2 builds directly on the enforcement model introduced in G1. While G1 establishes the correctness of modular boundaries, G2 uses quantitative signals to assess whether those boundaries remain effective as the system evolves.
 
+\medskip
+\noindent
+\small
+\begin{tabularx}{\linewidth}{p{0.26\linewidth} X p{0.14\linewidth} p{0.08\linewidth}}
+\toprule
+\textbf{Metric} & \textbf{What it measures} & \textbf{Target} & \textbf{Gate} \\
+\midrule
+\emph{Inherited from G1} & & & \\
+Boundary Violations & Undeclared, forbidden, and event refs & 0 & Yes \\
+Encapsulation Violations & References bypassing public API & 0 & Yes \\
+Isolation Pass Rate & Module tests with declared deps only & 100\% & Yes \\
+\midrule
+\emph{G2-specific} & & & \\
+API Discipline Ratio & Cross-module refs through public APIs & $\geq$ 95\% & Yes \\
+API Surface Stability & Growth rate and contract churn & Stable & No \\
+Responsibility Distribution & Complexity concentration and fan-in & Balanced & No \\
+Change Coupling & Co-change frequency across modules & $\leq$ 0.2 & No \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\medskip
 \noindent
 G2 inherits the full set of boundary enforcement metrics from G1 and extends them with maintainability-specific signals that capture architectural drift, API inflation, and temporal coupling. Together, these metrics operationalize maintainability as a bounded cost of change.
 
@@ -100,7 +122,7 @@ G2 inherits the full set of boundary enforcement metrics from G1 and extends the
 
 \subsubsection*{Inherited Boundary Metrics}
 
-G2 inherits the five boundary enforcement metrics defined in G1 (Section~\ref{sec:g1-enforce-modular-boundaries}): $C_{\mathrm{undecl}}$ (Undeclared Dependency Reference Count), $C_{\mathrm{forbid}}$ (Forbidden Dependency Reference Count), $C_{\mathrm{leak}}$ (Encapsulation Leakage Count), $P_{\mathrm{iso}}$ (Module Isolation Test Pass Rate), and $C_{\mathrm{event}}$ (Event Subscription Boundary Violations). Their definitions, equations, and thresholds remain identical. In G2, however, these metrics are tracked \emph{longitudinally} rather than evaluated at a single point in time: sustained increases in any inherited metric signal architectural drift that point-in-time enforcement alone cannot detect.
+G2 inherits the three consolidated boundary metrics defined in G1 (Section~\ref{sec:g1-enforce-modular-boundaries}): boundary violations, encapsulation violations, and isolation pass rate. Their definitions, equations, and thresholds remain identical. In G2, however, these metrics are tracked \emph{longitudinally} rather than evaluated at a single point in time: sustained increases in any inherited metric signal architectural drift that point-in-time enforcement alone cannot detect.
 
 \subsubsection*{Maintainability-Specific Metrics}
 
@@ -125,7 +147,7 @@ The following four metrics are unique to G2. They capture maintainability risks 
   \emph{Target:} $C_{\mathrm{bypass}} \to 0$ (minimize boundary bypass mechanisms). \\
   \emph{Verification intent:} identify high-risk interaction paths that undermine architectural guarantees.\\
 
-  \item \textbf{Public API Surface Growth Rate ($G_{\mathrm{api}}$):}
+  \item \textbf{Public API Surface Growth Rate (API growth rate):}
   The size of a module's public API surface directly impacts maintainability by creating downstream contractual obligations~\cite{parnas1972informationhiding}. Each exported interface, handler, or event represents a commitment to external consumers that constrains internal refactoring freedom. Sustained growth in API surface area indicates that the module may be accumulating too many responsibilities or exposing internal concerns that should remain encapsulated. This longitudinal metric helps identify modules that are becoming increasingly difficult to evolve independently.
   \[
     G_{\mathrm{api}}(m) = \frac{|API_m(t)| - |API_m(t - \Delta t)|}{\Delta t}
@@ -157,7 +179,7 @@ The following metrics capture structural risks that are invisible to boundary en
   \emph{Target:} $\Gamma \leq 3.0$. Values above 3.0 indicate that a single module dominates the system's public surface, warranting responsibility redistribution or module splitting.
 
   \item \textbf{Contract Stability Index} ($\sigma_m$). \\
-  A module's public surface may remain constant in size while its contents churn: handlers are renamed, event schemas restructured, or DTOs reorganized across releases. This churn is invisible to the API surface growth rate ($G_{\mathrm{api}}$) but imposes significant coordination costs on downstream consumers, who must adapt to shifting contracts even when no new capability is added~\cite{parnas1972informationhiding}. The contract stability index captures this dimension by measuring the proportion of a module's public API that remains unchanged between measurement periods.
+  A module's public surface may remain constant in size while its contents churn: handlers are renamed, event schemas restructured, or DTOs reorganized across releases. This churn is invisible to the API surface growth rate (API growth rate) but imposes significant coordination costs on downstream consumers, who must adapt to shifting contracts even when no new capability is added~\cite{parnas1972informationhiding}. The contract stability index captures this dimension by measuring the proportion of a module's public API that remains unchanged between measurement periods.
   \[
     \sigma_m = \frac{|\operatorname{API}_m(t) \cap \operatorname{API}_m(t - \Delta t)|}{|\operatorname{API}_m(t - \Delta t)|}
   \]
@@ -172,11 +194,11 @@ The following metrics capture structural risks that are invisible to boundary en
 \end{itemize}
 
 \noindent
-\emph{Verification strategy and maintainability interpretation.} In G2, these metrics are treated as longitudinal signals of architectural health rather than isolated quality indicators. Increases in $C_{\mathrm{undecl}}$, $C_{\mathrm{leak}}$, or $C_{\mathrm{forbid}}$ indicate growing hidden coupling and rising cost of change. A declining $\rho_{\mathrm{api}}$ signals unstable dependency surfaces, while reductions in $P_{\mathrm{iso}}$ reveal erosion of modular isolation. By tracking these metrics over time and enforcing thresholds where appropriate, G2 enables early detection of architectural drift and supports timely refactoring while corrective actions remain localized and economically viable. The primary objective is not to eliminate change, but to ensure that its cost remains bounded as the system evolves.
+\emph{Verification strategy and maintainability interpretation.} In G2, these metrics are treated as longitudinal signals of architectural health rather than isolated quality indicators. Increases in undeclared dependencies, encapsulation leakage, or forbidden references indicate growing hidden coupling and rising cost of change. A declining API discipline ratio signals unstable dependency surfaces, while reductions in isolation pass rate reveal erosion of modular isolation. By tracking these metrics over time and enforcing thresholds where appropriate, G2 enables early detection of architectural drift and supports timely refactoring while corrective actions remain localized and economically viable. The primary objective is not to eliminate change, but to ensure that its cost remains bounded as the system evolves.
 
 \medskip
 \noindent
-\textbf{Compliance summary.} G2 maintainability compliance holds when:
+\textbf{Compliance summary.} G2 maintainability compliance holds when all inherited boundary metrics pass (G1), the API discipline ratio exceeds 95\%, the isolation pass rate is 100\%, complexity concentration remains below 3.0, contract stability exceeds 90\%, and fan-in concentration stays below 50\% for domain modules. Formally:
 \[
   C_{\mathrm{undecl}} = 0 \land C_{\mathrm{forbid}} = 0 \land C_{\mathrm{leak}} = 0 \land C_{\mathrm{event}} = 0 \land \rho_{\mathrm{api}} \geq 0.95 \land P_{\mathrm{iso}} = 1.0 \land \Gamma \leq 3.0 \land \sigma_m \geq 0.9 \land \phi_m \leq 0.5
 \]
@@ -190,15 +212,15 @@ The following metrics capture structural risks that are invisible to boundary en
   Whenever a module's public surface changes (new handler, modified event schema, deprecated endpoint), record the change with version metadata. This log supports backward-compatibility analysis and informs downstream consumers of evolving contracts.
 
   \item \emph{Architectural Drift Incidents:}
-  When a metric threshold is crossed (e.g., $C_{\mathrm{undecl}} > 0$ or $\rho_{\mathrm{api}}$ drops below target), record the incident, root cause, and resolution. This creates a traceable history of maintainability interventions.
+  When a metric threshold is crossed (e.g., undeclared dependencies appear or the API discipline ratio drops below target), record the incident, root cause, and resolution. This creates a traceable history of maintainability interventions.
 \end{itemize}
 
 \subsection*{Tooling Capabilities Checklist}
 Any open-source or proprietary tool used to support maintainability should address:
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Dependency Graph Visualization:} Generate and display the module dependency graph, highlighting cycles, undeclared dependencies, and forbidden references.
-  \item \emph{API Surface Analysis:} Track the size and growth rate of each module's public surface over time ($G_{\mathrm{api}}$).
-  \item \emph{Change Coupling Detection:} Identify modules that frequently change together across commits ($CCI$), signaling feature-centric coupling or blurred ownership.
+  \item \emph{API Surface Analysis:} Track the size and growth rate of each module's public surface over time (API growth rate).
+  \item \emph{Change Coupling Detection:} Identify modules that frequently change together across commits (change coupling index), signaling feature-centric coupling or blurred ownership.
   \item \emph{Longitudinal Metric Tracking:} Store and visualize G2 metrics over time, enabling trend analysis and early detection of architectural drift.
   \item \emph{Contract Compatibility Checking:} Verify that changes to a module's public surface do not break downstream consumers, ideally integrated into the CI pipeline.
 \end{itemize}
@@ -275,7 +297,7 @@ In a healthy Tiny Store baseline, the output shows that every bounded-context mo
 Cross-module coupling exists only in the composition root (\texttt{register-listeners.ts}), which lives in \texttt{apps/api}, not inside any module. This is a G2 invariant: if a module-to-module edge appears in the dependency graph, it signals that coupling has migrated from the auditable composition root into module internals, violating unidirectional dependency flow.
 
 \subsubsection*{Step 2: Measure the API Surface per Module}
-G2 tracks the public API surface size ($|API_m|$) and its growth rate ($G_{\mathrm{api}}$) as longitudinal health signals. A growing surface creates downstream obligations and reduces refactoring freedom. Measure the current baseline:
+G2 tracks the public API surface size and its growth rate as longitudinal health signals. A growing surface creates downstream obligations and reduces refactoring freedom. Measure the current baseline:
 
 \begin{lstlisting}[language=bash,caption={Count exported symbols per module},label={lst:g2-api-surface}]
 for mod in orders inventory payments shipments; do
@@ -389,7 +411,7 @@ npx nx graph --file=dep-graph.json
 
 Baseline: $|API_{\mathrm{payments}}| = 7$, $|API_{\mathrm{shipments}}| = 8$, $\rho_{\mathrm{api}} = 1.0$, $C_{\mathrm{forbid}} = 0$, zero module-to-module edges.
 
-\subsubsection*{Exercise 1: Convenience Shortcut That Passes G1 ($\rho_{\mathrm{api}}\downarrow$, $C_{\mathrm{undecl}}\uparrow$)}
+\subsubsection*{Exercise 1: Convenience Shortcut That Passes G1 (API discipline ratio $\downarrow$, undeclared dependencies $\uparrow$)}
 A developer working on the Shipments module needs the \texttt{PaymentStatus} enum to decide whether to hold a shipment. Instead of enriching the event payload or introducing a query contract, they take a shortcut that \emph{technically passes G1's boundary tests} by re-exporting an internal enum that was deliberately excluded from the public surface during refactoring.
 
 \emph{What you change:}
@@ -435,7 +457,7 @@ npx nx graph --file=dep-graph.json
 
 \emph{Fix:} Remove the enum export from Payments' \texttt{index.ts}. If Shipments needs payment-readiness information, enrich the \texttt{OrderPaid} event payload to include the relevant status, keeping the interaction contract-based rather than type-coupled.
 
-\subsubsection*{Exercise 2: Transitive Orchestration in the Composition Root ($C_{\mathrm{forbid}}\uparrow$, blast radius)}
+\subsubsection*{Exercise 2: Transitive Orchestration in the Composition Root (forbidden dependencies $\uparrow$, blast radius)}
 The composition root in \texttt{register-listeners.ts} already contains a pattern where the \texttt{OrderPaid} handler queries Orders for the shipping address before invoking Shipments' \texttt{CreateShipmentHandler}. A developer extends this pattern by also querying Payments to check whether the payment was refunded before creating the shipment. This creates a transitive coupling chain that spans three modules in a single event handler.
 
 \emph{What you change:} In \texttt{register-listeners.ts}, modify the \texttt{OrderPaid} subscription to query Payments before creating a shipment:
@@ -483,7 +505,7 @@ grep -c "new.*Handler\|new.*Listener\|new.*Repository" \
 
 \emph{Fix:} Enrich the \texttt{OrderPaid} event payload to include all data Shipments needs (shipping address, payment status). The composition root should wire events to handlers, not orchestrate multi-module queries. If orchestration is necessary, extract it into a dedicated saga or process manager with explicit ownership.
 
-\subsubsection*{Exercise 3: Gradual Public Surface Bloat ($G_{\mathrm{api}}\uparrow$)}
+\subsubsection*{Exercise 3: Gradual Public Surface Bloat (API surface growth $\uparrow$)}
 Demonstrate how a module's public surface can inflate with \emph{legitimate} exports (valid handlers, not internal entities) while every G1 check remains green. The danger is not \emph{what kind} of symbol is exported, but \emph{how many}: each new public symbol is a downstream obligation that freezes internal design choices.
 
 \emph{What you change:} In \texttt{libs/modules/payments/src/index.ts}, add five new handlers that are perfectly valid public capabilities:
@@ -526,9 +548,9 @@ G1 cannot detect this: every exported symbol is a handler (not an entity or repo
 \begin{tabularx}{\linewidth}{p{0.04\linewidth} X p{0.22\linewidth} p{0.18\linewidth} p{0.10\linewidth}}
 \textbf{Ex.} & \textbf{What you change} & \textbf{Run} & \textbf{G2 signal} & \textbf{G1 status} \\
 0 & Record baseline metrics & API count, \texttt{nx graph}, CCI & $t_0$ snapshot & \checkmark{} pass \\
-1 & Payments exports enum, Shipments consumes it & \texttt{nx graph}, API count & $C_{\mathrm{undecl}}\uparrow$, new edge & \checkmark{} pass \\
+1 & Payments exports enum, Shipments consumes it & \texttt{nx graph}, API count & undeclared dep $\uparrow$, new edge & \checkmark{} pass \\
 2 & Composition root orchestrates 3 modules & wiring density, chain trace & blast radius $\times 3$ & \checkmark{} pass \\
-3 & Payments exports 5 valid handlers & API count & $G_{\mathrm{api}}\uparrow$ (7$\to$12) & \checkmark{} pass \\
+3 & Payments exports 5 valid handlers & API count & API growth $\uparrow$ (7$\to$12) & \checkmark{} pass \\
 \end{tabularx}
 \normalsize
 
@@ -536,27 +558,27 @@ G1 cannot detect this: every exported symbol is a handler (not an entity or repo
 \subsubsection*{New Metrics: Tiny Store Baseline}
 The three additional maintainability metrics introduced in this guideline can be computed from the current Tiny Store state.
 
-\emph{Module Complexity Concentration ($\Gamma$):} The API surfaces for each module are: Orders~=~20, Inventory~=~16, Payments~=~7, Shipments~=~8. The largest surface is 20 (Orders) and the mean across all four modules is 12.75. Applying the definition:
+\emph{Complexity Concentration:} The API surfaces for each module are: Orders~=~20, Inventory~=~16, Payments~=~7, Shipments~=~8. The largest surface is 20 (Orders) and the mean across all four modules is 12.75. Applying the definition:
 
-\begin{lstlisting}[language=bash,caption={$\Gamma$ computation},label={lst:g2-gamma-baseline}]
+\begin{lstlisting}[language=bash,caption={Complexity concentration computation},label={lst:g2-gamma-baseline}]
 Gamma = max / mean = 20 / 12.75 = 1.57
 \end{lstlisting}
 
 \noindent
 A value of 1.57 is well below the 3.0 threshold, confirming that no single module dominates the system's public surface.
 
-\emph{Contract Stability Index ($\sigma_m$):} Comparing the current \texttt{index.ts} exports with the previous release, all modules retained their public symbols across the boundary refactoring; handlers, DTOs, events, and listeners remained unchanged.
+\emph{Contract Stability:} Comparing the current \texttt{index.ts} exports with the previous release, all modules retained their public symbols across the boundary refactoring; handlers, DTOs, events, and listeners remained unchanged.
 
-\begin{lstlisting}[language=bash,caption={$\sigma_m$ baseline},label={lst:g2-sigma-baseline}]
+\begin{lstlisting}[language=bash,caption={Contract stability baseline},label={lst:g2-sigma-baseline}]
 sigma_m = 1.0 for all modules (zero contract churn)
 \end{lstlisting}
 
 \noindent
 A value of 1.0 indicates full contract stability, the ideal starting point for longitudinal tracking.
 
-\emph{Fan-In Concentration ($\phi_m$):} Fan-in measures how many other domain modules depend on a given module. In Tiny Store, all cross-module wiring flows through the composition root (\texttt{apps/api}), not between library modules directly:
+\emph{Fan-In Concentration:} Fan-in measures how many other domain modules depend on a given module. In Tiny Store, all cross-module wiring flows through the composition root (\texttt{apps/api}), not between library modules directly:
 
-\begin{lstlisting}[language=bash,caption={$\phi_m$ baseline},label={lst:g2-phi-baseline}]
+\begin{lstlisting}[language=bash,caption={Fan-in concentration baseline},label={lst:g2-phi-baseline}]
 orders:    depended on by 0 domain modules  (phi = 0.0)
 inventory: depended on by 0 domain modules  (phi = 0.0)
 payments:  depended on by 0 domain modules  (phi = 0.0)
@@ -568,15 +590,15 @@ With $\phi_m = 0.0$ for all modules, no bounded context is a direct dependency o
 
 \vspace{0.5em}
 \noindent
-All three metrics are at healthy baseline levels: $\Gamma = 1.57$ (no module dominates), $\sigma_m = 1.0$ (zero contract churn), and $\phi_m = 0.0$ (no direct cross-module fan-in). These values establish the $t_0$ reference for longitudinal tracking alongside the other G2 metrics.
+All three metrics are at healthy baseline levels: complexity concentration = 1.57 (no module dominates), contract stability = 1.0 (zero contract churn), and fan-in concentration = 0.0 (no direct cross-module fan-in). These values establish the $t_0$ reference for longitudinal tracking alongside the other G2 metrics.
 
-These structural health metrics complement the operational metrics from the previous sections ($\rho_{\mathrm{api}}$, $G_{\mathrm{api}}$, $CCI$) by capturing dimensions of maintainability that are invisible to dependency and API surface analysis alone. While $\rho_{\mathrm{api}}$ detects whether imports route through public entrypoints and $G_{\mathrm{api}}$ tracks surface inflation over time, $\Gamma$ reveals whether complexity is concentrating in a single module, $\sigma_m$ measures how stable contracts remain across releases, and $\phi_m$ quantifies how many modules would be affected if a given module's public surface changes. Together, the nine G2 metrics provide a comprehensive longitudinal view of maintainability: from boundary compliance (inherited from G1) through operational sustainability ($\rho_{\mathrm{api}}$, $G_{\mathrm{api}}$, $CCI$) to structural health ($\Gamma$, $\sigma_m$, $\phi_m$). Recording all nine at each release milestone ensures that degradation in any dimension becomes visible before it compounds into irreversible architectural debt.
+These structural health metrics complement the operational metrics from the previous sections ($\rho_{\mathrm{api}}$, $G_{\mathrm{api}}$, $CCI$) by capturing dimensions of maintainability that are invisible to dependency and API surface analysis alone. While the API discipline ratio detects whether imports route through public entrypoints and API growth rate tracks surface inflation over time, complexity concentration reveals whether one module dominates, contract stability measures how stable contracts remain across releases, and fan-in concentration quantifies how many modules would be affected if a given module's public surface changes. Together, the G2 metrics provide a comprehensive longitudinal view of maintainability: from boundary compliance (inherited from G1) through operational sustainability (API discipline, API growth, change coupling) to structural health (complexity concentration, contract stability, fan-in). Recording these at each release milestone ensures that degradation in any dimension becomes visible before it compounds into irreversible architectural debt.
 
 \noindent\emph{Key observation:} All three exercises pass G1's \texttt{test:boundary} gate. The degradation is only visible through G2's longitudinal metrics: dependency graph edges, API surface counts, wiring density, and change coupling analysis. This confirms that boundary correctness (G1) and boundary sustainability (G2) are complementary but distinct architectural concerns.
 
 \subsection*{Conclusion of the G2 Implementation}
 This section demonstrated that maintainability in a modular monolith cannot be reduced to boundary enforcement alone. G1 ensures that boundaries are \emph{correct} at any given moment; G2 ensures that they remain \emph{economically sustainable} over time. The distinction is practical: a system can pass every boundary test while accumulating convenience-driven type coupling, inflated API surfaces, and feature-centric wiring that progressively raises the cost of change.
 
-The tutorial introduced maintainability-specific tooling (dependency graph extraction, API surface counting, wiring density measurement, and co-change analysis) that operationalizes G2's metrics on a real codebase. The exercises showed that each failure mode produces a specific, measurable signal: a new module-to-module edge that did not exist at baseline ($C_{\mathrm{undecl}}$), a transitive orchestration chain that expands the blast radius of composition root changes, and a growing public surface that creates contractual obligations faster than the module can absorb them ($G_{\mathrm{api}}$). None of these violations were caught by G1's boundary tests; they required longitudinal tracking to become visible.
+The tutorial introduced maintainability-specific tooling (dependency graph extraction, API surface counting, wiring density measurement, and co-change analysis) that operationalizes G2's metrics on a real codebase. The exercises showed that each failure mode produces a specific, measurable signal: a new module-to-module edge that did not exist at baseline (undeclared dependency), a transitive orchestration chain that expands the blast radius of composition root changes, and a growing public surface that creates contractual obligations faster than the module can absorb them (API growth rate). None of these violations were caught by G1's boundary tests; they required longitudinal tracking to become visible.
 
 Together, G1 and G2 establish a layered defense for progressive scalability. G1 provides the immediate, binary gate that prevents structural violations. G2 provides the longitudinal, quantitative signals that detect gradual erosion before it becomes irreversible. With both guidelines in place, the architecture retains the option to evolve incrementally while keeping the cost of change bounded and predictable as the system grows. The next question is \emph{how} that incremental evolution should proceed: which scaling interventions are proportional to which bottlenecks, and in what order. This transition motivates Guideline G3, which formalizes progressive scalability as a structured, evidence-driven spectrum.

@@ -70,13 +70,13 @@ The following failure modes are frequently observed in codebases that lack expli
 \subsubsection*{Structural Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Convenience-Driven Imports:} Developers import internal classes from another module because the path is shorter or the type is already available. Over time, these imports create a web of hidden coupling that boundary checks cannot detect if enforcement is absent~\cite{parnas1972informationhiding}. This anti-pattern is captured by an increase in $C_{\mathrm{leak}}$.
+  \item \emph{Convenience-Driven Imports:} Developers import internal classes from another module because the path is shorter or the type is already available. Over time, these imports create a web of hidden coupling that boundary checks cannot detect if enforcement is absent~\cite{parnas1972informationhiding}. This anti-pattern is captured by an increase in encapsulation leakage.
 
-  \item \emph{Shared Utility Creep:} A \texttt{shared/} or \texttt{common/} package grows to include domain-specific logic that belongs inside a bounded context~\cite{martin2012clean}. Modules become coupled through this shared layer rather than through explicit contracts. This is reflected in rising $C_{\mathrm{undecl}}$ when shared utilities reference module internals.
+  \item \emph{Shared Utility Creep:} A \texttt{shared/} or \texttt{common/} package grows to include domain-specific logic that belongs inside a bounded context~\cite{martin2012clean}. Modules become coupled through this shared layer rather than through explicit contracts. This is reflected in rising undeclared dependency counts when shared utilities reference module internals.
 
-  \item \emph{Implicit Wiring via Framework Magic:} Dependency injection containers, auto-configuration, or classpath scanning silently wire modules together without any declared dependency. Boundary checks based on import analysis miss these couplings entirely. This failure mode surfaces through declining $P_{\mathrm{iso}}$ when module isolation tests fail due to undeclared runtime dependencies.
+  \item \emph{Implicit Wiring via Framework Magic:} Dependency injection containers, auto-configuration, or classpath scanning silently wire modules together without any declared dependency. Boundary checks based on import analysis miss these couplings entirely. This failure mode surfaces through declining isolation test pass rates when module isolation tests fail due to undeclared runtime dependencies.
 
-  \item \emph{Event Handlers Registered Outside the Composition Root:} When event subscriptions are scattered across module initializers rather than centralized in a single wiring location, the integration surface becomes invisible to architectural review. This increases $C_{\mathrm{event}}$ and makes the system's collaboration topology difficult to audit.
+  \item \emph{Event Handlers Registered Outside the Composition Root:} When event subscriptions are scattered across module initializers rather than centralized in a single wiring location, the integration surface becomes invisible to architectural review. This increases event subscription boundary violations and makes the system's collaboration topology difficult to audit.
 
   \item \emph{Boundary Enforcement Treated as Optional:} When boundary verification gates are not part of the mandatory CI pipeline, violations accumulate silently. Teams discover the erosion only when a refactoring or extraction attempt reveals that modules are far more coupled than the architecture documentation suggests~\cite{thoughtworks2017fitnessfunction}. Quality is a deliberate choice; without enforcement, the cost of accumulated violations compounds quietly until a refactoring or extraction attempt reveals the true state of the architecture.
 \end{itemize}
@@ -111,7 +111,25 @@ The metrics and enforcement gates introduced in this guideline (and extended thr
 
 \subsection*{Metrics and Verification}
 
-The metrics below operationalize modular boundary enforcement as measurable, automated constraints. Each metric follows a three-layer structure: a plain-language description of what it captures and why it matters, a formal definition that enables unambiguous implementation, and an enforcement threshold that determines whether the boundary gate passes or fails. Together, they translate the principles discussed in the preceding sections into executable verification rules.
+The metrics below operationalize modular boundary enforcement as measurable, automated constraints. G1 defines three consolidated metrics that together determine whether module boundaries are intact. Each metric is described in plain language, formally defined for unambiguous implementation, and assigned an enforcement threshold.
+
+\medskip
+\noindent
+\small
+\begin{tabularx}{\linewidth}{p{0.28\linewidth} X p{0.12\linewidth} p{0.08\linewidth}}
+\toprule
+\textbf{Metric} & \textbf{What it measures} & \textbf{Target} & \textbf{Gate} \\
+\midrule
+Boundary Violations & Undeclared, forbidden, and event-subscription references across modules & 0 & Yes \\
+Encapsulation Violations & Cross-module references that bypass the provider's public API & 0 & Yes \\
+Isolation Pass Rate & Module-scoped tests passing with only declared dependencies & 100\% & Yes \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\medskip
+\noindent
+\emph{Formal definitions.} The remainder of this section provides the precise definitions used to compute each metric. In prose, metrics are referred to by name; the notation below supports unambiguous tooling implementation.
 
 \medskip
 \noindent
@@ -190,7 +208,7 @@ The systematic literature review conducted in Chapter~3 reveals that modularity 
 
 Several SLR-included works provide converging evidence for the importance of explicit modular structure. The ``sliceable monolith'' concept demonstrates that a monolith designed with clean module boundaries can be progressively decomposed into services without a rewrite, validating the premise that boundary discipline must precede extraction~\cite{montesi2021sliceable}. At the infrastructure level, component boundaries enforced at the programming model itself, with deployment topology deferred to a later decision, reinforce the principle that modularity is a build-time property, not a deployment-time afterthought~\cite{ghemawat2023towards}. Systematic analysis of factors influencing modulith adoption identifies ``module boundary definition'' and ``dependency management'' as two of the top five decision drivers over microservices~\cite{prakash2024systematic}.
 
-The coupling and cohesion dimensions that G1 operationalizes through metrics ($C_{\mathrm{leak}}$, $C_{\mathrm{undecl}}$, $C_{\mathrm{forbid}}$, $P_{\mathrm{iso}}$) are well grounded in the decomposition literature. Modernization roadmaps position coupling analysis as the first diagnostic step before any migration decision, treating boundary enforcement as a precondition for all subsequent architectural evolution~\cite{wolfart2021modernizing}. Empirical evidence from migration attempts confirms that monolithic systems fail during extraction not because of inherent architectural limitations but because undeclared dependencies create invisible coupling that only surfaces under separation pressure~\cite{deLauretis2019from}. Trend analyses of modular monolith adoption reinforce this finding, noting that the architecture is driven primarily by the need to control internal coupling before it becomes external complexity~\cite{tsechelidis2023modular}.
+The coupling and cohesion dimensions that G1 operationalizes through boundary metrics (encapsulation leakage, undeclared dependencies, forbidden dependencies, isolation pass rate) are well grounded in the decomposition literature. Modernization roadmaps position coupling analysis as the first diagnostic step before any migration decision, treating boundary enforcement as a precondition for all subsequent architectural evolution~\cite{wolfart2021modernizing}. Empirical evidence from migration attempts confirms that monolithic systems fail during extraction not because of inherent architectural limitations but because undeclared dependencies create invisible coupling that only surfaces under separation pressure~\cite{deLauretis2019from}. Trend analyses of modular monolith adoption reinforce this finding, noting that the architecture is driven primarily by the need to control internal coupling before it becomes external complexity~\cite{tsechelidis2023modular}.
 
 The modular monolith is increasingly recognized as a deliberate architectural choice for cloud environments rather than a transitional compromise, with enforceable module isolation identified as the distinguishing characteristic that separates a well-structured monolith from a traditional one~\cite{su2024modular}. Many systems adopt microservices prematurely and would benefit from enforced modularity within a single deployment unit~\cite{gravanis2021dont}, a position that directly supports G1's emphasis on boundary discipline as a first-order concern.
 
@@ -510,7 +528,7 @@ Run enforcement.
 npm run test:boundary
   \end{lstlisting}
 
-  \emph{Expected signal:} a boundary test fails, and $C_{\mathrm{leak}}\uparrow$.
+  \emph{Expected signal:} a boundary test fails, and the encapsulation leakage count increases.
 
   \emph{Fix:} remove these exports, and expose a contract instead (handler/port/event).
 
@@ -533,7 +551,7 @@ npm run test:boundary
   \emph{Expected signal:} a boundary check fails if cross-module imports are constrained by the enforcement suite.
   If it does not fail, treat this as an enforcement coverage gap and extend \texttt{module-boundary.spec.ts} to detect forbidden \texttt{@tiny-store/modules-*} imports from within another module.
 
-  \emph{Metric impact:} $C_{\mathrm{undecl}}\uparrow$ or $C_{\mathrm{forbid}}\uparrow$.
+  \emph{Metric impact:} the undeclared or forbidden dependency count increases.
 
   \emph{Fix (preferred):} replace the direct import with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory, publish \texttt{InventoryReserved}).
 
@@ -557,7 +575,7 @@ npm run test:boundary && npm run test:integration
 \end{lstlisting}
   \emph{Expected signal:} this may not fail immediately if the current enforcement suite does not scan for subscription calls outside the composition root. In that case, enforce a rule that forbids \texttt{eventBus.subscribe(} usage outside \texttt{apps/api/src/app/lib/register-listeners.ts}, and/or detect it via module isolation tests.
 
-  \emph{Metric impact:} $P_{\mathrm{iso}}\downarrow$ and potentially $C_{\mathrm{event}}\uparrow$.
+  \emph{Metric impact:} the isolation pass rate drops and event boundary violations may increase.
 
   \emph{Fix:} move the subscription back to \texttt{register-listeners.ts}.
 \end{itemize}
