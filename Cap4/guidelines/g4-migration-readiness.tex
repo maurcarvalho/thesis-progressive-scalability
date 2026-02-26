@@ -531,7 +531,7 @@ The extraction process consists of eight automated steps:
 
   \item \emph{Database Migration:} Create a dedicated PostgreSQL database for the extracted service and migrate data from the shared SQLite database. This step materializes the data ownership principle (G3's data ownership = 1.0) by providing the module with an isolated persistence layer.
 
-  \item \emph{Service Scaffolding:} Generate a complete Express-based service application with TypeORM configuration, health check endpoints, and integration with the existing module handlers. The scaffolded service uses the same Temporal workflow definitions and Kafka event publishers as the monolith, ensuring behavioral equivalence.
+  \item \emph{Service Scaffolding:} Generate a complete Express-based service application with Drizzle ORM configuration, health check endpoints, and integration with the existing module handlers. The scaffolded service uses the same Temporal workflow definitions and Kafka event publishers as the monolith, ensuring behavioral equivalence.
 
   \item \emph{Monolith Updates:} Remove the extracted module's entities from the monolith's database configuration and install HTTP proxy routes that forward requests to the extracted service. This step ensures that existing consumers of the module's API continue to function without modification.
 
