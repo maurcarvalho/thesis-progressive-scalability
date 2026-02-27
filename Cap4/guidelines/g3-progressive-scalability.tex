@@ -9,25 +9,13 @@ G3 completes the Architectural Design Dimension (G1--G3). While G1 enforces modu
 
 The prevailing narrative in cloud-native literature frames scalability as an inherently distributed concern: when the system must scale, it must be decomposed into independently deployable services~\cite{arya2024beyond, blinowski2022monolithic}. This framing creates a false dichotomy. Teams are implicitly told to choose between a monolith that cannot scale and microservices that can, ignoring the intermediate architectural states that a well-modularized monolith can occupy.
 
-In practice, most early-stage systems do not face uniform scaling pressure. Load concentrates in specific modules, specific use cases exhibit disproportionate growth, and specific data domains expand faster than others. A system designed for progressive scalability acknowledges this unevenness and provides mechanisms to address it surgically, scaling the modules that need it while leaving the rest undisturbed.
+In practice, most early-stage systems do not face uniform scaling pressure. Load concentrates in specific modules, specific use cases exhibit disproportionate growth, and specific data domains expand faster than others. A system designed for progressive scalability acknowledges this unevenness and provides mechanisms to address it surgically.
 
-G3 therefore treats scalability as a \emph{gradient} rather than a binary switch. The guideline defines a four-level Progressive Scalability Spectrum (Table~\ref{tab:scalability-spectrum}) that progresses from vertical optimization within the monolith, through asynchronous decoupling and data isolation, to selective extraction of bounded contexts as a last resort. Each level is triggered by observable metrics rather than speculative anticipation, and each intervention is reversible if conditions change.
-
-This spectrum makes the migration to microservices an \emph{option}, not an obligation. Each step is proportional to observed need and grounded in the boundary enforcement (G1) and maintainability discipline (G2) already established. The key insight is that a system with enforced modular boundaries and stable contracts is \emph{already extraction-ready}; what G3 adds is the deliberate preparation of infrastructure seams, established as an initial architectural decision, that make extraction low-risk when evidence warrants it.
+G3 therefore treats scalability as a \emph{gradient} rather than a binary switch. The guideline defines a four-level Progressive Scalability Spectrum (Table~\ref{tab:scalability-spectrum}): \emph{Tune} (vertical optimization), \emph{Decouple} (asynchronous boundaries), \emph{Isolate} (data separation), and \emph{Extract} (selective service extraction) as a last resort. Each level is triggered by observable metrics rather than speculative anticipation, and each intervention is reversible if conditions change.
 
 \subsection*{Conceptual Overview}
 
-Progressive scalability is embedded by designing modules so that growth is absorbed incrementally. The key architectural decision is that both synchronous and asynchronous communication channels are available as part of the system's foundational design: synchronous calls serve low-latency, consistency-critical paths, while asynchronous channels (event buses, message queues) absorb throughput divergence. The choice between channels is driven by observed load patterns, not by speculative anticipation, and the transition from one to the other is a configuration change rather than a rewrite.
-
-Critically, scalability readiness must be \emph{automatically tracked}, not manually assessed. Module-level metrics (throughput profiles, latency variance, data ownership clarity) are collected continuously and evaluated against defined thresholds. When a metric crosses its threshold, the system signals that a specific module requires a specific intervention at a specific spectrum level, removing subjectivity from scaling decisions. Equally important, the architecture must ensure that each intervention is reversible and that its effects remain contained within the module under pressure. A well-designed progressive scalability posture satisfies five structural properties:
-
-\begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item Each module's resource consumption, throughput profile, and data growth trajectory are observable and attributable, enabling evidence-based scaling decisions.
-  \item Communication between modules with divergent scaling needs can transition from synchronous to asynchronous without rewriting business logic.
-  \item Persistence is designed so that schema ownership can be narrowed from shared to module-scoped without data migration crises.
-  \item Infrastructure dependencies (databases, caches, queues, external APIs) are accessed through abstractions that decouple business logic from deployment topology.
-  \item Each spectrum-level intervention is reversible: if conditions change or the intervention proves unnecessary, the system can retreat to a lower level without architectural damage.
-\end{itemize}
+Progressive scalability rests on the principle that both synchronous and asynchronous communication channels are available from the initial deployment. The choice between them is driven by observed load patterns, and the transition from one to the other is a configuration change. Module-level metrics (throughput profiles, latency variance, data ownership) are collected continuously and evaluated against defined thresholds, removing subjectivity from scaling decisions. These structural properties correspond to the Key Principles defined below.
 
 \subsection*{Applicability Conditions and Scope}
 
@@ -38,24 +26,24 @@ G3 applies to modular monolith systems that satisfy the following conditions:
   \item The system is expected to grow in load, data volume, or team size, but the timing and distribution of that growth are uncertain.
 \end{itemize}
 
-G3 does not prescribe specific cloud providers, container orchestrators, or scaling technologies. Its scope is limited to architectural preparation: the design decisions and structural properties that make scaling interventions feasible, proportional, and reversible. The guideline is agnostic to whether the system ultimately remains a monolith, becomes a set of microservices, or stabilizes at an intermediate state. G3's scalability metrics, particularly the extraction readiness score, provide the quantitative trigger for G4 (Migration Readiness), which addresses how to prepare a specific module for independent deployment once evidence warrants it.
+G3 does not prescribe specific cloud providers, container orchestrators, or scaling technologies. Its scope is limited to architectural preparation: the design decisions and structural properties that make scaling interventions feasible, proportional, and reversible. G3's scalability metrics, particularly the extraction readiness score, provide the quantitative trigger for G4 (Migration Readiness), which addresses how to prepare a specific module for independent deployment once evidence warrants it.
 
 
 \subsection*{Objectives}
 
 \emph{Research contributions:}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Formalize scalability as a gradient:} Define a progression spectrum (L0--L3) that replaces the binary monolith-or-microservices framing with a sequence of proportional, reversible interventions, each justified by evidence rather than anticipation.
-  \item \emph{Quantify progression triggers:} Establish module-level metrics (throughput divergence, sync ratio, data ownership, abstraction coverage) that determine when a specific module should transition from one spectrum level to the next, removing subjectivity from scaling decisions.
-  \item \emph{Provide a composite extraction readiness metric:} Synthesize boundary health (G1), maintainability signals (G2), and scalability preparation (G3) into a per-module extraction readiness score that grounds L3 decisions in architectural evidence.
+  \item \emph{Formalize scalability as a gradient:} Define a progression spectrum (Tune, Decouple, Isolate, Extract) that replaces the binary monolith-or-microservices framing with a sequence of proportional, reversible interventions.
+  \item \emph{Quantify progression triggers:} Establish module-level metrics (throughput divergence, sync ratio, data ownership, abstraction coverage) that determine when a module should transition to the next spectrum level.
+  \item \emph{Provide a composite extraction readiness metric:} Synthesize boundary health (G1), maintainability signals (G2), and scalability preparation (G3) into a per-module score that grounds Extract-level decisions in architectural evidence.
 \end{itemize}
 
 \emph{Implementation objectives:}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Embed scalability infrastructure from inception:} Design the architecture so that the infrastructure for all spectrum levels (caching, async channels, schema isolation) is present in the initial deployment, making progression a configuration change rather than a migration project.
+  \item \emph{Embed scalability infrastructure from inception:} Design the architecture so that the infrastructure for all spectrum levels (caching, async channels, schema isolation) is present from the initial deployment.
   \item \emph{Abstract infrastructure as a replaceable dependency:} Ensure modules interact with infrastructure through ports or interfaces that can be re-bound across spectrum levels without modifying domain logic.
-  \item \emph{Preserve extraction optionality:} Maintain the ability to extract any bounded context as an independent service while positioning extraction as the last resort, not the first reflex.
-  \item \emph{Record progression decisions:} Document each spectrum-level transition as an Architecture Decision Record (ADR) that captures the trigger condition, the intervention applied, the expected outcome, and the rollback path.
+  \item \emph{Preserve extraction optionality:} Maintain the ability to extract any bounded context as an independent service while positioning extraction as the last resort.
+  \item \emph{Record progression decisions:} Document each spectrum-level transition as an Architecture Decision Record (ADR) that captures the trigger condition, intervention, expected outcome, and rollback path.
 \end{itemize}
 
 
@@ -63,42 +51,40 @@ G3 does not prescribe specific cloud providers, container orchestrators, or scal
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Scale where it hurts, not where it might:}
-  Scaling interventions should be driven by observed bottlenecks, not by speculative anticipation. Module-level metrics (see Metrics section) provide the evidence base. Premature optimization of modules that are not under pressure introduces unnecessary complexity and operational cost.
+  Scaling interventions are driven by observed bottlenecks, not speculative anticipation. Module-level metrics provide the evidence base.
 
   \item \emph{Asynchronous boundaries as scalability seams:}
-  The boundary between two modules becomes a scalability seam when their throughput requirements diverge. Introducing an asynchronous channel (event bus, message queue) at this seam absorbs load spikes in the producer without propagating backpressure to the consumer, and vice versa. The key constraint is that asynchronous boundaries must respect the contracts established in G1 and the stability properties maintained by G2.
+  The boundary between two modules becomes a scalability seam when their throughput requirements diverge. An asynchronous channel at this seam absorbs load spikes without propagating backpressure to the consumer.
 
-  \item \emph{Data isolation is established from project inception:}
-  Each module owns a dedicated database schema (or equivalent namespace) established at project start. Cross-module data access is mediated exclusively through published contracts (events or API calls), never through direct table queries. This design decision, made as an initial architectural choice rather than deferred to a future migration, ensures that data isolation is a structural property of the system rather than a prerequisite to be satisfied before extraction.
+  \item \emph{Data isolation from project inception:}
+  Each module owns a dedicated database schema established at project start. Cross-module data access is mediated exclusively through published contracts, never through direct table queries.
 
   \item \emph{Infrastructure as a replaceable dependency:}
-  Modules should depend on infrastructure through ports (interfaces) rather than concrete implementations. This is not an abstract design preference but a scalability prerequisite: when a module must move from an in-process event bus to a distributed message broker, or from a shared database to a dedicated instance, the change should be confined to the infrastructure adapter, not the domain logic.
+  Modules depend on infrastructure through ports rather than concrete implementations. When a module must move from an in-process event bus to a distributed broker, the change is confined to the adapter, not the domain logic.
 
   \item \emph{Every intervention is reversible by design:}
-  Each spectrum-level transition preserves the option to retreat if conditions change or the intervention proves unnecessary. Reversibility is not an afterthought but a design constraint: infrastructure abstractions, communication channels, and data isolation boundaries are structured so that rolling back to a lower spectrum level requires configuration changes, not architectural rework.
+  Each spectrum-level transition preserves the option to retreat. Infrastructure abstractions and communication channels are structured so that rolling back requires configuration changes, not architectural rework.
 
   \item \emph{Extraction is the last resort, not the first reflex:}
-  Extracting a module into an independent service introduces network boundaries, distributed failure modes, deployment complexity, and operational overhead. G3 positions extraction at the end of the scalability spectrum, after vertical optimization, async decoupling, and data isolation have been exhausted or proven insufficient. This ordering preserves system simplicity for as long as possible while ensuring that extraction remains feasible when genuinely needed.
+  Extracting a module introduces network boundaries, distributed failure modes, and operational overhead. G3 positions extraction at the end of the spectrum, after vertical optimization, async decoupling, and data isolation have been exhausted.
 \end{itemize}
 
 \subsection*{Implementation Mechanisms}
 
-G3 is implemented through the following architectural mechanisms, all established at project start:
+G3 is implemented through four architectural mechanisms, all established at project start:
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Module-scoped resource profiling:} Each module's resource consumption (CPU, memory, I/O, query volume) is attributable through instrumentation or naming conventions, enabling identification of scale points without distributed tracing. The concrete instrumentation (module-scoped traces, metrics, and log correlation) is demonstrated in G6 (Observability Patterns); G3 defines the architectural requirement that makes such attribution possible.
+  \item \emph{Module-scoped resource profiling:} Each module's resource consumption is attributable through instrumentation or naming conventions. Concrete instrumentation is demonstrated in G6 (Observability Patterns); G3 defines the architectural requirement.
 
-  \item \emph{Communication abstraction layer:} Operationalizing the \emph{asynchronous boundaries as scalability seams} principle (above), inter-module communication passes through a contract-based abstraction (e.g., an event bus interface or a command dispatcher) that can be backed by in-process dispatch, an in-memory queue, or a distributed broker such as Apache Kafka without changing the caller or handler. The event bus switches from in-process dispatch to a Kafka topic as load warrants, using the same event contracts defined at project start.
+  \item \emph{Communication abstraction layer:} Inter-module communication passes through a contract-based abstraction (event bus, command dispatcher) that can be backed by in-process dispatch, an in-memory queue, or a distributed broker such as Apache Kafka without changing the caller or handler.
 
-  \item \emph{Persistence port pattern:} Operationalizing \emph{data isolation from inception} and \emph{infrastructure as a replaceable dependency}, each module accesses its data through repository interfaces (ports) backed by a dedicated database schema established at project start. The concrete implementation (e.g., a dedicated PostgreSQL schema declared via \texttt{pgSchema()}) is wired at composition time; when a module is extracted (L3), the repository adapter is re-bound to a dedicated database instance without changing domain logic. Schema ownership is documented in the module descriptor introduced in G1.
+  \item \emph{Persistence port pattern:} Each module accesses its data through repository interfaces backed by a dedicated database schema declared via \texttt{pgSchema()}. When a module reaches the Extract level, the adapter is re-bound to a dedicated database instance without changing domain logic.
 
-  \item \emph{Scalability decision records:} When a module transitions between spectrum levels (e.g., from L0 to L1), the decision is recorded in an Architecture Decision Record (ADR) that captures the trigger condition, the intervention applied, the expected outcome, and the rollback path. This ensures that scaling decisions remain traceable and reversible. The Tiny Store reference implementation does not include an ADR example because all four modules remain at L0; the first ADR will be produced when a module transitions to L1 during the verification phase (Chapter~5).
+  \item \emph{Scalability decision records:} Each spectrum-level transition is recorded in an ADR that captures the trigger condition, intervention, expected outcome, and rollback path. The Tiny Store reference implementation does not include an ADR example because all four modules remain at the Tune level; the first ADR will be produced during the verification phase (Chapter~5).
 \end{itemize}
 
 
 \subsubsection*{The Progressive Scalability Spectrum}
-
-To make the gradient concrete, G3 proposes a four-level spectrum that teams can use to assess their current position and plan their next proportional intervention. Each level builds on the previous one, and progression is driven by evidence rather than anticipation.
 
 \begin{table}[H]
 \centering
@@ -110,51 +96,47 @@ To make the gradient concrete, G3 proposes a four-level spectrum that teams can 
 \toprule
 \textbf{Level} & \textbf{Intervention} & \textbf{Description} & \textbf{Metric Trigger} \\
 \midrule
-L0 & Vertical Optimization & Resource tuning, caching, query optimization, concurrency improvements within the monolith. No structural change. & Throughput divergence or latency variance exceeds baseline. \\
-L1 & Async Decoupling & Replace synchronous inter-module calls with asynchronous channels for modules with divergent throughput. & Sync ratio $> 0.3$ between connected modules with $>$2:1 throughput divergence. \\
-L2 & Data Isolation & Separate module-scoped persistence (dedicated schemas, read replicas, or separate databases) for modules with divergent data access patterns. & Data ownership $< 1.0$ or shared database contention detected. \\
-L3 & Selective Extraction & Deploy a bounded context as an independent service with its own runtime, persistence, and deployment pipeline. & Extraction readiness $\geq 0.8$ and L0--L2 interventions insufficient. \\
+Tune & Vertical Optimization & Resource tuning, caching, query optimization, concurrency improvements within the monolith. No structural change. & Throughput divergence or latency variance exceeds baseline. \\
+Decouple & Async Decoupling & Replace synchronous inter-module calls with asynchronous channels for modules with divergent throughput. & Sync ratio $> 0.3$ between connected modules with $>$2:1 throughput divergence. \\
+Isolate & Data Isolation & Separate module-scoped persistence (dedicated schemas, read replicas, or separate databases) for modules with divergent data access patterns. & Data ownership $< 1.0$ or shared database contention detected. \\
+Extract & Selective Extraction & Deploy a bounded context as an independent service with its own runtime, persistence, and deployment pipeline. & Extraction readiness $\geq 0.8$ and Tune--Isolate interventions insufficient. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-
 \noindent
-The spectrum is not strictly linear: a team may apply L2 (data isolation) to one module while another module remains at L0. The key constraint is that each intervention at a given level should be justified by evidence that the previous level is insufficient for the module in question.
+The spectrum is not strictly linear: a team may apply Isolate to one module while another remains at Tune. Each intervention should be justified by evidence that the previous level is insufficient.
 
 
 \subsection*{Common Failure Modes and Anti-Patterns}
 
-The following failure modes are frequently observed in modular monoliths that lack explicit scalability preparation. Each anti-pattern increases the risk of premature or disproportionate scaling interventions. For each anti-pattern, G3 identifies the specific metric that makes the degradation observable and verifiable.
-
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Premature Distribution (``Microservices Envy''):}
-  Extracting modules into services before exhausting in-process optimizations. This introduces distributed-system complexity (network latency, partial failures, eventual consistency) without evidence that distribution is necessary. Critically, L3 carries the highest rollback cost of any spectrum level: once a module operates as an independent service with its own database and deployment pipeline, re-embedding it in the monolith requires undoing infrastructure, CI, and data ownership changes. The cost is disproportionate to the benefit, particularly for early-stage teams with limited operational maturity~\cite{gravanis2021dont, su2024from}.\\\textbf{Metric signal:} detectable when extraction readiness thresholds are used as triggers before L0--L2 interventions have been exhausted; a premature L3 decision despite low throughput divergence confirms this anti-pattern.
+  Extracting modules before exhausting in-process optimizations. The Extract level carries the highest rollback cost: once a module operates as an independent service, re-embedding it requires undoing infrastructure, CI, and data ownership changes~\cite{gravanis2021dont, su2024from}.\\
+  \textbf{Metric signal:} Extract-level intervention despite low throughput divergence and $\varepsilon_m < 0.8$.
 
   \item \emph{Uniform Scaling Assumption:}
-  Treating all modules as having identical scaling requirements and applying the same intervention (e.g., horizontal replication of the entire monolith) uniformly. This wastes resources on modules that are not under pressure and delays targeted intervention for the modules that are. \\\textbf{Metric signal:} visible when throughput profiles show divergence across modules but the scaling intervention is applied uniformly rather than targeted to the modules with the highest throughput variance.
+  Applying the same scaling intervention uniformly across all modules rather than targeting the modules under pressure.\\
+  \textbf{Metric signal:} throughput divergence across modules with uniform (not targeted) intervention.
 
   \item \emph{Shared Database as Implicit Coupling:}
-  Allowing modules to query each other's tables directly, creating an invisible dependency that prevents data isolation (L2) and makes extraction (L3) require a coordinated schema migration. This anti-pattern often accumulates silently because it does not violate code-level boundary checks. \\\textbf{Metric signal:} directly detected by the data ownership metric: a value below 1.0 signals that at least one table is accessed by multiple modules.
+  Allowing modules to query each other's tables directly, creating invisible coupling that prevents Isolate and blocks Extract.\\
+  \textbf{Metric signal:} data ownership $\omega < 1.0$.
 
   \item \emph{Synchronous Call Chains Under Load:}
-  Maintaining synchronous inter-module communication paths for workflows that exhibit high throughput variance. Under load, synchronous chains propagate latency and failures upstream, creating cascading degradation that appears as a system-wide outage rather than a localized bottleneck. \\\textbf{Metric signal:} captured by a sync ratio above 0.3, indicating that a disproportionate share of inter-module communication remains synchronous.
+  Maintaining synchronous inter-module communication for workflows with high throughput variance, propagating latency and failures upstream.\\
+  \textbf{Metric signal:} sync ratio $\rho_{\mathrm{sync}} > 0.3$.
 
   \item \emph{Infrastructure Lock-In Through Concrete Dependencies:}
-  Embedding infrastructure-specific code (e.g., direct database driver calls, cloud SDK invocations) in domain or application logic. This prevents the module from transitioning between spectrum levels without rewriting business logic, effectively freezing the architecture at its current scale point. \\\textbf{Metric signal:} detected by abstraction coverage below 1.0, indicating that at least one module bypasses the shared infrastructure abstraction layer.
+  Embedding infrastructure-specific code in domain logic, preventing spectrum-level transitions without rewriting business logic.\\
+  \textbf{Metric signal:} abstraction coverage $\alpha < 1.0$.
 \end{itemize}
-
-These anti-patterns emerge when scaling decisions are driven by anticipation rather than evidence. G3 addresses them by embedding infrastructure abstractions as part of the system's foundational design, tracking scalability metrics longitudinally, and requiring evidence-based justification for each spectrum-level transition.
 
 \subsection*{The Scalability Readiness Gap}
 
-G1 and G2 ensure that module boundaries are correct and sustainable. Yet a system can satisfy both guidelines and still be \emph{unable to scale proportionally}. The gap arises because boundary enforcement and maintainability tracking say nothing about whether the architecture is \emph{prepared} for scaling interventions. A module with perfect boundary discipline and stable contracts may still share a database schema with three other modules, communicate exclusively through synchronous calls, and depend on infrastructure through concrete implementations. When load arrives, the team discovers that scaling requires a coordinated migration rather than a surgical intervention.
-
-This is the Scalability Readiness Gap: the distance between a structurally sound modular monolith and one that can absorb growth through proportional, reversible interventions. G3's metrics close this gap by making infrastructure preparation, communication flexibility, and data ownership visible and measurable from the initial deployment.
+G1 and G2 ensure that module boundaries are correct and sustainable. Yet a system can satisfy both guidelines and still be \emph{unable to scale proportionally}. A module with perfect boundary discipline and stable contracts may still share a database schema with three other modules, communicate exclusively through synchronous calls, and depend on infrastructure through concrete implementations. When load arrives, scaling requires a coordinated migration rather than a surgical intervention. G3's metrics close this gap by making infrastructure preparation, communication flexibility, and data ownership visible and measurable.
 
 \subsection*{Metrics and Verification}
-
-G3 metrics are designed to make scaling pressure observable at the module level and to verify that the architectural preparation for progressive scalability is in place. They complement the structural metrics defined in G1 and G2 by adding resource, throughput, and isolation dimensions.
 
 \medskip
 \noindent
@@ -173,96 +155,57 @@ Data Ownership & Tables with unambiguous single-module ownership & 100\% & Yes \
 Abstraction Coverage & Infrastructure access through ports/interfaces & 100\% & Yes \\
 \midrule
 \emph{Composite} & & & \\
-Extraction Readiness & Synthesis of G1 + G2 + G3 signals per module & $\geq$ 0.8 & L3 \\
+Extraction Readiness & Synthesis of G1 + G2 + G3 signals per module & $\geq$ 0.8 & Extract \\
 \bottomrule
 \end{tabularx}
 \normalsize
 
 \medskip
 \noindent
-\emph{Formal definitions.} The remainder of this section provides the precise definitions. In prose, metrics are referred to by name; the notation below supports unambiguous tooling implementation.
-
-\subsubsection*{Runtime Metrics}
-
-Runtime metrics capture module-level performance characteristics that can only be observed under load. They serve as early warning signals for L0$\to$L1 transitions and are tracked through the observability infrastructure defined in G6.
+\emph{Formal definitions.} In prose, metrics are referred to by name; the notation below supports unambiguous tooling implementation. Runtime metrics are tracked through the observability infrastructure defined in G6.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Module Throughput Profile ($\Theta_m$).} \\
-  Quantifies throughput divergence across modules to identify candidates for asynchronous decoupling before bottlenecks manifest as user-visible latency~\cite{richardson2018microservices}.
+  \item \textbf{Module Throughput Profile ($\Theta_m$).}
   \[
     \Delta\Theta = \max_{m \in M} \Theta_m - \min_{m \in M} \Theta_m
   \]
-  \emph{Target:} Monitor $\Delta\Theta$ growth; trigger L1 async decoupling when divergence exceeds 2:1 ratio between connected modules.
+  \emph{Target:} Monitor; trigger Decouple when divergence exceeds 2:1 ratio between connected modules~\cite{richardson2018microservices}.
 
-  \item \textbf{Module Latency Variance ($\sigma^2_{L,m}$).} \\
-  Measures response time consistency within a module. High variance under load signals resource contention, inefficient queries, or synchronous dependencies on overloaded modules, making the module a candidate for L0 vertical optimization or L1 async decoupling~\cite{martin2012clean}.
+  \item \textbf{Module Latency Variance ($\sigma^2_{L,m}$).}
   \[
     \sigma^2_{L,m} = \mathbb{E}[(L_m - \mu_{L,m})^2]
   \]
-  \emph{Target:} Monitor $\sigma^2_{L,m}$ growth; investigate when variance increases $>2\times$ baseline under load.
+  \emph{Target:} Monitor; investigate when variance increases $>2\times$ baseline~\cite{martin2012clean}.
 
-\end{itemize}
-
-\noindent\emph{Note on runtime metrics.} Throughput divergence and latency variance are \emph{monitoring indicators} whose baselines are established through load testing rather than static code analysis. They serve as L0$\to$L1 trigger signals: when throughput divergence between connected modules exceeds a 2:1 ratio, the team investigates async decoupling. The four static and composite metrics below (sync ratio, data ownership, abstraction coverage, extraction readiness) are the \emph{verification metrics} that can be computed from the codebase at any commit and are included in the compliance summary. The runtime indicators are tracked through the observability infrastructure defined in G6.
-
-\subsubsection*{Static Structural Metrics}
-
-Static structural metrics are computed from the codebase at any commit without requiring a running system. They verify that the architectural preparation for progressive scalability (communication flexibility, data ownership, and infrastructure abstraction) is in place.
-
-\begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$).} \\
-  Quantifies the proportion of synchronous versus asynchronous inter-module interactions. Excessive synchronous communication prevents modules from scaling independently and creates cascading failure scenarios~\cite{dragoni2017microservices}.
+  \item \textbf{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$).}
   \[
     \rho_{\mathrm{sync}} = \frac{|I_{\mathrm{sync}}|}{|I_{\mathrm{sync}}| + |I_{\mathrm{async}}|}
   \]
-  \emph{Target:} $\rho_{\mathrm{sync}} \leq 0.3$ (majority of inter-module communication asynchronous).
+  \emph{Target:} $\rho_{\mathrm{sync}} \leq 0.3$~\cite{dragoni2017microservices}.
 
-  \item \textbf{Data Ownership Clarity Index ($\omega$).} \\
-  Measures the proportion of data structures with unambiguous single-module ownership. Shared tables create invisible coupling that prevents data isolation (L2) and blocks extraction (L3)~\cite{evans2003ddd}.
+  \item \textbf{Data Ownership Clarity Index ($\omega$).}
   \[
     \omega = \frac{|T_{\mathrm{single\text{-}owner}}|}{|T|}
   \]
-  where $T$ is the set of all tables and $T_{\mathrm{single\text{-}owner}}$ is the subset accessed by only one module.
-  \emph{Target:} $\omega = 1.0$ (all data structures have unambiguous ownership).
+  \emph{Target:} $\omega = 1.0$~\cite{evans2003ddd}.
 
-  \item \textbf{Infrastructure Abstraction Coverage ($\alpha$).} \\
-  Quantifies the proportion of infrastructure access mediated through ports or interfaces. Direct infrastructure dependencies freeze the architecture at its current scale point, making spectrum-level transitions require code rewrites rather than configuration changes~\cite{FordParsons2017}.
+  \item \textbf{Infrastructure Abstraction Coverage ($\alpha$).}
   \[
     \alpha = \frac{|A_{\mathrm{abstracted}}|}{|A|}
   \]
-  \emph{Target:} $\alpha = 1.0$ (all infrastructure access through abstractions).
+  \emph{Target:} $\alpha = 1.0$~\cite{FordParsons2017}.
 
-\end{itemize}
-
-\subsubsection*{Composite Metric}
-
-The composite metric synthesizes signals from G1 (boundary health), G2 (maintainability), and G3 (scalability preparation) into a single per-module score. It serves as the quantitative gate for L3 extraction decisions.
-
-\begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Extraction Readiness Score ($\varepsilon_m$).} \\
-  Composite metric synthesizing boundary health (G1), maintainability (G2), and scalability preparation (G3) to quantify how prepared a module is for independent deployment. A high score indicates extraction would be a low-risk topology change; a low score reveals preparation debt~\cite{wolfart2021modernizing}. The weights reflect the relative criticality of each dimension for extraction feasibility:
+  \item \textbf{Extraction Readiness Score ($\varepsilon_m$).}
   \[
     \varepsilon_m = 0.25 \cdot b_m + 0.20 \cdot (1 - \rho_{\mathrm{sync}}^{(m)}) + 0.15 \cdot a_m + 0.20 \cdot \omega_m + 0.20 \cdot v_m
   \]
-  where:
-  \begin{itemize}[itemsep=2pt,topsep=2pt]
-    \item $b_m$ is \emph{boundary compliance}: 1 if module $m$ has no undeclared cross-module imports, 0 otherwise (from G1);
-    \item $(1 - \rho_{\mathrm{sync}}^{(m)})$ is \emph{async readiness}: the proportion of inter-module interactions that are event-driven. In the Tiny Store tooling, this is approximated as a binary check for event bus usage (listeners and published events present), which suffices when the architecture is fully event-driven ($\rho_{\mathrm{sync}} = 0$). In systems with mixed communication patterns, the continuous ratio should be computed;
-    \item $a_m$ is \emph{Anti-Corruption Layer coverage}: the proportion of cross-module interactions mediated through anti-corruption layers (from G2);
-    \item $\omega_m$ is \emph{database schema isolation}: as defined above;
-    \item $v_m$ is \emph{event contract versioning coverage}: the proportion of published events with explicit version schemas.
-  \end{itemize}
-  \emph{Target:} $\varepsilon_m \geq 0.8$ before considering L3 extraction for module $m$.
-
-  Boundary compliance receives the highest weight (0.25) because undeclared cross-module imports create hard extraction blockers that require code changes in both the extracted module and its consumers. Async readiness and data ownership share the second tier (0.20 each) because both represent infrastructure-level coupling that, if unresolved, forces coordinated migration across multiple modules. Event contract versioning (0.20) ensures that extracted modules can communicate through stable schemas without tight temporal coupling. Anti-Corruption Layer coverage receives the lowest weight (0.15) because anti-corruption layers, while valuable for translation isolation, can be introduced incrementally during extraction without blocking the process. These weights are proposed defaults derived from the relative extraction risk each dimension represents; teams should calibrate them based on their system's specific coupling profile and extraction priorities. The validation of these defaults through practitioner interviews is part of the verification plan outlined in Chapter~5.
+  where $b_m$ = boundary compliance (G1), $(1 - \rho_{\mathrm{sync}}^{(m)})$ = async readiness, $a_m$ = Anti-Corruption Layer coverage (G2), $\omega_m$ = schema isolation, $v_m$ = event contract versioning.
+  \emph{Target:} $\varepsilon_m \geq 0.8$ before Extract~\cite{wolfart2021modernizing}. Weights are proposed defaults reflecting relative extraction risk; teams should calibrate them. Validation through practitioner interviews is outlined in Chapter~5.
 \end{itemize}
-
-\noindent
-\emph{Verification strategy:} G3 metrics are tracked longitudinally alongside G1 and G2 metrics. The primary verification concern is not whether the system scales today, but whether it \emph{can} scale proportionally when needed. An increase in throughput divergence without a corresponding decrease in sync ratio for the affected module pair indicates that scalability preparation is lagging behind actual load growth. A declining data ownership score indicates increasing data coupling that will block future isolation. These signals enable proactive architectural intervention before scaling becomes an emergency.
 
 \medskip
 \noindent
-\textbf{Compliance summary.} G3 compliance holds when the sync ratio is at most 30\%, data ownership is 100\%, abstraction coverage is 100\%, and extraction readiness exceeds 0.8 for extraction candidates. Formally:
+\textbf{Compliance summary.} G3 compliance holds when:
 \[
   \rho_{\mathrm{sync}} \leq 0.3 \land \omega = 1 \land \alpha = 1 \land \varepsilon_m \geq 0.8 \text{ for extraction candidates}
 \]
@@ -271,59 +214,44 @@ The composite metric synthesizes signals from G1 (boundary health), G2 (maintain
 \subsection*{Documentation Guidelines}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Module Scale Profile:}
-  Maintain a lightweight document (or section in the module descriptor) for each module that records its current spectrum level (L0--L3), its observed throughput profile, and any known scaling constraints. This profile is updated when monitoring data changes significantly or when a spectrum-level transition occurs.
+  Record each module's current spectrum level, observed throughput profile, and known scaling constraints. Update when monitoring data changes or a transition occurs.
 
   \item \emph{Scalability ADRs:}
-  Record each transition between spectrum levels as an Architecture Decision Record. The ADR should capture: the trigger condition (which metric crossed which threshold), the intervention applied, the expected outcome, the rollback path, and the actual outcome after implementation. This creates a traceable history of scaling decisions that can inform future interventions.
+  Record each spectrum-level transition: trigger condition, intervention applied, expected outcome, rollback path, and actual outcome.
 
   \item \emph{Infrastructure Dependency Map:}
-  Document which infrastructure dependencies each module uses and whether they are accessed through abstractions (abstraction coverage = 1.0) or directly (below 1.0). This map complements the module dependency descriptor from G1 and makes infrastructure lock-in visible.
+  Document which infrastructure dependencies each module uses and whether they are accessed through abstractions ($\alpha = 1.0$) or directly.
 \end{itemize}
 
 \subsection*{Tooling Capabilities Checklist}
-Any open-source or proprietary tool used to support progressive scalability should address:
+Any tool supporting progressive scalability should address:
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Module-scoped metrics collection:} Attribute resource consumption, latency, and throughput to individual modules within the monolith, without requiring distributed tracing infrastructure.
-  \item \emph{Communication abstraction:} Provide a dispatch mechanism that supports both synchronous and asynchronous inter-module communication through the same contract interface.
-  \item \emph{Schema ownership analysis:} Identify tables or collections accessed by multiple modules and quantify data ownership clarity.
-  \item \emph{Load simulation:} Support targeted load testing of individual modules or inter-module communication paths to validate scaling interventions before production deployment.
-  \item \emph{Extraction readiness assessment:} Combine G1 boundary metrics, G2 maintainability metrics, and G3 scalability metrics into a composite readiness view per module.
+  \item Module-scoped metrics collection (throughput, latency per module).
+  \item Communication abstraction (sync/async through the same contract interface).
+  \item Schema ownership analysis (identify tables accessed by multiple modules).
+  \item Load simulation (targeted per-module or per-path testing).
+  \item Extraction readiness assessment (composite G1+G2+G3 score per module).
 \end{itemize}
-
-\noindent
-These capabilities map directly to the metrics defined in the preceding section: module-scoped collection enables throughput divergence and latency variance tracking, communication abstraction supports sync ratio measurement, schema ownership analysis feeds the data ownership metric, and extraction readiness assessment computes the composite score.
 
 \subsection*{Literature Support Commentary}
 
-The academic literature on software scalability exhibits a persistent structural gap. Empirical studies on microservices consistently provide evidence on horizontal scaling but frame distribution as a prerequisite for scalability rather than one option among several~\cite{arya2024beyond, blinowski2022monolithic, berry2024isItWorth}. Comparative analyses of performance, scalability, and cost between microservice and monolithic deployments demonstrate that the trade-offs are context-dependent, yet stop short of proposing what a team should do \emph{between} these two endpoints~\cite{jatkiewicz2023differences}. Studies that advocate for monoliths or modular monoliths acknowledge that monolithic architectures can serve moderate scaling needs but do not formalize how scaling should be approached incrementally within a monolithic boundary~\cite{montesi2021sliceable, gravanis2021dont, deLauretis2019from}. Industry experience reports reinforce this pattern: documented retreats from microservices~\cite{segment2023}, accounts of premature distribution's operational toll~\cite{auth02019}, and arguments that monoliths remain viable at significant scale~\cite{medium2019} all suggest that distribution is not a universal solution. Research on accelerating early-stage development through monolithic architectures combined with MVP practices further supports deferring distribution until evidence warrants it~\cite{lima2024accelerating}.
+The academic literature on software scalability exhibits a persistent structural gap. Empirical studies on microservices consistently provide evidence on horizontal scaling but frame distribution as a prerequisite for scalability rather than one option among several~\cite{arya2024beyond, blinowski2022monolithic, berry2024isItWorth}. Comparative analyses demonstrate that the trade-offs are context-dependent, yet stop short of proposing what a team should do \emph{between} monolith and microservices~\cite{jatkiewicz2023differences}. Studies advocating for monoliths acknowledge that monolithic architectures can serve moderate scaling needs but do not formalize how scaling should be approached incrementally~\cite{montesi2021sliceable, gravanis2021dont, deLauretis2019from}. Industry experience reports reinforce this pattern: documented retreats from microservices~\cite{segment2023}, accounts of premature distribution's operational toll~\cite{auth02019}, and arguments that monoliths remain viable at significant scale~\cite{medium2019} all suggest that distribution is not a universal solution. Research on accelerating early-stage development through monolithic architectures further supports deferring distribution until evidence warrants it~\cite{lima2024accelerating}.
 
-Two proposals come closest to the progressive scalability concept. The ``sliceable monolith'' keeps the system unified until a slice needs independent deployment~\cite{montesi2021sliceable}, but focuses on \emph{deployment granularity} (when to slice) rather than on the intermediate architectural interventions (async boundaries, data isolation, infrastructure abstraction) that precede extraction. The Strangler Fig pattern~\cite{stranglerPatterns} offers an established incremental migration strategy, but it operates at the application boundary (routing external requests to old or new implementations) rather than addressing the internal modular preparation that precedes extraction. Similarly, the ``write as a monolith, deploy as microservices'' model addresses the deployment dimension but provides no guidance on how to prepare the monolith's internal architecture for selective scaling~\cite{ghemawat2023towards}. The evolutionary architecture perspective provides the philosophical foundation, arguing that architectural properties should be preserved through fitness functions and incremental adaptation~\cite{FordParsons2017}, but does not operationalize this principle for scaling decisions at the module level.
+Two proposals come closest to the progressive scalability concept. The ``sliceable monolith'' keeps the system unified until a slice needs independent deployment~\cite{montesi2021sliceable}, but focuses on deployment granularity rather than the intermediate interventions (async boundaries, data isolation, infrastructure abstraction) that precede extraction. The Strangler Fig pattern~\cite{stranglerPatterns} offers incremental migration but operates at the application boundary rather than addressing internal modular preparation. The evolutionary architecture perspective provides the philosophical foundation~\cite{FordParsons2017} but does not operationalize it for scaling decisions at the module level.
 
-\emph{The gap is threefold.} A systematic review of the SLR corpus reveals that no existing work provides:
-
-\begin{enumerate}[itemsep=8pt,topsep=2pt]
-  \item \emph{A formalized intermediate-state model} that defines the architectural states a modular monolith can occupy between ``monolith'' and ``microservices,'' with explicit descriptions of what each state entails structurally.
-  \item \emph{Quantified progression triggers} that specify, through measurable metrics (sync ratio, data ownership, abstraction coverage, throughput divergence), when a module should transition from one scaling level to the next, replacing intuition-driven decisions with evidence-based ones.
-  \item \emph{A composite extraction readiness metric} that synthesizes boundary health (G1), maintainability signals (G2), and scalability preparation (G3) into a single actionable score per module, ensuring that extraction decisions are grounded in architectural evidence rather than organizational pressure.
-\end{enumerate}
-
-G3 addresses all three gaps. The L0--L3 Progressive Scalability Spectrum (Table~\ref{tab:scalability-spectrum}) formalizes the intermediate states. The six G3 metrics define the progression triggers. The Extraction Readiness Score provides the composite decision function.
+A systematic review of the SLR corpus reveals that no existing work provides: (1) a formalized intermediate-state model between monolith and microservices; (2) quantified progression triggers through measurable metrics; or (3) a composite extraction readiness metric synthesizing signals across guidelines. G3 addresses all three gaps.
 
 \subsection*{Core Contribution}
 
-The scientific contribution of G3 is not the individual scaling techniques at each spectrum level. Caching, asynchronous messaging, schema isolation, and service extraction are well-established patterns documented extensively in both academic and practitioner literature. What the literature lacks, and what G3 provides, is a \emph{unified decision model} that organizes these techniques into a coherent, evidence-based progression model.
-
-G3 contributes three novel elements to the body of knowledge on software scalability:
+The contribution is not the individual scaling techniques (caching, messaging, schema isolation, extraction are well-established) but a unified decision model that organizes them into an evidence-based progression:
 
 \begin{enumerate}[itemsep=8pt,topsep=2pt]
-  \item \emph{A formalized scalability gradient.} The Progressive Scalability Spectrum replaces the binary ``monolith or microservices'' framing with four intermediate architectural states (L0--L3), each with explicit structural characteristics, metric triggers, and rollback paths. This formalization enables teams to reason about scalability as a continuum rather than a migration event.
+  \item \emph{A formalized scalability gradient.} The Progressive Scalability Spectrum replaces the binary ``monolith or microservices'' framing with four intermediate states (Tune, Decouple, Isolate, Extract), each with explicit metric triggers and rollback paths.
 
-  \item \emph{Metric-driven progression triggers.} Each transition between spectrum levels is governed by quantifiable thresholds (sync ratio, data ownership, abstraction coverage, extraction readiness) that remove subjectivity from scaling decisions. The metrics are composable across guidelines: G3 builds on G1's boundary health and G2's maintainability signals, creating a layered measurement model where each guideline contributes a complementary dimension.
+  \item \emph{Metric-driven progression triggers.} Each transition is governed by quantifiable thresholds that remove subjectivity. The metrics are composable across guidelines: G3 builds on G1's boundary health and G2's maintainability signals.
 
-  \item \emph{Per-module, reversible interventions.} By scoping scaling decisions to individual modules rather than the entire system, and by ensuring that each intervention is reversible through adapter abstractions, G3 preserves architectural optionality. This directly addresses the irreversibility risk identified in the literature as a primary driver of premature distribution~\cite{gravanis2021dont, segment2023}.
+  \item \emph{Per-module, reversible interventions.} Scaling decisions are scoped to individual modules and each intervention is reversible through adapter abstractions, preserving architectural optionality~\cite{gravanis2021dont, segment2023}.
 \end{enumerate}
-
-Together, these elements reframe scalability from a binary migration decision into a gradient of proportional, reversible interventions. The guidelines are designed to be validated through practitioner interviews and applied case studies, as outlined in the verification plan (Chapter~5).
 
 The scalability levels defined here provide the trigger criteria for G4 (Migration Readiness), which prepares individual modules for extraction when the evidence warrants it.
 
@@ -334,17 +262,17 @@ The scalability levels defined here provide the trigger criteria for G4 (Migrati
 \subsection*{G3 Applied: Progressive Scalability in the Tiny Store}
 \label{sec:g3-applied}
 
-The Tiny Store reference implementation demonstrates that progressive scalability infrastructure is embedded as an initial architectural requirement, not added later as a scaling patch. The following code listings show the actual production code that ships with the initial deployment.
+The following sections demonstrate the progressive scalability infrastructure in the Tiny Store reference implementation.\footnote{Full source: \url{https://github.com/maurcarvalho/tiny-store}}
 
-\subsubsection*{L0: Vertical Optimization: Module-Scoped Caching}
+\subsubsection*{Tune: Module-Scoped Caching}
 
-Tiny Store includes a caching layer from the first deployment, not as an optimization added under pressure. The \texttt{CacheService} enforces module-namespaced keys through a \texttt{buildKey()} method, ensuring that cache entries are isolated per bounded context and can be invalidated independently. The service uses an adapter pattern: an \texttt{InMemoryCacheAdapter} serves development and testing, while a \texttt{RedisCacheAdapter} is injected for production workloads.
+The \texttt{CacheService} enforces module-namespaced keys through a \texttt{buildKey()} method, ensuring cache entries are isolated per bounded context. An \texttt{InMemoryCacheAdapter} serves development; a \texttt{RedisCacheAdapter} is injected for production:
 
 \needspace{4\baselineskip}
-\begin{lstlisting}[language=TypeScript,caption={CacheService with module-namespaced keys and adapter pattern (cache.service.ts)},label={lst:g3-cache-service}]
+\begin{lstlisting}[language=TypeScript,caption={CacheService with module-namespaced keys (cache.service.ts)},label={lst:g3-cache-service}]
 class CacheService {
   private adapter: CacheAdapter;
-  private globalPrefix: string; // default: 'tiny-store'
+  private globalPrefix: string;
 
   private buildKey(module: string, key: string): string {
     return `${this.globalPrefix}:${module}:${key}`;
@@ -353,66 +281,29 @@ class CacheService {
   async get<T>(module: string, key: string): Promise<T | null> {
     const raw = await this.adapter.get(
       this.buildKey(module, key));
-    if (raw === null) return null;
-    return JSON.parse(raw) as T;
+    return raw ? JSON.parse(raw) as T : null;
   }
 
   async set<T>(module: string, key: string, value: T,
                ttlSeconds?: number): Promise<void> {
-    await this.adapter.set(
-      this.buildKey(module, key),
+    await this.adapter.set(this.buildKey(module, key),
       JSON.stringify(value), ttlSeconds);
   }
-
-  async invalidatePattern(module: string,
-                          pattern: string): Promise<void> {
-    const keys = await this.adapter.keys(
-      this.buildKey(module, pattern));
-    if (keys.length > 0) await this.adapter.del(keys);
-  }
 }
 \end{lstlisting}
 
 \noindent
-A read-through caching decorator applies this pattern declaratively to any module method:
+A read-through caching decorator applies this pattern declaratively. When Tune-level optimization is needed, the team adds \texttt{@Cacheable('inventory', 60, (sku) => `product:\$\{sku\}`)} to the target method.\footnote{Full decorator: \texttt{libs/shared/infrastructure/src/cache/cache.decorator.ts}}
+
+\subsubsection*{Decouple: Module-Scoped Queues}
+
+The \texttt{QueueService} provides module-scoped queues following the \texttt{module:purpose} naming convention, with the same adapter pattern as the cache layer:
 
 \needspace{4\baselineskip}
-\begin{lstlisting}[language=TypeScript,caption={Read-through caching decorator (cache.decorator.ts)},label={lst:g3-cache-decorator}]
-export function Cacheable(
-  module: string, ttlSeconds: number,
-  keyFn: (...args: any[]) => string,
-) {
-  return function (_target: any, _propertyKey: string,
-                   descriptor: PropertyDescriptor) {
-    const original = descriptor.value;
-    descriptor.value = async function (...args: any[]) {
-      const cache = CacheService.getInstance();
-      const key = keyFn(...args);
-      const cached = await cache.get(module, key);
-      if (cached !== null) return cached;
-      const result = await original.apply(this, args);
-      await cache.set(module, key, result, ttlSeconds);
-      return result;
-    };
-    return descriptor;
-  };
-}
-// Usage: @Cacheable('inventory', 60, (sku) => `product:${sku}`)
-\end{lstlisting}
-
-\noindent
-The key design decision is that the cache layer is present in the initial deployment. When vertical optimization becomes necessary (L0 trigger), the team enables caching on specific queries by adding a decorator; no infrastructure provisioning or architectural change is required.
-
-\subsubsection*{L1: Async Decoupling: Module-Scoped Queues}
-
-When vertical optimization is insufficient and throughput divergence between connected modules exceeds the 2:1 threshold, the next proportional intervention is to decouple their communication. L1 introduces asynchronous channels at the module boundary, absorbing load spikes in the producer without propagating backpressure to the consumer. In Tiny Store, this capability is available from the first deployment through the \texttt{QueueService}, which provides module-scoped queues following the \texttt{module:purpose} naming convention. Like the cache layer, it uses an adapter pattern: an \texttt{InMemoryQueueAdapter} handles development, while a \texttt{BullMQAdapter} backed by Redis is injected for production:
-
-\needspace{4\baselineskip}
-\begin{lstlisting}[language=TypeScript,caption={QueueService with module-scoped queues and adapter pattern (queue.service.ts)},label={lst:g3-queue-service}]
+\begin{lstlisting}[language=TypeScript,caption={QueueService with adapter pattern (queue.service.ts)},label={lst:g3-queue-service}]
 class QueueService {
   private adapter: QueueAdapter;
 
-  /** Convention: `module:purpose` e.g. `shipments:label-gen` */
   async enqueue<T>(queue: string, data: T,
                    options?: JobOptions): Promise<Job<T>> {
     return this.adapter.enqueue(queue, data, options);
@@ -426,100 +317,28 @@ class QueueService {
 \end{lstlisting}
 
 \noindent
-The adapter pattern makes the reversibility principle concrete. Listing~\ref{lst:g3-inmemory-queue} shows the \texttt{InMemoryQueueAdapter}, which ships with the initial deployment and handles development and testing workloads. In production, a \texttt{BullMQAdapter} backed by Redis is injected at composition time. The caller and worker code remain identical in both cases.
+The \texttt{InMemoryQueueAdapter} ships with the initial deployment; a \texttt{BullMQAdapter} backed by Redis is injected when \texttt{REDIS\_URL} is defined.\footnote{Adapters: \texttt{libs/shared/infrastructure/src/queue/adapters/}}  The composition root selects the adapter:
 
 \needspace{4\baselineskip}
-\begin{lstlisting}[language=TypeScript,caption={InMemoryQueueAdapter: the default adapter for development and testing (in-memory-queue.adapter.ts)},label={lst:g3-inmemory-queue}]
-class InMemoryQueueAdapter implements QueueAdapter {
-  private queues = new Map<string, any[]>();
-  private workers = new Map<string, WorkerHandler<any>>();
-
-  async enqueue<T>(queue: string, data: T,
-                   options?: JobOptions): Promise<Job<T>> {
-    const job = { id: crypto.randomUUID(), data, options };
-    const items = this.queues.get(queue) ?? [];
-    items.push(job);
-    this.queues.set(queue, items);
-
-    // Process immediately in-memory (no network hop)
-    const handler = this.workers.get(queue);
-    if (handler) await handler(job);
-    return job;
-  }
-
-  registerWorker<T>(queue: string,
-                    handler: WorkerHandler<T>): void {
-    this.workers.set(queue, handler);
-  }
-}
-\end{lstlisting}
-
-\noindent
-The production counterpart replaces in-memory dispatch with Redis-backed distributed queues. Listing~\ref{lst:g3-bullmq-adapter} shows the \texttt{BullMQAdapter}, which provides the same contract with durable persistence, retry policies, and horizontal worker scaling:
-
-\needspace{4\baselineskip}
-\begin{lstlisting}[language=TypeScript,caption={BullMQAdapter: the production adapter backed by Redis (bullmq-queue.adapter.ts)},label={lst:g3-bullmq-adapter}]
-class BullMQAdapter implements QueueAdapter {
-  private queues = new Map<string, Queue>();
-  private connection: IORedis;
-
-  constructor(redisUrl: string) {
-    this.connection = new IORedis(redisUrl);
-  }
-
-  async enqueue<T>(queue: string, data: T,
-                   options?: JobOptions): Promise<Job<T>> {
-    const q = this.getOrCreateQueue(queue);
-    return q.add(queue, data, {
-      attempts: options?.attempts ?? 3,
-      backoff: options?.backoff ?? {
-        type: 'exponential', delay: 1000 },
-    });
-  }
-
-  registerWorker<T>(queue: string,
-                    handler: WorkerHandler<T>): void {
-    new Worker(queue, async (job) => handler(job),
-      { connection: this.connection });
-  }
-
-  private getOrCreateQueue(name: string): Queue {
-    if (!this.queues.has(name)) {
-      this.queues.set(name, new Queue(name,
-        { connection: this.connection }));
-    }
-    return this.queues.get(name)!;
-  }
-}
-\end{lstlisting}
-
-\noindent
-The composition root selects the adapter based on the runtime environment. Listing~\ref{lst:g3-queue-factory} shows the factory function that wires the \texttt{QueueService} at application startup:
-
-\needspace{4\baselineskip}
-\begin{lstlisting}[language=TypeScript,caption={Queue adapter selection at composition time (queue.factory.ts)},label={lst:g3-queue-factory}]
+\begin{lstlisting}[language=TypeScript,caption={Queue adapter selection (queue.factory.ts)},label={lst:g3-queue-factory}]
 function createQueueService(): QueueService {
   const adapter = process.env.REDIS_URL
     ? new BullMQAdapter(process.env.REDIS_URL)
     : new InMemoryQueueAdapter();
-
   return new QueueService(adapter);
 }
 \end{lstlisting}
 
 \noindent
-When \texttt{REDIS\_URL} is defined (production, staging), the service uses BullMQ with durable persistence and distributed workers. When absent (development, testing), it falls back to in-memory dispatch with zero external dependencies. No handler logic, queue naming, or worker registration changes between environments. This is what makes L1 reversible: if async decoupling proves unnecessary for a specific module pair, removing the \texttt{REDIS\_URL} variable reverts the entire queue infrastructure to synchronous in-memory dispatch.
+Removing \texttt{REDIS\_URL} reverts the entire queue infrastructure to in-memory dispatch. The same pattern applies to the event bus: at the Tune level, events are dispatched in-process; when a module pair triggers the Decouple threshold, the event bus switches to a Kafka topic using the same event contracts. The caller publishes an event; the adapter decides whether it is dispatched in-memory or written to a Kafka partition.
 
-The same adapter pattern applies to the event bus itself. At L0, events are dispatched in-process through the \texttt{EventBus} singleton. When a module pair triggers the L1 threshold, the event bus switches from in-process dispatch to a Kafka topic, using the same event contracts defined at project start. The caller publishes an event; the adapter decides whether it is dispatched in-memory or written to a Kafka partition. Because the queue and event bus infrastructure are available from the start, the team can introduce async decoupling for any inter-module interaction by swapping an adapter. No infrastructure migration is required.
+\subsubsection*{Isolate: Per-Module PostgreSQL Schemas}
 
-\subsubsection*{L2: Data Isolation: Per-Module PostgreSQL Schemas}
-
-When async decoupling alone does not resolve contention (for example, when two modules compete for write locks on the same database instance), L2 addresses the persistence layer. Data isolation ensures that each module's storage can be independently tuned, replicated, or migrated without coordinating with other modules. In Tiny Store, this isolation is established from the first deployment through per-module PostgreSQL schemas, making it a structural property rather than a migration prerequisite. Rather than creating schemas imperatively at runtime, each module declares its own PostgreSQL schema using Drizzle ORM's \texttt{pgSchema()} API. The schema definition is co-located with the module's source code, making data ownership explicit and statically verifiable:
+Each module declares its own PostgreSQL schema using Drizzle ORM's \texttt{pgSchema()} API, co-located with the module source:
 
 \needspace{4\baselineskip}
 \begin{lstlisting}[language=TypeScript,caption={Per-module PostgreSQL schema isolation (inventory/db/schema.ts)},label={lst:g3-schema-isolation}]
-// libs/modules/inventory/src/db/schema.ts
-import { pgSchema, text, integer, timestamp, boolean }
+import { pgSchema, text, integer, timestamp }
   from 'drizzle-orm/pg-core';
 
 const inventorySchema = pgSchema('inventory');
@@ -534,105 +353,67 @@ export const productsTable = inventorySchema.table('products', {
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
 });
-
-// Each of the four modules follows the same pattern:
-// orders/db/schema.ts    -> pgSchema('orders')
-// payments/db/schema.ts  -> pgSchema('payments')
-// shipments/db/schema.ts -> pgSchema('shipments')
+// orders, payments, shipments follow the same pattern
 \end{lstlisting}
 
 \noindent
-Because each module's \texttt{pgSchema()} declaration is the single source of truth for its schema name, no central configuration is required. The database startup logic can discover which schemas to create by inspecting the registered module schemas, keeping the system DRY: adding a new module means creating its \texttt{db/schema.ts} with a \texttt{pgSchema()} call, and the infrastructure derives everything else from that declaration. Drizzle automatically qualifies all queries with the correct schema prefix (e.g., \texttt{inventory.products}), making cross-schema access impossible through the ORM layer. Cross-module data access is mediated through published contracts (events or API calls), never through direct table queries.
+Because \texttt{pgSchema()} is the single source of truth, no central configuration is required. Drizzle qualifies all queries with the schema prefix (e.g., \texttt{inventory.products}), making cross-schema access impossible through the ORM layer. When Extract-level extraction occurs, the module changes its connection string to a dedicated instance; schema declarations, repositories, and domain logic remain unchanged.
 
-When L3 extraction occurs, the extracted module simply changes its connection string to point at a dedicated database instance; the \texttt{pgSchema()} declarations, repository implementations, and domain logic remain unchanged. This is a deployment topology change rather than a data migration.
+When monitoring signals (connection pool saturation, lock wait times, replication lag) indicate that a module needs a dedicated database instance, the transition is itself progressive: provision the instance and rebind the connection string. The schema, tables, and queries remain identical.
 
-Per-module schemas within a shared database instance represent the starting point for data isolation, not the ceiling. In production systems, connection pool saturation, write contention, or divergent backup and replication requirements may indicate that a module needs a dedicated database instance. This transition is itself progressive: when monitoring signals (connection count approaching pool limits, lock wait times increasing for a specific schema, or replication lag affecting only one module's workload) cross their thresholds, the team provisions a dedicated instance and rebinds the module's repository adapter to point to it. The schema, tables, and queries remain identical; only the connection string changes. This mirrors the L1 adapter pattern: the same port-and-adapter design that enables queue infrastructure swaps also enables database infrastructure swaps, reinforcing the principle that each spectrum level builds on the abstractions established by the previous ones.
+\subsubsection*{Extract: What Extraction Looks Like}
 
-\subsubsection*{L3: Selective Extraction: What Extraction Looks Like}
-
-L3 is the final spectrum level, reached only when L0 through L2 have been exhausted or proven insufficient for a specific module. At this point, the module has already been decoupled asynchronously (L1) and owns its data exclusively (L2). The remaining step is to deploy it as an independent process with its own runtime and deployment pipeline.
-
-When the Orders extraction readiness score indicates that L3 is warranted, extraction is a \emph{topology change}, not a code rewrite. The domain logic, repository interfaces, and event handlers remain unchanged; what changes is how infrastructure adapters are bound and where the process runs. The Tiny Store repository includes a working L3 extraction example (\texttt{docker-compose.l3.yml}) that deploys the Orders module as a fully independent service alongside the monolith. The extracted service uses the \emph{exact same} code from \texttt{libs/modules/orders/}; only the entry point and database connection differ. The service is fully self-contained: it serves its own HTTP API on port 3001, connects to a dedicated PostgreSQL instance, and registers its own event listeners. The following Docker Compose snippet shows the extraction topology:
+Extract is reached only when Tune, Decouple, and Isolate have been exhausted for a specific module. At this point, the module is already decoupled asynchronously and owns its data exclusively. Extraction is a topology change: the domain logic, repository interfaces, and event handlers remain unchanged. The Tiny Store repository includes a working example (\texttt{docker-compose.l3.yml})\footnote{Full file: \url{https://github.com/maurcarvalho/tiny-store/blob/main/docker-compose.l3.yml}} that deploys Orders as an independent service:
 
 \needspace{4\baselineskip}
-\begin{lstlisting}[language=yaml,caption={L3 extraction: Orders as an independent service (docker-compose.l3.yml)},label={lst:g3-l3-extraction}]
+\begin{lstlisting}[language=yaml,caption={Extract-level topology (docker-compose.l3.yml, abbreviated)},label={lst:g3-l3-extraction}]
 services:
-  orders-service:  # fully independent: own API + DB + events
+  orders-service:  # own API (port 3001) + own DB + own events
     build: { context: ., dockerfile: apps/orders-service/Dockerfile }
     ports: ['3001:3001']
     environment:
       DATABASE_URL: postgres://orders:orders@orders-db:5432/orders
       REDIS_HOST: redis
-      QUEUE_ADAPTER: bullmq
-      CACHE_ADAPTER: redis
     depends_on:
       orders-db: { condition: service_healthy }
-      redis: { condition: service_healthy }
 
   orders-db:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: orders
       POSTGRES_USER: orders
-      POSTGRES_PASSWORD: orders
 
-  monolith:
-    build: { context: ., dockerfile: Dockerfile }
-    ports: ['3000:3000']
+  monolith:  # serves inventory, payments, shipments on port 3000
     environment:
       DATABASE_URL: postgres://tinystore:tinystore@main-db:5432/tinystore
-      REDIS_HOST: redis
-      QUEUE_ADAPTER: bullmq
-      CACHE_ADAPTER: redis
-    depends_on:
-      main-db: { condition: service_healthy }
-      redis: { condition: service_healthy }
-
-  main-db:
-    image: postgres:16-alpine
-    environment: { POSTGRES_DB: tinystore, POSTGRES_USER: tinystore }
-
-  redis:
-    image: redis:7-alpine
+      EXTRACTED_MODULES: orders  # middleware returns 410 Gone
 \end{lstlisting}
 
 \noindent
-In production, the monolith and the extracted service communicate through Kafka topics rather than the in-process event bus. The event contracts (payload schemas, version fields, aggregate IDs) remain identical; only the transport changes. Three infrastructure changes occur at extraction, none of which touch domain logic:
+In production, the monolith and extracted service communicate through Kafka topics; event contracts remain identical. Three infrastructure changes occur, none touching domain logic:
 
 \begin{enumerate}[itemsep=4pt,topsep=2pt]
-  \item The \texttt{DATABASE\_URL} points to a dedicated PostgreSQL instance (\texttt{orders-db}) instead of the shared database. The module's schema, tables, and queries remain identical.
-  \item The event listeners are scoped to only the Orders-related subset, registered in the service's own entry point (\texttt{apps/orders-service/src/main.ts}).
-  \item The Orders service runs in its own container on port 3001 with its own HTTP API and independent deployment pipeline, while the monolith continues serving inventory, payments, and shipments on port 3000.
+  \item \texttt{DATABASE\_URL} points to a dedicated instance; schema and queries are identical.
+  \item Event listeners are scoped to Orders-related events in the service's own entry point.
+  \item The service runs in its own container with independent deployment pipeline.
 \end{enumerate}
 
 \noindent
-In production, a load balancer or API gateway routes \texttt{/orders/*} requests to the Orders service on port 3001 and all other traffic to the monolith on port 3000. The monolith may retain the Orders routes during a transition period (Strangler Fig pattern), proxying requests to the extracted service until clients are reconfigured, or it may drop them entirely once routing is in place. Either approach is viable; the key property is that the Orders service is fully self-contained and can serve its own traffic independently.
-
-The operational concerns of extraction (saga orchestration, event contract versioning, deployment pipeline configuration) are the subject of G4 (Migration Readiness) and G5 (Deployment Strategy). This scoping is intentional: G3 establishes the \emph{structural preparation} that makes extraction feasible; G4 and G5 address the \emph{operational execution} that makes extraction safe. The combination ensures that by the time a team reaches L3, both the architecture and the operational tooling are ready.
-
-Because G3's infrastructure abstractions (persistence ports, communication abstraction layer) have been present in the initial deployment, this extraction requires no changes to \texttt{OrderService}, \texttt{OrderRepository}, or any event handler. The domain logic is \emph{identical} in the extracted service and in the monolith. This is the payoff of progressive scalability: when extraction is finally warranted, it is a controlled topology change rather than a rewrite.
+The operational concerns of extraction (saga orchestration, event versioning, deployment pipelines) are addressed in G4 and G5. G3 establishes the structural preparation; G4 and G5 address the operational execution.
 
 \subsubsection*{Extraction Readiness Score}
 
-The preceding sections demonstrated the infrastructure that enables each spectrum level. The extraction readiness score ties these capabilities together into a single, actionable metric per module. Rather than relying on architectural intuition to decide whether a module is ready for L3, the score provides quantitative evidence by evaluating five dimensions that correspond directly to the structural preparation established across G1, G2, and G3. Tiny Store includes an automated extraction readiness calculator that scores each module across these dimensions:
+Tiny Store includes an automated extraction readiness calculator that scores each module across five dimensions corresponding to the $\varepsilon_m$ formula:
 
 \needspace{4\baselineskip}
-\begin{lstlisting}[language=TypeScript,caption={Extraction readiness scoring dimensions (extraction-readiness.ts)},label={lst:g3-readiness-score}]
-// Usage: npx ts-node tools/metrics/extraction-readiness.ts
-//        --module orders
-
+\begin{lstlisting}[language=TypeScript,caption={Extraction readiness scoring (extraction-readiness.ts)},label={lst:g3-readiness-score}]
 const checks: CheckResult[] = [
-  checkCrossModuleImports(mod),   // 25 pts
-  checkEventBusUsage(mod),        // 20 pts
-  checkAntiCorruptionLayer(mod),             // 15 pts
-  checkSchemaIsolation(),         // 20 pts
-  checkVersionedEvents(mod),      // 20 pts
+  checkCrossModuleImports(mod),        // 25 pts (G1)
+  checkEventBusUsage(mod),             // 20 pts (async)
+  checkAntiCorruptionLayer(mod),       // 15 pts (G2)
+  checkSchemaIsolation(),              // 20 pts (data)
+  checkVersionedEvents(mod),           // 20 pts (events)
 ];
-
-const normalized = total / max;
-if (normalized >= 0.80) console.log('READY for extraction');
-else if (normalized >= 0.60) console.log('NEARLY READY');
-else console.log('NOT READY');
 \end{lstlisting}
 
 \noindent
@@ -640,111 +421,67 @@ Example output for the Orders module:
 
 \begin{verbatim}
 Extraction Readiness Report: orders
-Cross-module imports   [##########] 25/25  No cross-module imports
-Event-bus usage        [##########] 20/20  listeners=yes, events=yes
-Anti-Corruption Layer              [##########] 15/15  index.ts=yes, internal.ts=yes
+Cross-module imports   [##########] 25/25
+Event-bus usage        [##########] 20/20
+Anti-Corruption Layer  [##########] 15/15
 Database schema iso    [##########] 20/20  pgSchema() per module
-Versioned events       [##########] 20/20  7/7 events with version field
+Versioned events       [##########] 20/20
 TOTAL: 100/100  epsilon_orders = 1.00  READY for extraction
 \end{verbatim}
 
 \noindent
-The readiness score quantifies the $\varepsilon_m$ metric defined in the Metrics section. Teams run this check before any L3 extraction decision, ensuring that extraction is evidence-based rather than intuition-driven.
-
-\subsection*{Reader Map}
-
-The remainder of this section is organized as a hands-on tutorial that builds practical fluency with G3's scalability infrastructure and metrics. The Tutorial walks through four steps: verifying infrastructure abstraction coverage, tracing an asynchronous queue flow end-to-end, inspecting per-module PostgreSQL schema isolation, and running the extraction readiness calculator. These steps establish the practitioner's understanding of the three metric dimensions (communication flexibility via sync ratio, data ownership, and infrastructure abstraction coverage) before the exercises introduce controlled violations. The Exercise Walkthrough then introduces three anti-patterns, each targeting a specific G3 metric, that pass G1 and G2 gates but degrade scalability readiness. The tutorial uses all four Tiny Store modules and takes approximately 30 minutes.
-
+In the Tiny Store tooling, async readiness is approximated as a binary check (listeners and events present), which suffices when $\rho_{\mathrm{sync}} = 0$. In systems with mixed communication patterns, the continuous ratio should be computed.
 
 \subsection*{Tutorial: Step-by-Step Application}
 
-\subsubsection*{Step 1: Verify Infrastructure Abstractions}
+The tutorial walks through four steps (~30 minutes) that build practical fluency with G3's infrastructure and metrics. The exercises that follow introduce controlled violations targeting each metric.
 
-G3 requires that all modules access infrastructure through the shared abstraction layer (\texttt{@tiny-store/shared-infrastructure}), never through concrete packages like \texttt{ioredis}, \texttt{bullmq}, or \texttt{pg}. This is the structural prerequisite for $\alpha = 1.0$. Verify that no module bypasses the abstraction:
+\subsubsection*{Step 1: Verify Infrastructure Abstractions}
 
 \needspace{4\baselineskip}
 \begin{lstlisting}[language=bash,caption={Check for direct infrastructure imports},label={lst:g3-tut-alpha}]
-# Search for direct infrastructure imports in module source
 grep -rn "from 'ioredis\|from 'bullmq\|from 'pg'" \
   libs/modules/*/src/
-# Expected: no results (all access via @tiny-store/shared-infrastructure)
-echo "alpha = 1.0 confirmed"
+# Expected: no results (alpha = 1.0)
 \end{lstlisting}
 
 \subsubsection*{Step 2: Trace the Queue Flow}
 
-Follow a shipment label-generation job from enqueue to worker to understand how L1 async decoupling works in practice. The \texttt{QueueService} provides module-scoped queues following the \texttt{module:purpose} convention. Trace the flow:
-
 \needspace{4\baselineskip}
 \begin{lstlisting}[language=bash,caption={Trace the label-gen queue flow},label={lst:g3-tut-queue}]
-# 1. Find where the job is enqueued
+# Find enqueue + worker registration
 grep -rn "shipments:label-gen" libs/modules/shipments/src/
-# -> generate-label.job.ts: enqueueLabelGeneration()
-
-# 2. Find where the worker is registered
-grep -rn "registerWorker.*shipments:label-gen" libs/
-# -> generate-label.job.ts: registerLabelGenerationWorker()
-
-# 3. Confirm the adapter pattern (in-memory for dev, BullMQ for prod)
+# Confirm adapter pattern
 grep -rn "QueueAdapter" libs/shared/infrastructure/src/queue/
 \end{lstlisting}
 
-\noindent
-The enqueue call and worker registration use the same \texttt{QueueService} abstraction. Switching from in-memory to BullMQ requires only an adapter swap at composition time, with no business logic changes. Reversibility is equally straightforward: if async decoupling proves unnecessary for a given module pair, the adapter is rebound to synchronous dispatch without touching the handler or the caller.
-
 \subsubsection*{Step 3: Inspect Schema Isolation}
-
-Each module owns a dedicated PostgreSQL schema. Verify this by inspecting the database directly:
 
 \needspace{4\baselineskip}
 \begin{lstlisting}[language=bash,caption={Verify per-module schemas in PostgreSQL},label={lst:g3-tut-schema}]
-# Connect to the database and list schemas
 docker exec -it tiny-store-postgres-1 \
   psql -U tinystore -d tinystore -c '\dn'
-# Expected output:
-#   inventory | tinystore
-#   orders    | tinystore
-#   payments  | tinystore
-#   shipments | tinystore
-#   public    | pg_database_owner
+# Expected: inventory, orders, payments, shipments, public
 
-# Verify tables are in their owning module's schema
 docker exec -it tiny-store-postgres-1 \
   psql -U tinystore -d tinystore \
   -c '\dt inventory.* orders.* payments.* shipments.*'
 \end{lstlisting}
 
-\noindent
-Each module's tables reside exclusively within its own schema. No table appears in multiple schemas, confirming $\omega = 1.0$.
-
 \subsubsection*{Step 4: Run the Extraction Readiness Calculator}
-
-The extraction readiness calculator computes $\varepsilon_m$ for a given module by evaluating all five scoring dimensions. Run it against the Orders module:
 
 \needspace{4\baselineskip}
 \begin{lstlisting}[language=bash,caption={Compute $\varepsilon_m$ for the Orders module},label={lst:g3-tut-epsilon}]
 npx ts-node tools/metrics/extraction-readiness.ts --module orders
-# Expected output:
-# Extraction Readiness Report: orders
-# Cross-module imports   [##########] 25/25
-# Event-bus usage        [##########] 20/20
-# Anti-Corruption Layer              [##########] 15/15
-# Database schema iso    [##########] 20/20  pgSchema() per module
-# Versioned events       [##########] 20/20
-# TOTAL: 100/100  epsilon_orders = 1.00  READY for extraction
+# Expected: TOTAL 100/100, epsilon_orders = 1.00, READY
 \end{lstlisting}
-
-\noindent
-The score confirms that Orders satisfies all G3 preparation criteria. Repeat for the other three modules to verify the system-wide baseline.
 
 
 \subsection*{Exercise Walkthrough: Controlled Violations and Signals}
 
-This tutorial assumes the G1 and G2 baselines are passing. You will run three exercises, each introducing a scalability preparation anti-pattern that passes G1 and G2 gates but degrades G3 metrics. The exercises target the three static G3 metrics: sync ratio (synchronous coupling), data ownership, and abstraction coverage. Each exercise follows the same structure: introduce a single, controlled change; run the G3 gate; observe the metric regression; and apply the fix.
+Each exercise introduces a scalability anti-pattern that passes G1 and G2 gates but degrades a specific G3 metric.
 
 \subsubsection*{Exercise 0: Establish the G3 Scalability Baseline}
-
-Run the scalability readiness gate to confirm all metrics are at their healthy $t_0$ values.
 
 \needspace{4\baselineskip}
 \begin{lstlisting}[language=bash,caption={G3 baseline check},label={lst:g3-ex0-baseline}]
@@ -752,47 +489,27 @@ npm run test:scalability
 # All green: rho_sync=0.0, omega=1.0, alpha=1.0, epsilon>=0.8
 \end{lstlisting}
 
-\noindent
-Record the baseline values: $\rho_{\mathrm{sync}} = 0.0$, $\omega = 1.0$, $\alpha = 1.0$, $\varepsilon_m \geq 0.8$ for all modules. These are the $t_0$ reference points; any degradation in subsequent exercises will be visible as a measurable regression.
-
 \subsubsection*{Exercise 1: Synchronous Cross-Module Call (sync ratio $\uparrow$)}
 
-Demonstrate that synchronous cross-module imports degrade extraction readiness even when they pass G1 and G2. Introduce the violation by modifying \texttt{libs/modules/shipments/src/features/create-shipment/service.ts} to import and call \texttt{GetPaymentHandler} from the payments module.
+Modify \texttt{create-shipment/service.ts} to import and call \texttt{GetPaymentHandler} from the payments module:
 
 \needspace{4\baselineskip}
 \begin{lstlisting}[language=TypeScript,caption={Violation: synchronous cross-module import},label={lst:g3-ex1-violation}]
 /**
  * (*@\color{red}{$\times$}@*) VIOLATION: synchronous cross-module import.
- * Shipments now depends on payments at compile time.
  */
 import { GetPaymentHandler } from '@tiny-store/modules-payments';
-
-// In execute():
 const payment = await this.getPaymentHandler.handle(dto.orderId);
-if (payment.status !== 'processed') {
-  throw new Error('Payment not confirmed');
-}
 \end{lstlisting}
 
 \noindent
-Why G1 and G2 pass: the import uses the public entrypoint (\texttt{@tiny-store/modules-payments}), so G1 sees no encapsulation leak. G2's maintainability metrics ($\rho_{\mathrm{api}}$, fan-in) remain within thresholds because the dependency is through a public API.
-
-Run enforcement:
-
-\needspace{4\baselineskip}
-\begin{lstlisting}[language=bash,caption={Run G3 gate after Exercise 1},label={lst:g3-ex1-run}]
-npm run test:scalability
-\end{lstlisting}
-
-\noindent
-Expected signal: the sync ratio test fails. The scalability gate detects a direct import from \texttt{@tiny-store/modules-payments} inside the shipments module source. The sync ratio rises from 0.0 because there is now a synchronous cross-module interaction alongside the async subscriptions.\\
-Metric impact: sync ratio $\uparrow$, extraction readiness $\downarrow$.\\
-Fix: enrich the \texttt{OrderPaid} event payload to include payment status and ID. The shipments module receives all necessary data through the async event, eliminating the synchronous dependency.\\
-Reference file: \texttt{exercises/g3/ex1-sync-payment-check.ts}
+G1/G2 pass: the import uses the public entrypoint. G3 fails: sync ratio rises.\\
+\textbf{Fix:} enrich the \texttt{OrderPaid} event payload with payment status.\\
+Reference: \texttt{exercises/g3/ex1-sync-payment-check.ts}
 
 \subsubsection*{Exercise 2: Shared Table Access (data ownership $\downarrow$)}
 
-Demonstrate that cross-module data access defeats data ownership even without import violations. Introduce the violation by adding a raw SQL query in the orders module that reads from inventory's \texttt{products} table.
+Add a raw SQL query in the orders module that reads from inventory's table:
 
 \needspace{4\baselineskip}
 \begin{lstlisting}[language=TypeScript,caption={Violation: cross-module table access},label={lst:g3-ex2-violation}]
@@ -806,24 +523,13 @@ const productRows = await this.db.execute(
 \end{lstlisting}
 
 \noindent
-Why G1 and G2 pass: there is no import from \texttt{@tiny-store/modules-inventory}. The query is raw SQL executed through the database connection, and no boundary test detects cross-schema table access. G2 sees no change in module-level dependencies.
-
-Run enforcement:
-
-\needspace{4\baselineskip}
-\begin{lstlisting}[language=bash,caption={Run G3 gate after Exercise 2},label={lst:g3-ex2-run}]
-npm run test:scalability
-\end{lstlisting}
-
-\noindent
-Expected signal: the data ownership test fails. The data ownership check detects that the \texttt{products} table (owned by inventory) is referenced via SQL in the orders module source. Data ownership drops below 1.0.\\
-Metric impact: data ownership $\downarrow$, extraction readiness $\downarrow$.\\
-Fix: expose stock availability through an event (\texttt{InventoryUpdated} with current stock levels) or a query handler in the inventory module. The orders module should never reference another module's tables.\\
-Reference file: \texttt{exercises/g3/ex2-shared-inventory-view.ts}
+G1/G2 pass: no module import, only raw SQL. G3 fails: data ownership drops below 1.0.\\
+\textbf{Fix:} expose stock availability through an \texttt{InventoryUpdated} event.\\
+Reference: \texttt{exercises/g3/ex2-shared-inventory-view.ts}
 
 \subsubsection*{Exercise 3: Direct Infrastructure Dependency (abstraction coverage $\downarrow$)}
 
-Demonstrate that bypassing the shared infrastructure layer compromises extraction readiness. Introduce the violation by adding a direct \texttt{ioredis} import in the inventory module.
+Add a direct \texttt{ioredis} import in the inventory module:
 
 \needspace{4\baselineskip}
 \begin{lstlisting}[language=TypeScript,caption={Violation: direct infrastructure import},label={lst:g3-ex3-violation}]
@@ -831,31 +537,14 @@ Demonstrate that bypassing the shared infrastructure layer compromises extractio
  * (*@\color{red}{$\times$}@*) VIOLATION: direct infrastructure dependency.
  */
 import Redis from 'ioredis';
-
-const redis = new Redis({
-  host: process.env['REDIS_HOST'] || 'localhost',
-  port: parseInt(process.env['REDIS_PORT'] || '6379'),
-});
-
-// In execute():
+const redis = new Redis({ host: process.env['REDIS_HOST'] });
 const cached = await redis.get(`product:${productId}`);
 \end{lstlisting}
 
 \noindent
-Why G1 and G2 pass: \texttt{ioredis} is a third-party npm package, not another module. G1 boundary tests only check for cross-module imports. G2 sees no maintainability regression.
-
-Run enforcement:
-
-\needspace{4\baselineskip}
-\begin{lstlisting}[language=bash,caption={Run G3 gate after Exercise 3},label={lst:g3-ex3-run}]
-npm run test:scalability
-\end{lstlisting}
-
-\noindent
-Expected signal: the abstraction coverage test fails. The infrastructure abstraction check detects a direct import of \texttt{ioredis} in the inventory module source. Abstraction coverage drops below 1.0.\\
-Metric impact: abstraction coverage $\downarrow$, extraction readiness $\downarrow$.\\
-Fix: use \texttt{CacheService} from \texttt{@tiny-store/shared-infrastructure} instead of importing Redis directly.\\
-Reference file: \texttt{exercises/g3/ex3-direct-redis-import.ts}
+G1/G2 pass: \texttt{ioredis} is a third-party package. G3 fails: abstraction coverage drops below 1.0.\\
+\textbf{Fix:} use \texttt{CacheService} from \texttt{@tiny-store/shared-infrastructure}.\\
+Reference: \texttt{exercises/g3/ex3-direct-redis-import.ts}
 
 \subsubsection*{Exercise Summary}
 
@@ -872,59 +561,30 @@ Reference file: \texttt{exercises/g3/ex3-direct-redis-import.ts}
 
 \subsubsection*{New Metrics: Tiny Store Baseline}
 
-With the infrastructure in place, the G3 metrics can be computed from the current Tiny Store state to establish the $t_0$ reference for longitudinal tracking.
+All four modules operate at the Tune level. Runtime metrics ($\Theta_m$, $\sigma^2_{L,m}$) are established through load testing; the static metrics below are computed from the codebase.
 
-\emph{Spectrum position:} All four modules currently operate at L0 (vertical optimization). No module has triggered the L1 threshold because inter-module communication is already event-driven as part of the system's foundational design, and no throughput divergence has been observed under the current test workload.
-
-\emph{Note on runtime metrics:} Module Throughput Profile ($\Theta_m$) and Module Latency Variance ($\sigma^2_{L,m}$) are runtime metrics whose $t_0$ baselines are established through load testing rather than static code analysis. The static metrics below ($\rho_{\mathrm{sync}}$, $\omega$, $\alpha$, $\varepsilon_m$) can be computed from the codebase at any point.
-
-\emph{Sync Ratio:} All inter-module interactions in the composition root flow through \texttt{eventBus.subscribe}, with zero synchronous cross-module calls at the library level.
-
-\needspace{4\baselineskip}
-\begin{lstlisting}[language=bash,caption={Sync ratio computation},label={lst:g3-rho-sync}]
-rho_sync = 0 / (0 + N) = 0.0  % N = total event subscriptions
-\end{lstlisting}
-
+\medskip
 \noindent
-A value of 0.0 confirms that all inter-module communication is asynchronous, well below the 0.3 threshold.
+\small
+\begin{tabularx}{\linewidth}{p{0.30\linewidth} p{0.18\linewidth} p{0.12\linewidth} X}
+\toprule
+\textbf{Metric} & \textbf{Value} & \textbf{Target} & \textbf{Status} \\
+\midrule
+Sync Ratio ($\rho_{\mathrm{sync}}$) & 0.0 & $\leq$ 0.3 & \checkmark \\
+Data Ownership ($\omega$) & 1.0 (5/5 tables) & 1.0 & \checkmark \\
+Abstraction Coverage ($\alpha$) & 1.0 & 1.0 & \checkmark \\
+Extraction Readiness ($\varepsilon_m$) & 1.0 (all modules) & $\geq$ 0.8 & \checkmark \\
+\bottomrule
+\end{tabularx}
+\normalsize
 
-\emph{Data Ownership:} Tiny Store defines 5 entities across 4 modules (Orders: 1, Inventory: 2, Payments: 1, Shipments: 1). Each entity resides exclusively within its owning module's schema.
-
-\needspace{4\baselineskip}
-\begin{lstlisting}[language=bash,caption={Data ownership computation},label={lst:g3-omega}]
-omega = 5 / 5 = 1.0
-\end{lstlisting}
-
-\emph{Abstraction Coverage:} All modules access infrastructure through the \texttt{@tiny-store/shared-infrastructure} layer (cache, queue, database, event bus).
-
-\needspace{4\baselineskip}
-\begin{lstlisting}[language=bash,caption={Abstraction coverage computation},label={lst:g3-alpha}]
-alpha = 1.0
-\end{lstlisting}
-
-\emph{Extraction Readiness:} Running the readiness calculator on all modules yields 100/100, with all five scoring dimensions fully satisfied since events now include explicit version fields.
-
-\needspace{4\baselineskip}
-\begin{lstlisting}[language=bash,caption={Extraction readiness for all modules},label={lst:g3-epsilon}]
-epsilon_orders    = 100 / 100 = 1.00
-epsilon_inventory = 100 / 100 = 1.00
-epsilon_payments  = 100 / 100 = 1.00
-epsilon_shipments = 100 / 100 = 1.00
-\end{lstlisting}
-
-\vspace{0.5em}
+\medskip
 \noindent
-All G3 metrics are at healthy baseline levels: sync ratio = 0.0 (fully async), data ownership = 1.0 (clear ownership), abstraction coverage = 1.0 (fully abstracted), extraction readiness = 1.0 (all modules ready). These values confirm that the Tiny Store architecture satisfies G3 compliance as established at project start. The metrics establish the $t_0$ reference: any future degradation (a new synchronous cross-module call, a shared table, a direct infrastructure dependency) will be visible as a measurable regression against this baseline.
-
-\vspace{0.5em}
-\noindent
-The exercise walkthrough confirms that G3 enforcement catches scalability preparation regressions that G1 and G2 leave undetected. Each violation (synchronous coupling, shared data access, direct infrastructure dependency) would be invisible to boundary and maintainability gates alone. The G3 scalability readiness tests make these degradations measurable and actionable, preserving the option to extract modules independently as the system grows.
+These values confirm G3 compliance and establish the $t_0$ reference: any future degradation (a synchronous cross-module call, a shared table, a direct infrastructure dependency) will be visible as a measurable regression. The exercise walkthrough confirms that G3 enforcement catches scalability regressions that G1 and G2 leave undetected.
 
 
-\subsection*{Conclusion of the G3 Implementation}
+\subsection*{Conclusion}
 
-This section demonstrated that scalability in a modular monolith is not a binary property that requires distribution to achieve, but a gradient that can be traversed through deliberate, proportional interventions. G1 ensures that module boundaries are correct; G2 ensures that they remain sustainable over time; G3 ensures that the resulting modular structure can absorb growth without requiring a wholesale architectural transformation.
+G3 demonstrated that scalability in a modular monolith is a gradient traversed through proportional interventions: vertical optimization before async decoupling, async decoupling before data isolation, data isolation before extraction. The Tiny Store reference implementation shows that infrastructure for all four levels can be embedded from the initial deployment, making scalability a structural property rather than a future migration.
 
-The progressive scalability spectrum (L0--L3) provides a concrete decision structure: vertical optimization before async decoupling, async decoupling before data isolation, data isolation before extraction. Each level is triggered by observable metrics rather than speculative anticipation, and each intervention is reversible if conditions change. The Tiny Store reference implementation demonstrates that the infrastructure for all four levels (caching with adapter pattern, module-scoped queues, per-module PostgreSQL schemas, extraction readiness scoring) can be embedded from the first deployment, making scalability a structural property of the architecture rather than a future migration project.
-
-With boundaries enforced (G1), maintainability preserved (G2), and scalability infrastructure prepared (G3), the architecture is structurally ready for growth. However, when a module's extraction readiness score indicates that L3 is warranted, the team needs a systematic process for preparing that module for independent deployment. G4 addresses this concern by defining the migration readiness criteria, event-driven communication contracts, and saga orchestration patterns that transform extraction from an emergency response into a controlled, evidence-based topology change.
+With boundaries enforced (G1), maintainability preserved (G2), and scalability infrastructure prepared (G3), the architecture is structurally ready for growth. G4 addresses the next concern: when a module's extraction readiness score warrants the Extract level, how to prepare it for independent deployment through event-driven contracts, saga orchestration, and controlled topology changes.
