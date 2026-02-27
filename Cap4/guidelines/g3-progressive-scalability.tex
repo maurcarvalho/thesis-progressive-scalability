@@ -510,7 +510,7 @@ function createQueueService(): QueueService {
 \noindent
 When \texttt{REDIS\_URL} is defined (production, staging), the service uses BullMQ with durable persistence and distributed workers. When absent (development, testing), it falls back to in-memory dispatch with zero external dependencies. No handler logic, queue naming, or worker registration changes between environments. This is what makes L1 reversible: if async decoupling proves unnecessary for a specific module pair, removing the \texttt{REDIS\_URL} variable reverts the entire queue infrastructure to synchronous in-memory dispatch.
 
-Because the queue infrastructure is available from the start, the team can introduce async decoupling for any inter-module interaction by defining a new queue and registering a worker. No infrastructure migration is required.
+The same adapter pattern applies to the event bus itself. At L0, events are dispatched in-process through the \texttt{EventBus} singleton. When a module pair triggers the L1 threshold, the event bus switches from in-process dispatch to a Kafka topic, using the same event contracts defined at project start. The caller publishes an event; the adapter decides whether it is dispatched in-memory or written to a Kafka partition. Because the queue and event bus infrastructure are available from the start, the team can introduce async decoupling for any inter-module interaction by swapping an adapter. No infrastructure migration is required.
 
 \subsubsection*{L2: Data Isolation: Per-Module PostgreSQL Schemas}
 
@@ -597,7 +597,7 @@ services:
 \end{lstlisting}
 
 \noindent
-Three infrastructure changes occur at extraction, none of which touch domain logic:
+In production, the monolith and the extracted service communicate through Kafka topics rather than the in-process event bus. The event contracts (payload schemas, version fields, aggregate IDs) remain identical; only the transport changes. Three infrastructure changes occur at extraction, none of which touch domain logic:
 
 \begin{enumerate}[itemsep=4pt,topsep=2pt]
   \item The \texttt{DATABASE\_URL} points to a dedicated PostgreSQL instance (\texttt{orders-db}) instead of the shared database. The module's schema, tables, and queries remain identical.
