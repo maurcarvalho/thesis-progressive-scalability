@@ -248,13 +248,13 @@ The composite metric synthesizes signals from G1 (boundary health), G2 (maintain
   \begin{itemize}[itemsep=2pt,topsep=2pt]
     \item $b_m$ is \emph{boundary compliance}: 1 if module $m$ has no undeclared cross-module imports, 0 otherwise (from G1);
     \item $(1 - \rho_{\mathrm{sync}}^{(m)})$ is \emph{async readiness}: the proportion of inter-module interactions that are event-driven. In the Tiny Store tooling, this is approximated as a binary check for event bus usage (listeners and published events present), which suffices when the architecture is fully event-driven ($\rho_{\mathrm{sync}} = 0$). In systems with mixed communication patterns, the continuous ratio should be computed;
-    \item $a_m$ is \emph{ACL coverage}: the proportion of cross-module interactions mediated through anti-corruption layers (from G2);
+    \item $a_m$ is \emph{Anti-Corruption Layer coverage}: the proportion of cross-module interactions mediated through anti-corruption layers (from G2);
     \item $\omega_m$ is \emph{database schema isolation}: as defined above;
     \item $v_m$ is \emph{event contract versioning coverage}: the proportion of published events with explicit version schemas.
   \end{itemize}
   \emph{Target:} $\varepsilon_m \geq 0.8$ before considering L3 extraction for module $m$.
 
-  Boundary compliance receives the highest weight (0.25) because undeclared cross-module imports create hard extraction blockers that require code changes in both the extracted module and its consumers. Async readiness and data ownership share the second tier (0.20 each) because both represent infrastructure-level coupling that, if unresolved, forces coordinated migration across multiple modules. Event contract versioning (0.20) ensures that extracted modules can communicate through stable schemas without tight temporal coupling. ACL coverage receives the lowest weight (0.15) because anti-corruption layers, while valuable for translation isolation, can be introduced incrementally during extraction without blocking the process. These weights are proposed defaults derived from the relative extraction risk each dimension represents; teams should calibrate them based on their system's specific coupling profile and extraction priorities. The validation of these defaults through practitioner interviews is part of the verification plan outlined in Chapter~5.
+  Boundary compliance receives the highest weight (0.25) because undeclared cross-module imports create hard extraction blockers that require code changes in both the extracted module and its consumers. Async readiness and data ownership share the second tier (0.20 each) because both represent infrastructure-level coupling that, if unresolved, forces coordinated migration across multiple modules. Event contract versioning (0.20) ensures that extracted modules can communicate through stable schemas without tight temporal coupling. Anti-Corruption Layer coverage receives the lowest weight (0.15) because anti-corruption layers, while valuable for translation isolation, can be introduced incrementally during extraction without blocking the process. These weights are proposed defaults derived from the relative extraction risk each dimension represents; teams should calibrate them based on their system's specific coupling profile and extraction priorities. The validation of these defaults through practitioner interviews is part of the verification plan outlined in Chapter~5.
 \end{itemize}
 
 \noindent
@@ -624,7 +624,7 @@ The preceding sections demonstrated the infrastructure that enables each spectru
 const checks: CheckResult[] = [
   checkCrossModuleImports(mod),   // 25 pts
   checkEventBusUsage(mod),        // 20 pts
-  checkACLLayer(mod),             // 15 pts
+  checkAntiCorruptionLayer(mod),             // 15 pts
   checkSchemaIsolation(),         // 20 pts
   checkVersionedEvents(mod),      // 20 pts
 ];
@@ -642,7 +642,7 @@ Example output for the Orders module:
 Extraction Readiness Report: orders
 Cross-module imports   [##########] 25/25  No cross-module imports
 Event-bus usage        [##########] 20/20  listeners=yes, events=yes
-ACL layer              [##########] 15/15  index.ts=yes, internal.ts=yes
+Anti-Corruption Layer              [##########] 15/15  index.ts=yes, internal.ts=yes
 Database schema iso    [##########] 20/20  pgSchema() per module
 Versioned events       [##########] 20/20  7/7 events with version field
 TOTAL: 100/100  epsilon_orders = 1.00  READY for extraction
@@ -728,7 +728,7 @@ npx ts-node tools/metrics/extraction-readiness.ts --module orders
 # Extraction Readiness Report: orders
 # Cross-module imports   [##########] 25/25
 # Event-bus usage        [##########] 20/20
-# ACL layer              [##########] 15/15
+# Anti-Corruption Layer              [##########] 15/15
 # Database schema iso    [##########] 20/20  pgSchema() per module
 # Versioned events       [##########] 20/20
 # TOTAL: 100/100  epsilon_orders = 1.00  READY for extraction
