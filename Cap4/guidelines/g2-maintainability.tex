@@ -44,7 +44,6 @@ G2 does not prescribe specific frameworks, build tools, or CI pipelines. Its sco
   \item \emph{Incremental Evolution:} Preserve the option for incremental refactoring and future decomposition without requiring system-wide coordination.
 \end{itemize}
 
-\pagebreak
 \subsection*{Key Principles}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Encapsulation before reuse:} Cross-module reuse of internal code is treated as a maintainability risk unless mediated through an explicit contract.
@@ -246,7 +245,6 @@ Evolutionary architecture research further argues that architectural properties 
 %% ============================================================
 %% G2 APPLIED
 %% ============================================================
-\pagebreak
 \subsection*{G2 Applied: Maintainability in the Tiny Store}
 \label{sec:g2-applied}
 
@@ -339,9 +337,12 @@ import { PaymentProcessedListener } from '@tiny-store/modules-orders';
 import { OrderConfirmedListener } from '@tiny-store/modules-payments';
 import { OrderPaidListener } from '@tiny-store/modules-shipments';
 // ... 8 more listener/handler imports from other modules
+
+// None of these imports target internal paths 
+// e.g., @tiny-store/modules-payments/src/domain/...
 \end{lstlisting}
 
-None of these imports target internal paths (e.g., \texttt{@tiny-store/modules-payments/src/domain/...}). With all cross-module references routing through public surfaces, $\rho_{\mathrm{api}} = 1.0$. Any deviation from 1.0 means an internal path has leaked into the composition root, a maintainability regression that G1's boundary tests may not catch if the import resolves correctly at runtime.
+With all cross-module references routing through public surfaces, $\rho_{\mathrm{api}} = 1.0$. Any deviation from 1.0 means an internal path has leaked into the composition root, a maintainability regression that G1's boundary tests may not catch if the import resolves correctly at runtime.
 
 \subsubsection*{Step 5: Detect Change Coupling via Co-Change Analysis}
 G2 defines the Change Coupling Index ($CCI$) as a supplementary metric that captures modules changing together across commits. This is not detectable by static analysis; it requires commit history:
@@ -380,7 +381,7 @@ This means G2 metrics must be \emph{tracked}, not just \emph{checked}. The recom
   \item $CCI$ over the most recent $N$ commits (from Step 5)
 \end{itemize}
 
-A single anomalous value is not alarming. A sustained trend (three consecutive sprints where Payments' surface grows, or $\rho_{\mathrm{api}}$ declines monotonically) triggers an architectural review. This longitudinal framing is what separates G2 from G1: boundaries are not just correct, but \emph{economically sustainable}.
+A single anomalous value is not alarming. A sustained trend (three consecutive sprints where Payments surface grows, or $\rho_{\mathrm{api}}$ declines monotonically) triggers an architectural review. This longitudinal framing is what separates G2 from G1: boundaries are not just correct, but \emph{economically sustainable}.
 
 \pagebreak
 \subsection*{Exercise Walkthrough: Controlled Maintainability Degradation}
@@ -443,6 +444,10 @@ npm run test:boundary
 grep -c "^export" libs/modules/payments/src/index.ts
 # Was 7, now 8 -> G_api(payments) = +1
 
+#continue...
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash,caption={Verify G1 passes but G2 degrades continuation},label={lst:g2-ex1-run}]
 # 2. Dependency graph gained a module-to-module edge
 npx nx graph --file=dep-graph.json
 # New edge: modules-shipments -> modules-payments
@@ -541,7 +546,6 @@ G1 cannot detect this: every exported symbol is a handler (not an entity or repo
 
 \emph{Fix:} Remove exports that are consumed only within the module's own HTTP adapter or feature code. Expose only handlers that external modules actually invoke through the composition root. Set a $G_{\mathrm{api}}$ threshold (e.g., $\leq 10$ for lean modules like Payments) in CI to catch surface inflation early.
 
-\pagebreak
 \subsubsection*{Exercise Summary}
 \small
 \noindent
@@ -594,7 +598,7 @@ All three metrics are at healthy baseline levels: complexity concentration = 1.5
 
 These structural health metrics complement the operational metrics from the previous sections ($\rho_{\mathrm{api}}$, $G_{\mathrm{api}}$, $CCI$) by capturing dimensions of maintainability that are invisible to dependency and API surface analysis alone. While the API discipline ratio detects whether imports route through public entrypoints and API growth rate tracks surface inflation over time, complexity concentration reveals whether one module dominates, contract stability measures how stable contracts remain across releases, and fan-in concentration quantifies how many modules would be affected if a given module's public surface changes. Together, the G2 metrics provide a comprehensive longitudinal view of maintainability: from boundary compliance (inherited from G1) through operational sustainability (API discipline, API growth, change coupling) to structural health (complexity concentration, contract stability, fan-in). Recording these at each release milestone ensures that degradation in any dimension becomes visible before it compounds into irreversible architectural debt.
 
-\noindent\emph{Key observation:} All three exercises pass G1's \texttt{test:boundary} gate. The degradation is only visible through G2's longitudinal metrics: dependency graph edges, API surface counts, wiring density, and change coupling analysis. This confirms that boundary correctness (G1) and boundary sustainability (G2) are complementary but distinct architectural concerns.
+\emph{Observation:} All exercises pass G1's \texttt{test:boundary}. The degradation is only visible through G2's longitudinal metrics: dependency graph edges, API surface counts, wiring density, and change coupling analysis. This confirms that boundary correctness (G1) and boundary sustainability (G2) are complementary but distinct architectural concerns.
 
 \subsection*{Conclusion of the G2 Implementation}
 This section demonstrated that maintainability in a modular monolith cannot be reduced to boundary enforcement alone. G1 ensures that boundaries are \emph{correct} at any given moment; G2 ensures that they remain \emph{economically sustainable} over time. The distinction is practical: a system can pass every boundary test while accumulating convenience-driven type coupling, inflated API surfaces, and feature-centric wiring that progressively raises the cost of change.
