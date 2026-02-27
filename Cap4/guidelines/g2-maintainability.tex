@@ -1,16 +1,12 @@
 \section{G2: Embed Maintainability}
 \label{sec:g2-embed-maintainability}
 
-This section presents G2, which focuses on embedding maintainability as an architectural property of modular monolith applications. In this dissertation, maintainability is framed economically as a bounded cost of change: the architecture constrains the expected effort, risk, and coordination required to modify the system as it evolves. Rather than treating maintainability as an indirect outcome of refactoring or developer discipline, G2 operationalizes it through explicit design constraints, stable interaction contracts, and continuous detection of architectural drift.
+G2 embeds maintainability as an architectural property by framing it economically: the architecture constrains the expected effort, risk, and coordination required to modify the system. G2 operationalizes this through explicit design constraints, stable contracts, and continuous detection of architectural drift.
 
-G2 builds directly on G1. While G1 enforces the existence of explicit modular boundaries, G2 ensures that those boundaries remain effective over time. Together, these guidelines prevent the gradual erosion that often causes traditional monoliths to regress into tightly coupled systems with monolithic change dynamics.
+G2 builds directly on G1. While G1 enforces the existence of explicit modular boundaries, G2 ensures that those boundaries remain effective over time. Together, these guidelines prevent the gradual erosion that often causes traditional monoliths to regress into tightly coupled systems.
 
 \subsection*{Intent and Rationale}
-Empirical studies consistently show that the primary driver of maintainability degradation in monolithic systems is not system size, but the accumulation of hidden coupling, ambiguous dependency direction, and architectural drift over time \cite{gravanis2021dont,blinowski2022monolithic}. As systems evolve, convenience-driven shortcuts such as deep imports, shared utilities, and implicit wiring gradually increase the blast radius of change and raise coordination costs.
-
-This dissertation treats maintainability as a preventive architectural concern. G2 preserves bounded cost of change by constraining how modules interact, how dependencies are introduced, and how responsibilities are distributed. The guideline prioritizes change locality, stable contracts, and controlled dependency growth over short-term reuse. These properties ensure that most changes remain confined to a single bounded context and that the effort required to evolve the system scales sublinearly with its size.
-
-G2 extends G1 from boundary correctness to boundary sustainability. While G1 makes dependencies explicit and verifiable, G2 ensures that those dependencies remain limited in scope, stable under evolution, and economically manageable as the system grows~\cite{arya2024beyond,berry2024isItWorth}.
+Empirical studies consistently show that the primary driver of maintainability degradation is not system size, but the accumulation of hidden coupling, ambiguous dependency direction, and architectural drift~\cite{gravanis2021dont,blinowski2022monolithic}. G2 treats maintainability as a preventive concern: constraining how modules interact, how dependencies are introduced, and how responsibilities are distributed. The guideline prioritizes change locality, stable contracts, and controlled dependency growth over short-term reuse, ensuring that the effort to evolve the system scales sublinearly with its size~\cite{arya2024beyond,berry2024isItWorth}.
 
 \subsection*{Conceptual Overview}
 Maintainability is embedded by designing modules so that change remains local and predictable. Each bounded context exposes a narrow public surface representing stable capabilities rather than internal structure. Cross-module interaction occurs exclusively through explicit contracts (synchronous handler calls or asynchronous domain events). Dependency direction reflects responsibility and information flow, and architectural drift is detected through automated tracking of structural signals.
@@ -88,9 +84,7 @@ G2 is implemented through established software engineering practices rather than
 \subsubsection*{The Sustainability Gap}
 
 \noindent
-The anti-patterns described above share a common characteristic: they are invisible to boundary enforcement alone. A system can pass every G1 gate (zero undeclared references, zero forbidden dependencies, zero encapsulation leaks) and still accumulate maintainability debt through structurally valid but economically unsustainable patterns. Convenience-driven type coupling through public entrypoints, transitive orchestration chains in the composition root, and gradual API surface inflation all respect module boundaries while eroding the cost-of-change properties that those boundaries were designed to protect.
-
-This gap between boundary correctness and boundary sustainability is the central challenge G2 addresses. Where G1's Enforcement Gap argues that architectural knowledge without automation is insufficient, G2's Sustainability Gap argues that point-in-time correctness without longitudinal tracking is insufficient. A single snapshot of the dependency graph reveals whether boundaries are intact; only a time series reveals whether they are drifting. The metrics introduced below operationalize this longitudinal perspective, transforming maintainability from an aspirational property into a measurable, trend-aware constraint.
+The anti-patterns above share a common trait: they are invisible to boundary enforcement alone. A system can pass every G1 gate and still accumulate maintainability debt through structurally valid but economically unsustainable patterns. This gap between boundary correctness and boundary sustainability is the central challenge G2 addresses. Where G1's Enforcement Gap argues that architectural knowledge without automation is insufficient, G2's Sustainability Gap argues that point-in-time correctness without longitudinal tracking is insufficient. A single snapshot of the dependency graph reveals whether boundaries are intact; only a time series reveals whether they are drifting. The metrics introduced below operationalize this longitudinal perspective, transforming maintainability from an aspirational property into a measurable, trend-aware constraint.
 
 \subsection*{Metrics and Verification}
 
@@ -113,6 +107,9 @@ Change Coupling Index & Co-change frequency across modules & $\leq$ 0.2 & No \\
 Complexity Concentration & Largest module surface vs. average & $\leq$ 3.0 & No \\
 Contract Stability Index & Public API symbols retained across releases & $\geq$ 0.9 & No \\
 Fan-In Concentration & Fraction of modules depending on a given module & $\leq$ 0.5 & No \\
+\midrule
+\emph{Composite} & & & \\
+Maintainability Index & Synthesis of G2 signals per module & $\geq$ 0.8 & Yes \\
 \bottomrule
 \end{tabularx}
 \normalsize
@@ -174,13 +171,21 @@ G2 inherits boundary enforcement metrics from G1 and extends them with maintaina
   \]
   where $\operatorname{refs}(A \to m)$ = set of references from module $A$ to module $m$.\\
   \emph{Target:} $\phi_m \leq 0.5$ for bounded context modules~\cite{yourdon1979structured}.
+
+  \item \textbf{Maintainability Index ($\mu_m$).}
+  Synthesizes G2's per-module signals into a single composite score, analogous to G1's boundary health ($b_m$) and G3's extraction readiness ($\varepsilon_m$).
+  \[
+    \mu_m = 0.25 \cdot \rho_{\mathrm{api}}^{(m)} + 0.20 \cdot \sigma_m + 0.20 \cdot (1 - \phi_m) + 0.15 \cdot (1 - CCI^{(m)}) + 0.10 \cdot \frac{1}{\Gamma} + 0.10 \cdot (1 - \hat{G}_{\mathrm{api}}^{(m)})
+  \]
+  where $\rho_{\mathrm{api}}^{(m)}$ = API discipline for module $m$, $\hat{G}_{\mathrm{api}}^{(m)}$ = normalized API growth (0 = stable, 1 = doubling per period), $CCI^{(m)}$ = change coupling involving module $m$. Weights reflect relative impact on cost of change; teams should calibrate them. Validation through practitioner interviews is outlined in Chapter~5.\\
+  \emph{Target:} $\mu_m \geq 0.8$. The maintainability index feeds into G3's extraction readiness score as the $a_m$ component.
 \end{itemize}
 
 \medskip
 \noindent
 \textbf{Compliance summary.} G2 compliance holds when all inherited boundary metrics pass (G1) and:
 \[
-  \rho_{\mathrm{api}} \geq 0.95 \land P_{\mathrm{iso}} = 1.0 \land \Gamma \leq 3.0 \land \sigma_m \geq 0.9 \land \phi_m \leq 0.5
+  \rho_{\mathrm{api}} \geq 0.95 \land P_{\mathrm{iso}} = 1.0 \land \Gamma \leq 3.0 \land \sigma_m \geq 0.9 \land \phi_m \leq 0.5 \land \mu_m \geq 0.8
 \]
 
 \subsection*{Documentation Guidelines}
@@ -212,7 +217,7 @@ The contribution is not the individual practices (encapsulation, contract stabil
 \begin{enumerate}[itemsep=8pt,topsep=2pt]
   \item \emph{The Sustainability Gap.} G2 formalizes the gap between boundary correctness (G1) and boundary sustainability: a system can pass all G1 gates while accumulating maintainability debt through structurally valid patterns.
 
-  \item \emph{Longitudinal metric framework.} Six G2-specific metrics operationalize maintainability as bounded cost of change, transforming it from an aspirational property into a measurable, trend-aware constraint.
+  \item \emph{Longitudinal metric framework.} Six G2-specific metrics and a composite Maintainability Index ($\mu_m$) operationalize maintainability as bounded cost of change, transforming it from an aspirational property into a measurable, trend-aware constraint. The composite feeds directly into G3's extraction readiness score.
 
   \item \emph{Graduated degradation detection.} The exercises demonstrate that each failure mode produces a specific, measurable signal while passing all G1 boundary tests, validating the complementarity of G1 and G2.
 \end{enumerate}
@@ -222,9 +227,7 @@ Although maintainability is a central topic in software engineering, much of the
 
 The relationship between modularity and maintainability has deep roots in information hiding~\cite{parnas1972informationhiding}. Recent systematic analyses confirm that modular monolith architectures can achieve maintainability levels comparable to microservices when boundary discipline is sustained over time~\cite{wolfart2021modernizing,blinowski2022monolithic}. The critical differentiator is not the deployment topology but the rigor with which dependency direction and encapsulation are enforced as the codebase evolves~\cite{abgaz2023decomposition}.
 
-Change coupling as an architectural health signal has been explored in the context of microservices migration, where co-change analysis reveals hidden dependencies that static structure cannot capture~\cite{fritzsch2019,deLauretis2019from}. G2 adapts this insight to the modular monolith context, where the absence of deployment boundaries makes temporal coupling even more difficult to detect without deliberate instrumentation.
-
-Evolutionary architecture research further argues that architectural properties such as maintainability must be preserved through objective, executable constraints rather than informal guidance~\cite{FordParsons2017}. The concept of \emph{architectural fitness functions}~\cite{thoughtworks2017fitnessfunction} operationalizes this perspective by defining automated checks that continuously verify whether the architecture satisfies its intended properties. G2 synthesizes these insights by framing maintainability as bounded cost of change and by providing concrete design mechanisms and measurable signals grounded in the boundary enforcement model established by G1.
+Change coupling as an architectural health signal has been explored in microservices migration contexts~\cite{fritzsch2019,deLauretis2019from}. G2 adapts this insight to modular monoliths, where the absence of deployment boundaries makes temporal coupling harder to detect. The evolutionary architecture perspective~\cite{FordParsons2017} and the concept of architectural fitness functions~\cite{thoughtworks2017fitnessfunction} provide the philosophical foundation; G2 operationalizes it through concrete metrics grounded in G1's boundary enforcement model.
 
 %% ============================================================
 %% G2 APPLIED
@@ -492,6 +495,7 @@ API Discipline Ratio ($\rho_{\mathrm{api}}$) & 1.0 & $\geq$ 0.95 & \checkmark \\
 Complexity Concentration ($\Gamma$) & 1.57 & $\leq$ 3.0 & \checkmark \\
 Contract Stability ($\sigma_m$) & 1.0 (all modules) & $\geq$ 0.9 & \checkmark \\
 Fan-In Concentration ($\phi_m$) & 0.0 (all modules) & $\leq$ 0.5 & \checkmark \\
+Maintainability Index ($\mu_m$) & 1.0 (all modules) & $\geq$ 0.8 & \checkmark \\
 \bottomrule
 \end{tabularx}
 \normalsize
