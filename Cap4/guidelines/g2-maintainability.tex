@@ -466,7 +466,7 @@ The composition root in \texttt{register-listeners.ts} already contains a patter
 import { GetPaymentHandler } from '@tiny-store/modules-payments';
 
 // In registerListeners():
-const getPaymentHandler = new GetPaymentHandler(dataSource);
+const getPaymentHandler = new GetPaymentHandler(db);
 
 eventBus.subscribe('OrderPaid', async (event) => {
   const { orderId } = event.payload;
