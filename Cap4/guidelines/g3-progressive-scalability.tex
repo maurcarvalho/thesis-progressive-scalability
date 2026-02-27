@@ -457,58 +457,59 @@ Because the queue infrastructure is available from the start, the team can intro
 
 \paragraph*{L2: Data Isolation: Per-Module PostgreSQL Schemas}
 
-Schema isolation is a design decision made as part of the system's foundational design. Each module owns its data from the initial deployment, ensuring that extraction never requires data migration. The \texttt{schema-isolation.ts} module creates per-module PostgreSQL schemas and provides module-scoped \texttt{DataSource} connections with isolated \texttt{search\_path}:
+Schema isolation is a design decision made as part of the system's foundational design. Each module owns its data from the initial deployment, ensuring that extraction never requires data migration. Rather than creating schemas imperatively at runtime, each module declares its own PostgreSQL schema using Drizzle ORM's \texttt{pgSchema()} API. The schema definition is co-located with the module's source code, making data ownership explicit and statically verifiable:
 
-\begin{lstlisting}[language=TypeScript,caption={Per-module PostgreSQL schema isolation (schema-isolation.ts)},label={lst:g3-schema-isolation}]
-const MODULE_SCHEMAS = [
-  'orders', 'inventory', 'payments', 'shipments'
-] as const;
-type ModuleName = (typeof MODULE_SCHEMAS)[number];
-const moduleConnections = new Map<string, DataSource>();
+\begin{lstlisting}[language=TypeScript,caption={Per-module PostgreSQL schema isolation (inventory/db/schema.ts)},label={lst:g3-schema-isolation}]
+// libs/modules/inventory/src/db/schema.ts
+import { pgSchema, text, integer, timestamp, boolean }
+  from 'drizzle-orm/pg-core';
 
-async function createAllModuleSchemas(
-  dataSource: DataSource,
-): Promise<void> {
-  if (dataSource.options.type !== 'postgres') return;
-  for (const schema of MODULE_SCHEMAS) {
-    await dataSource.query(
-      `CREATE SCHEMA IF NOT EXISTS "${schema}"`);
-  }
-}
+const inventorySchema = pgSchema('inventory');
 
-async function getModuleConnection(
-  baseDataSource: DataSource,
-  moduleName: ModuleName,
-  entities: Function[],
-): Promise<DataSource> {
-  const cacheKey =
-    `${moduleName}:${baseDataSource.options.database}`;
-  const cached = moduleConnections.get(cacheKey);
-  if (cached?.isInitialized) return cached;
+export const productsTable = inventorySchema.table('products', {
+  id: text('id').primaryKey(),
+  sku: text('sku').notNull(),
+  name: text('name').notNull(),
+  stockQuantity: integer('stock_quantity').notNull(),
+  reservedQuantity: integer('reserved_quantity').notNull(),
+  status: text('status').notNull(),
+  createdAt: timestamp('created_at').notNull(),
+  updatedAt: timestamp('updated_at').notNull(),
+});
 
-  if (baseDataSource.options.type !== 'postgres') {
-    moduleConnections.set(cacheKey, baseDataSource);
-    return baseDataSource;
-  }
-
-  const moduleDs = new DataSource({
-    ...baseDataSource.options,
-    entities,
-    schema: moduleName,
-    extra: {
-      ...(baseDataSource.options as any).extra,
-      options: `-c search_path="${moduleName}",public`,
-    },
-  } as DataSourceOptions);
-
-  await moduleDs.initialize();
-  moduleConnections.set(cacheKey, moduleDs);
-  return moduleDs;
-}
+// Each of the four modules follows the same pattern:
+// orders/db/schema.ts    -> pgSchema('orders')
+// payments/db/schema.ts  -> pgSchema('payments')
+// shipments/db/schema.ts -> pgSchema('shipments')
 \end{lstlisting}
 
 \noindent
-Each module operates within its own PostgreSQL schema from the initial \texttt{docker-compose up}. Cross-module data access is mediated through published contracts (events or API calls), never through direct table queries. Because the repository adapter is injected at composition time, rolling back from L2 to a shared database requires only rebinding the adapter. The module's tables remain in their dedicated schema, preserving isolation even if the dedicated instance is decommissioned. When L3 extraction occurs, the module's schema migrates to a dedicated database instance, which is a deployment topology change rather than a data migration.
+The database configuration creates all module schemas on startup and provides a single shared connection. Because schema ownership is declared in the table definition itself, there is no need for per-module connection management or runtime schema switching:
+
+\begin{lstlisting}[language=TypeScript,caption={Database configuration with declarative schema creation (database.config.ts)},label={lst:g3-db-config}]
+import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+
+export type DrizzleDb = PostgresJsDatabase;
+
+const MODULE_SCHEMAS =
+  ['inventory', 'orders', 'payments', 'shipments'] as const;
+
+export const createDatabaseConnection =
+  async (): Promise<DrizzleDb> => {
+  const sql = postgres({ /* connection config from env */ });
+  for (const schema of MODULE_SCHEMAS) {
+    await sql.unsafe(
+      `CREATE SCHEMA IF NOT EXISTS "${schema}"`);
+  }
+  // CREATE TABLE IF NOT EXISTS for each module's tables
+  return drizzle(sql);
+};
+\end{lstlisting}
+
+\noindent
+Each module operates within its own PostgreSQL schema from the initial \texttt{docker-compose up}. Cross-module data access is mediated through published contracts (events or API calls), never through direct table queries. Because the table definitions use \texttt{pgSchema()}, Drizzle automatically qualifies all queries with the correct schema prefix (e.g., \texttt{inventory.products}), making cross-schema access impossible through the ORM layer. When L3 extraction occurs, the extracted module simply changes its connection string to point at a dedicated database instance; the \texttt{pgSchema()} declarations, repository implementations, and domain logic remain unchanged. This is a deployment topology change rather than a data migration.
 
 \paragraph*{L3: Selective Extraction: What Extraction Looks Like}
 
@@ -729,14 +730,14 @@ Demonstrate that cross-module data access defeats data ownership even without im
 /**
  * (*@\color{red}{$\times$}@*) VIOLATION: orders reads inventory's table directly.
  */
-const productRows = await this.dataSource.query(
-  `SELECT "stockQuantity" FROM products WHERE sku = $1`,
-  [item.sku]
+const productRows = await this.db.execute(
+  sql`SELECT stock_quantity FROM inventory.products
+      WHERE sku = ${item.sku}`
 );
 \end{lstlisting}
 
 \noindent
-Why G1 and G2 pass: there is no import from \texttt{@tiny-store/modules-inventory}. The query is raw SQL executed through the DataSource, and no boundary test detects cross-module table access. G2 sees no change in module-level dependencies.
+Why G1 and G2 pass: there is no import from \texttt{@tiny-store/modules-inventory}. The query is raw SQL executed through the database connection, and no boundary test detects cross-schema table access. G2 sees no change in module-level dependencies.
 
 Run enforcement:
 
