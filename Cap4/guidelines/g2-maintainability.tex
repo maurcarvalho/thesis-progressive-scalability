@@ -173,7 +173,7 @@ G2 inherits boundary enforcement metrics from G1 and extends them with maintaina
   \emph{Target:} $\phi_m \leq 0.5$ for bounded context modules~\cite{yourdon1979structured}.
 
   \item \textbf{Maintainability Index ($\mu_m$).}
-  Synthesizes G2's per-module signals into a single composite score, analogous to G1's boundary health ($b_m$) and G3's extraction readiness ($\varepsilon_m$).
+  Synthesizes G2's per-module signals into a single composite score, analogous to G1's boundary health ($b_m$) and G3's extraction readiness ($\varepsilon_m$)~\cite{FordParsons2017}.
   \[
     \mu_m = 0.25 \cdot \rho_{\mathrm{api}}^{(m)} + 0.20 \cdot \sigma_m + 0.20 \cdot (1 - \phi_m) + 0.15 \cdot (1 - CCI^{(m)}) + 0.10 \cdot \frac{1}{\Gamma} + 0.10 \cdot (1 - \hat{G}_{\mathrm{api}}^{(m)})
   \]
