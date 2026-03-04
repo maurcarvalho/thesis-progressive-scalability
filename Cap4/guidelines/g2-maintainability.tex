@@ -1,3 +1,4 @@
+\pagebreak
 \section{G2: Embed Maintainability}
 \label{sec:g2-embed-maintainability}
 
@@ -60,25 +61,20 @@ G2 is implemented through established software engineering practices rather than
 \subsection*{Common Failure Modes and Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Cross-Module Internal Reuse:}
-  Reusing internal classes from another module couples the consumer to the provider's internal structure, forcing coordinated changes on every refactoring~\cite{parnas1972informationhiding}.\\
-  \textbf{Metric signal:} encapsulation leakage $\uparrow$, API discipline ratio $\downarrow$.
+  \item \textbf{Cross-Module Internal Reuse} ($C_{\mathrm{leak}} \uparrow$, $\rho_{\mathrm{api}} \downarrow$)\\
+  Reusing internal classes from another module couples the consumer to the provider's internal structure, forcing coordinated changes on every refactoring~\cite{parnas1972informationhiding}.
 
-  \item \emph{Implicit Dependency Introduction:}
-  Dependencies introduced through reflection, configuration, or DI wiring without explicit declaration bypass architectural review and erode dependency model reliability~\cite{fairbanks2010justenough}.\\
-  \textbf{Metric signal:} undeclared dependencies $\uparrow$, isolation pass rate $\downarrow$.
+  \item \textbf{Implicit Dependency Introduction} ($C_{\mathrm{undecl}} \uparrow$, $P_{\mathrm{iso}} \downarrow$)\\
+  Dependencies introduced through reflection, configuration, or DI wiring without explicit declaration bypass architectural review~\cite{fairbanks2010justenough}.
 
-  \item \emph{Bidirectional or Cyclic Dependencies:}
-  Mutual module dependencies prevent independent evolution and are expensive to remove once established~\cite{martin2012clean,yourdon1979structured}.\\
-  \textbf{Metric signal:} forbidden dependency count $\uparrow$, cycle detected in dependency graph.
+  \item \textbf{Bidirectional or Cyclic Dependencies} ($C_{\mathrm{forbid}} \uparrow$)\\
+  Mutual module dependencies prevent independent evolution and are expensive to remove once established~\cite{martin2012clean,yourdon1979structured}.
 
-  \item \emph{Overloaded Module APIs:}
-  Uncontrolled growth of a module's public surface freezes internal structure and creates downstream contractual obligations~\cite{parnas1972informationhiding}.\\
-  \textbf{Metric signal:} API growth rate $\uparrow$, API discipline ratio $\downarrow$.
+  \item \textbf{Overloaded Module APIs} ($G_{\mathrm{api}} \uparrow$, $\rho_{\mathrm{api}} \downarrow$)\\
+  Uncontrolled growth of a module's public surface freezes internal structure and creates downstream contractual obligations~\cite{parnas1972informationhiding}.
 
-  \item \emph{Feature-Centric Coupling Across Modules:}
-  When features rather than modules become the unit of change, coordination cost rises and accountability is diluted~\cite{FordParsons2017}.\\
-  \textbf{Metric signal:} change coupling index $\uparrow$, repeated cross-module co-changes.
+  \item \textbf{Feature-Centric Coupling Across Modules} ($CCI \uparrow$)\\
+  When features rather than modules become the unit of change, coordination cost rises and accountability is diluted~\cite{FordParsons2017}.
 \end{itemize}
 
 \subsubsection*{The Sustainability Gap}
@@ -120,7 +116,7 @@ G2 inherits boundary enforcement metrics from G1 and extends them with maintaina
 
 \medskip
 \noindent
-\emph{Formal definitions.} In prose, metrics are referred to by name; the notation below supports unambiguous tooling implementation. Let $M$ be the set of bounded-context modules, $R$ the multiset of observed cross-module references (static imports, DI wiring, event handlers), $D \subseteq M \times M$ the declared allowed dependencies, and $F \subseteq M \times M$ the explicitly forbidden dependencies.
+\emph{Formal definitions.} Let $M$ be the set of modules and $R$ the multiset of cross-module references.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{API-Only Dependency Ratio ($\rho_{\mathrm{api}}$).}
@@ -162,7 +158,7 @@ G2 inherits boundary enforcement metrics from G1 and extends them with maintaina
     \sigma_m = \frac{|\operatorname{API}_m(t) \cap \operatorname{API}_m(t - \Delta t)|}{|\operatorname{API}_m(t - \Delta t)|}
   \]
   where $\operatorname{API}_m(t)$ and $\operatorname{API}_m(t - \Delta t)$ = public symbol sets at current and previous measurement.\\
-  \emph{Target:} $\sigma_m \geq 0.9$ per release cycle~\cite{parnas1972informationhiding}.
+  \emph{Target:} $\sigma_m \geq 0.9$ per release cycle~\cite{FordParsons2017}.
 
   \item \textbf{Fan-In Concentration ($\phi_m$).}
   Measures the fraction of modules that depend on module $m$; high fan-in for domain modules signals responsibilities expanding beyond the bounded context.
