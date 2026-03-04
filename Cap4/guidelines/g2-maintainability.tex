@@ -62,19 +62,19 @@ G2 is implemented through established software engineering practices rather than
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{Cross-Module Internal Reuse}: encapsulation leakage rises, API discipline drops ($C_{\mathrm{leak}} \uparrow$, $\rho_{\mathrm{api}} \downarrow$)\\
-  Reusing internal classes from another module couples the consumer to the provider's internal structure, forcing coordinated changes on every refactoring~\cite{parnas1972informationhiding}.
+  Shipments imports \texttt{PaymentStatus} from Payments' public entrypoint to decide whether to hold a shipment. G1 passes (the import uses the public path), but Shipments is now structurally coupled to Payments' domain model. Refactoring \texttt{PaymentStatus} forces a coordinated change across two bounded contexts~\cite{parnas1972informationhiding}.
 
   \item \textbf{Implicit Dependency Introduction}: undeclared dependencies rise, isolation tests fail ($C_{\mathrm{undecl}} \uparrow$, $P_{\mathrm{iso}} \downarrow$)\\
-  Dependencies introduced through reflection, configuration, or DI wiring without explicit declaration bypass architectural review~\cite{fairbanks2010justenough}.
+  Dependencies introduced through reflection, configuration, or DI wiring without explicit declaration bypass architectural review. The coupling is invisible to static import analysis and only surfaces when isolation tests run the module with its declared dependencies alone~\cite{fairbanks2010justenough}.
 
   \item \textbf{Bidirectional or Cyclic Dependencies}: forbidden dependency count rises ($C_{\mathrm{forbid}} \uparrow$)\\
-  Mutual module dependencies prevent independent evolution and are expensive to remove once established~\cite{martin2012clean,yourdon1979structured}.
+  Orders depends on Inventory for stock checks, and Inventory depends on Orders for reorder triggers. Each module can no longer be tested, deployed, or extracted independently~\cite{martin2012clean,yourdon1979structured}.
 
   \item \textbf{Overloaded Module APIs}: API surface grows, discipline ratio drops ($G_{\mathrm{api}} \uparrow$, $\rho_{\mathrm{api}} \downarrow$)\\
-  Uncontrolled growth of a module's public surface freezes internal structure and creates downstream contractual obligations~\cite{parnas1972informationhiding}.
+  A module's \texttt{index.ts} grows from 7 to 15 exports across three sprints. Each new handler is a downstream contractual obligation: once another module depends on it, the handler cannot be renamed or removed without coordinated changes~\cite{parnas1972informationhiding}.
 
   \item \textbf{Feature-Centric Coupling Across Modules}: co-change frequency rises ($CCI \uparrow$)\\
-  When features rather than modules become the unit of change, coordination cost rises and accountability is diluted~\cite{FordParsons2017}.
+  Adding a "gift wrapping" feature requires simultaneous changes to Orders (option flag), Payments (fee calculation), and Shipments (packaging instructions). The feature, not the module, becomes the unit of change, diluting ownership and increasing coordination cost~\cite{FordParsons2017}.
 \end{itemize}
 
 \subsubsection*{The Sustainability Gap}
