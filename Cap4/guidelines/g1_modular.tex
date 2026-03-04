@@ -137,74 +137,46 @@ Isolation Pass Rate & Module tests passing with declared deps only & 100\% & Yes
 Event Subscription Violations & Event handlers without declared dependency & 0 & Yes \\
 \midrule
 \emph{Composite} & & & \\
-Boundary Health Score & Synthesis of all G1 signals per module & $\geq$ 0.9 & Yes \\
+Boundary Health Score & Binary: all G1 gates pass or fail & 1.0 & Yes \\
 \bottomrule
 \end{tabularx}
 \normalsize
 
 \medskip
 \noindent
-\emph{Formal definitions.} In prose, metrics are referred to by name; the notation below supports unambiguous tooling implementation. Let $M$ be the set of bounded-context modules, $R$ the multiset of observed cross-module references (static imports, DI wiring, event handler registrations), $\operatorname{refs}(A \to B) \subseteq R$ the references from $A$ targeting symbols in $B$, $D \subseteq M \times M$ the declared allowed dependencies, $F \subseteq M \times M$ the explicitly forbidden dependencies, and $\operatorname{pub}(B)$ the set of symbols in module $B$'s declared public API surface.
+\emph{Formal definitions.} Let $M$ be the set of modules, $R$ the multiset of cross-module references, $D \subseteq M \times M$ the declared dependencies, and $F \subseteq M \times M$ the forbidden dependencies.
+
+\noindent
+Each violation metric counts cross-module references matching a specific condition. All four share the same structure: scan references, count those violating a rule. All targets are zero (binary gate).
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Undeclared Dependency Reference Count ($C_{\mathrm{undecl}}$).}
-  Measures invisible coupling: references that exist in code but are not subject to architectural review~\cite{deLauretis2019from}.
-  \[
-    C_{\mathrm{undecl}} = \sum_{A \neq B} \left|\left\{ r \in \operatorname{refs}(A \to B) : (A, B) \notin D \right\}\right|
-  \]
-  where $D$ = set of declared allowed dependencies from the module descriptor.\\
+  \item \textbf{Undeclared Dependency Count ($C_{\mathrm{undecl}}$).}
+  References where the dependency $(A, B)$ is not in the declared \emph{requires} set $D$. Invisible coupling that only surfaces during extraction~\cite{deLauretis2019from}.\\
   \emph{Target:} $C_{\mathrm{undecl}} = 0$.
 
-  \item \textbf{Forbidden Dependency Reference Count ($C_{\mathrm{forbid}}$).}
-  Measures known architectural violations where explicitly prohibited module pairs have references~\cite{martin2012clean}.
-  \[
-    C_{\mathrm{forbid}} = \sum_{A \neq B} \left|\left\{ r \in \operatorname{refs}(A \to B) : (A, B) \in F \right\}\right|
-  \]
-  where $F$ = set of explicitly forbidden dependencies.\\
+  \item \textbf{Forbidden Dependency Count ($C_{\mathrm{forbid}}$).}
+  References where the dependency $(A, B)$ is in the explicitly prohibited set $F$. Known architectural violations~\cite{martin2012clean}.\\
   \emph{Target:} $C_{\mathrm{forbid}} = 0$.
 
   \item \textbf{Encapsulation Leakage Count ($C_{\mathrm{leak}}$).}
-  Measures references that bypass the provider module's public API surface, coupling consumers to implementation details~\cite{parnas1972informationhiding}.
-  \[
-    C_{\mathrm{leak}} = \sum_{A \neq B} \left|\left\{ r \in \operatorname{refs}(A \to B) : \operatorname{target}(r) \notin \operatorname{pub}(B) \right\}\right|
-  \]
-  where $\operatorname{pub}(B)$ = set of symbols in module $B$'s declared public API surface.\\
+  References targeting symbols outside the provider module's public API surface $\operatorname{pub}(B)$. Couples consumers to implementation details~\cite{parnas1972informationhiding}.\\
   \emph{Target:} $C_{\mathrm{leak}} = 0$.
 
+  \item \textbf{Event Subscription Violations ($C_{\mathrm{event}}$).}
+  Event handler registrations where the $(subscriber, publisher)$ pair has no declared dependency. Coupling through data flow, invisible to import analysis~\cite{richardson2018microservices}.\\
+  \emph{Target:} $C_{\mathrm{event}} = 0$.
+
   \item \textbf{Module Isolation Test Pass Rate ($P_{\mathrm{iso}}$).}
-  Measures hidden runtime dependencies invisible to static import analysis, by executing module tests with only declared dependencies available~\cite{fairbanks2010justenough}.
+  Captures hidden runtime dependencies by executing each module's tests with only declared dependencies available~\cite{fairbanks2010justenough}.
   \[
     P_{\mathrm{iso}} = \frac{|T_{\mathrm{pass}}|}{|T_{\mathrm{iso}}|}
   \]
   where $T_{\mathrm{iso}}$ = set of module-scoped isolation tests, $T_{\mathrm{pass}} \subseteq T_{\mathrm{iso}}$ = subset that passes.\\
   \emph{Target:} $P_{\mathrm{iso}} = 100\%$.
 
-  \item \textbf{Event Subscription Boundary Violations ($C_{\mathrm{event}}$).}
-  Measures coupling through data flow rather than code structure: event handlers registered without a declared dependency on the publisher module~\cite{richardson2018microservices}.
-  \[
-    C_{\mathrm{event}} = \left|\left\{ (A, B) \in H : (A, B) \notin D \right\}\right|
-  \]
-  where $H$ = set of $(subscriber, publisher)$ pairs derived from event handler registrations.\\
-  \emph{Target:} $C_{\mathrm{event}} = 0$.
-
   \item \textbf{Boundary Health Score ($b_m$).}
-  Synthesizes G1's per-module signals into a single composite score, analogous to G2's maintainability index ($\mu_m$) and G3's extraction readiness ($\varepsilon_m$)~\cite{FordParsons2017}.
-  \[
-    b_m = \begin{cases}
-      1.0 & \text{if } C_{\mathrm{undecl}}^{(m)} = 0 \wedge C_{\mathrm{forbid}}^{(m)} = 0 \wedge C_{\mathrm{leak}}^{(m)} = 0 \wedge C_{\mathrm{event}}^{(m)} = 0 \wedge P_{\mathrm{iso}}^{(m)} = 1.0 \\
-      1.0 - \frac{C_{\mathrm{undecl}}^{(m)} + C_{\mathrm{forbid}}^{(m)} + C_{\mathrm{leak}}^{(m)} + C_{\mathrm{event}}^{(m)}}{|R^{(m)}|} \cdot (1 - P_{\mathrm{iso}}^{(m)}) & \text{otherwise}
-    \end{cases}
-  \]
-  where $C_{\bullet}^{(m)}$ = violation counts scoped to module $m$, $R^{(m)}$ = total cross-module references involving $m$, $P_{\mathrm{iso}}^{(m)}$ = isolation pass rate for $m$. The boundary health score feeds into G3's extraction readiness formula as the $b_m$ component.\\
-  \emph{Target:} $b_m \geq 0.9$; a fully compliant module scores $b_m = 1.0$.
+  G1 is a binary gate: $b_m = 1$ when all five metrics meet their targets for module $m$; $b_m = 0$ otherwise~\cite{FordParsons2017}. The complexity gradient lives in G2 ($\mu_m$) and G3 ($\varepsilon_m$). The boundary health score feeds into G3's extraction readiness as the $b_m$ component.
 \end{itemize}
-
-\medskip
-\noindent
-\textbf{Compliance summary.} G1 boundary compliance holds when:
-\[
-  C_{\mathrm{undecl}} = 0 \;\wedge\; C_{\mathrm{forbid}} = 0 \;\wedge\; C_{\mathrm{leak}} = 0 \;\wedge\; P_{\mathrm{iso}} = 1.0 \;\wedge\; C_{\mathrm{event}} = 0
-\]
 
 \subsection*{Tooling Capabilities Checklist}
 Any open-source or proprietary tool used to enforce modular boundaries should support:
