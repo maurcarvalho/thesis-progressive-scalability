@@ -75,38 +75,38 @@ This research proposes implementing G1 through a combination of (i) structural e
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{Convenience-Driven Imports}: encapsulation leakage rises ($C_{\mathrm{leak}} \uparrow$)\\
-  Developers import internal classes from another module because the path is shorter, creating hidden coupling~\cite{parnas1972informationhiding}.
+  A developer imports \texttt{Order} directly from \texttt{modules-orders/src/domain/entities} because the path is shorter than using the public handler. Over time, dozens of such shortcuts create a web of hidden coupling invisible to boundary checks~\cite{parnas1972informationhiding}.
 
   \item \textbf{Shared Utility Creep}: undeclared dependencies rise ($C_{\mathrm{undecl}} \uparrow$)\\
-  A \texttt{shared/} package grows to include domain-specific logic that belongs inside a bounded context~\cite{martin2012clean}.
+  A \texttt{shared/utils} package starts with generic helpers but gradually absorbs domain logic (e.g., \texttt{calculateShippingCost}, \texttt{validatePaymentStatus}) that belongs inside a bounded context. Modules couple through this shared layer rather than through explicit contracts~\cite{martin2012clean}.
 
   \item \textbf{Implicit Wiring via Framework Magic}: isolation tests fail ($P_{\mathrm{iso}} \downarrow$)\\
-  DI containers, auto-configuration, or classpath scanning silently wire modules without declared dependencies~\cite{rocha2021catalogingDI}.
+  DI containers, auto-configuration, or classpath scanning silently wire modules together. For example, Spring's \texttt{@ComponentScan} may inject a bean from module B into module A without any declared dependency~\cite{rocha2021catalogingDI}.
 
   \item \textbf{Event Handlers Outside the Composition Root}: event violations rise ($C_{\mathrm{event}} \uparrow$)\\
-  Scattered event subscriptions make the integration surface invisible to architectural review~\cite{richardson2018microservices}.
+  Instead of registering subscriptions in \texttt{register-listeners.ts}, a developer adds \texttt{eventBus.subscribe('OrderPlaced', ...)} inside a module's initializer. The subscription works but is invisible to architectural review~\cite{richardson2018microservices}.
 
   \item \textbf{Boundary Enforcement Treated as Optional}: all boundary metrics degrade\\
-  Without mandatory CI gates, violations accumulate silently until a refactoring attempt reveals the true coupling state~\cite{thoughtworks2017fitnessfunction}.
+  When \texttt{test:boundary} is not a mandatory CI gate, violations accumulate silently across sprints. Teams discover the erosion only when an extraction attempt reveals that modules are far more coupled than the documentation suggests~\cite{thoughtworks2017fitnessfunction}.
 \end{itemize}
 
 \subsubsection*{Design-Level Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{Extreme Granularity}: undeclared dependencies across many small modules ($C_{\mathrm{undecl}} \uparrow$)\\
-  Excessively narrow domains force constant cross-module calls, recreating distributed complexity inside the monolith~\cite{dragoni2017microservices,evans2003ddd}.
+  Teams slice the system into excessively narrow domains such as \texttt{StockCheck}, \texttt{ReservationHold}, \texttt{WarehouseAllocation} instead of grouping them under a cohesive bounded context (e.g., \texttt{Inventory}). Each micro-domain cannot fulfill a workflow independently, forcing constant cross-module calls~\cite{dragoni2017microservices,evans2003ddd}.
 
   \item \textbf{Speculative Generality}: unused interfaces leak across boundaries ($C_{\mathrm{leak}} \uparrow$)\\
-  Extension points designed for hypothetical requirements add navigational complexity and implicit coupling. The YAGNI principle~\cite{extremeProgramming} applies at the architectural level.
+  The codebase accumulates abstract factories, strategy patterns, and extension hooks designed for hypothetical requirements that may never materialize. Each speculative abstraction adds exported symbols that cross module boundaries without serving a current need. The YAGNI principle~\cite{extremeProgramming} applies at the architectural level.
 
   \item \textbf{Leaky Abstractions in Public Contracts}: encapsulation leakage rises ($C_{\mathrm{leak}} \uparrow$)\\
-  DTOs or event payloads that mirror internal database schemas rather than domain models couple consumers to storage-level details~\cite{fowler2002,evans2003ddd}.
+  A module exposes DTOs or event payloads that mirror its internal database schema (e.g., \texttt{payment\_status\_id}, \texttt{nullable shipping\_date}) rather than domain concepts. When the module refactors its schema, all consumers break even though no business rule changed~\cite{fowler2002,evans2003ddd}.
 
   \item \textbf{Circular Dependencies}: forbidden dependency count rises ($C_{\mathrm{forbid}} \uparrow$)\\
-  Module A depends on B which depends on A, making independent testing and extraction impossible~\cite{martin2012clean,yourdon1979structured}. G1 treats any cycle as a blocking violation.
+  Module A depends on B which depends on A, often through indirect paths spanning three or more modules. Cycles make independent testing and extraction impossible because changing any module in the cycle requires understanding all of them~\cite{martin2012clean,yourdon1979structured}. G1 treats any cycle as a blocking violation.
 
   \item \textbf{Test Coupling Across Boundaries}: isolation tests fail on cross-module fixtures ($P_{\mathrm{iso}} \downarrow$)\\
-  Test code instantiates domain objects from another module, creating invisible coupling absent from production imports~\cite{fairbanks2010justenough}.
+  Test code in module A directly instantiates \texttt{Order} entities from module B to build fixtures or assert on internal state. A refactoring of B's entities breaks A's test suite, even though production code respects the boundary~\cite{fairbanks2010justenough}.
 \end{itemize}
 
 \noindent
