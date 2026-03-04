@@ -1,3 +1,4 @@
+\pagebreak
 \section{G3: Design for Progressive Scalability}
 \label{sec:g3-design-progressive-scalability}
 
@@ -111,25 +112,20 @@ The spectrum is not strictly linear: a team may apply Isolate to one module whil
 \subsection*{Common Failure Modes and Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Premature Distribution (``Microservices Envy''):}
-  Extracting modules before exhausting in-process optimizations. The Extract level carries the highest rollback cost: once a module operates as an independent service, re-embedding it requires undoing infrastructure, CI, and data ownership changes~\cite{gravanis2021dont, su2024from}.\\
-  \textbf{Metric signal:} Extract-level intervention despite low throughput divergence and $\varepsilon_m < 0.8$.
+  \item \textbf{Premature Distribution} ($\varepsilon_m < 0.8$)\\
+  Extracting modules before exhausting in-process optimizations. The Extract level carries the highest rollback cost~\cite{gravanis2021dont, su2024from}.
 
-  \item \emph{Uniform Scaling Assumption:}
-  Applying the same scaling intervention uniformly across all modules rather than targeting the modules under pressure.\\
-  \textbf{Metric signal:} throughput divergence across modules with uniform (not targeted) intervention.
+  \item \textbf{Uniform Scaling Assumption} ($\Delta\Theta$ ignored)\\
+  Applying the same scaling intervention uniformly across all modules rather than targeting modules under pressure.
 
-  \item \emph{Shared Database as Implicit Coupling:}
-  Allowing modules to query each other's tables directly, creating invisible coupling that prevents Isolate and blocks Extract.\\
-  \textbf{Metric signal:} data ownership $\omega < 1.0$.
+  \item \textbf{Shared Database as Implicit Coupling} ($\omega < 1.0$)\\
+  Allowing modules to query each other's tables directly, creating invisible coupling that prevents Isolate and blocks Extract.
 
-  \item \emph{Synchronous Call Chains Under Load:}
-  Maintaining synchronous inter-module communication for workflows with high throughput variance, propagating latency and failures upstream.\\
-  \textbf{Metric signal:} sync ratio $\rho_{\mathrm{sync}} > 0.3$.
+  \item \textbf{Synchronous Call Chains Under Load} ($\rho_{\mathrm{sync}} > 0.3$)\\
+  Maintaining synchronous inter-module communication for workflows with high throughput variance, propagating latency and failures upstream.
 
-  \item \emph{Infrastructure Lock-In Through Concrete Dependencies:}
-  Embedding infrastructure-specific code in domain logic, preventing spectrum-level transitions without rewriting business logic.\\
-  \textbf{Metric signal:} abstraction coverage $\alpha < 1.0$.
+  \item \textbf{Infrastructure Lock-In} ($\alpha < 1.0$)\\
+  Embedding infrastructure-specific code in domain logic, preventing spectrum-level transitions without rewriting business logic.
 \end{itemize}
 
 \subsection*{The Scalability Readiness Gap}
@@ -166,36 +162,47 @@ Extraction Readiness & Synthesis of G1 + G2 + G3 signals per module & $\geq$ 0.8
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{Module Throughput Profile ($\Theta_m$).}
+  Measures the request-per-second spread across modules; a wide gap signals uneven load.
   \[
     \Delta\Theta = \max_{m \in M} \Theta_m - \min_{m \in M} \Theta_m
   \]
+  where $M$ = set of modules in the system, $\Theta_m$ = requests per second handled by module $m$.\\
   \emph{Target:} Monitor; trigger Decouple when divergence exceeds 2:1 ratio between connected modules~\cite{richardson2018microservices}.
 
   \item \textbf{Module Latency Variance ($\sigma^2_{L,m}$).}
+  Measures response-time consistency for a single module under load.
   \[
     \sigma^2_{L,m} = \mathbb{E}[(L_m - \mu_{L,m})^2]
   \]
-  \emph{Target:} Monitor; investigate when variance increases $>2\times$ baseline~\cite{martin2012clean}.
+  where $L_m$ = observed response time for module $m$, $\mu_{L,m}$ = mean response time for module $m$.\\
+  \emph{Target:} Monitor; investigate when variance increases $>2\times$ baseline~\cite{richardson2018microservices}.
 
   \item \textbf{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$).}
+  Measures the proportion of inter-module calls that block the caller until completion.
   \[
     \rho_{\mathrm{sync}} = \frac{|I_{\mathrm{sync}}|}{|I_{\mathrm{sync}}| + |I_{\mathrm{async}}|}
   \]
+  where $I_{\mathrm{sync}}$ = set of synchronous inter-module calls, $I_{\mathrm{async}}$ = set of asynchronous inter-module calls.\\
   \emph{Target:} $\rho_{\mathrm{sync}} \leq 0.3$~\cite{dragoni2017microservices}.
 
   \item \textbf{Data Ownership Clarity Index ($\omega$).}
+  Measures the fraction of database tables owned by exactly one module.
   \[
     \omega = \frac{|T_{\mathrm{single\text{-}owner}}|}{|T|}
   \]
+  where $T$ = set of all database tables, $T_{\mathrm{single\text{-}owner}}$ = tables accessed by exactly one module.\\
   \emph{Target:} $\omega = 1.0$~\cite{evans2003ddd}.
 
   \item \textbf{Infrastructure Abstraction Coverage ($\alpha$).}
+  Measures the fraction of infrastructure access points mediated through ports or interfaces.
   \[
     \alpha = \frac{|A_{\mathrm{abstracted}}|}{|A|}
   \]
+  where $A$ = set of all infrastructure access points (databases, caches, queues, external APIs), $A_{\mathrm{abstracted}}$ = access points mediated through a port or interface.\\
   \emph{Target:} $\alpha = 1.0$~\cite{FordParsons2017}.
 
   \item \textbf{Extraction Readiness Score ($\varepsilon_m$).}
+  Synthesizes G1 boundary health, G2 maintainability, and G3 scalability signals into a per-module readiness score.
   \[
     \varepsilon_m = 0.25 \cdot b_m + 0.20 \cdot (1 - \rho_{\mathrm{sync}}^{(m)}) + 0.15 \cdot a_m + 0.20 \cdot \omega_m + 0.20 \cdot v_m
   \]
@@ -319,7 +326,6 @@ class QueueService {
 \noindent
 The \texttt{InMemoryQueueAdapter} ships with the initial deployment; a \texttt{BullMQAdapter} backed by Redis is injected when \texttt{REDIS\_URL} is defined.\footnote{Adapters: \texttt{libs/shared/infrastructure/src/queue/adapters/}}  The composition root selects the adapter:
 
-\needspace{4\baselineskip}
 \begin{lstlisting}[language=TypeScript,caption={Queue adapter selection (queue.factory.ts)},label={lst:g3-queue-factory}]
 function createQueueService(): QueueService {
   const adapter = process.env.REDIS_URL
