@@ -112,19 +112,19 @@ The spectrum is not strictly linear: a team may apply Isolate to one module whil
 \subsection*{Common Failure Modes and Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Premature Distribution} — extraction attempted before readiness threshold ($\varepsilon_m < 0.8$)\\
+  \item \textbf{Premature Distribution}: extraction attempted before readiness threshold ($\varepsilon_m < 0.8$)\\
   Extracting modules before exhausting in-process optimizations. The Extract level carries the highest rollback cost~\cite{gravanis2021dont, su2024from}.
 
-  \item \textbf{Uniform Scaling Assumption} — throughput divergence ignored ($\Delta\Theta$ not assessed)\\
+  \item \textbf{Uniform Scaling Assumption}: throughput divergence ignored ($\Delta\Theta$ not assessed)\\
   Applying the same scaling intervention uniformly across all modules rather than targeting modules under pressure.
 
-  \item \textbf{Shared Database as Implicit Coupling} — data ownership incomplete ($\omega < 1.0$)\\
+  \item \textbf{Shared Database as Implicit Coupling}: data ownership incomplete ($\omega < 1.0$)\\
   Allowing modules to query each other's tables directly, creating invisible coupling that prevents Isolate and blocks Extract.
 
-  \item \textbf{Synchronous Call Chains Under Load} — sync ratio exceeds threshold ($\rho_{\mathrm{sync}} > 0.3$)\\
+  \item \textbf{Synchronous Call Chains Under Load}: sync ratio exceeds threshold ($\rho_{\mathrm{sync}} > 0.3$)\\
   Maintaining synchronous inter-module communication for workflows with high throughput variance, propagating latency and failures upstream.
 
-  \item \textbf{Infrastructure Lock-In} — abstraction coverage incomplete ($\alpha < 1.0$)\\
+  \item \textbf{Infrastructure Lock-In}: abstraction coverage incomplete ($\alpha < 1.0$)\\
   Embedding infrastructure-specific code in domain logic, preventing spectrum-level transitions without rewriting business logic.
 \end{itemize}
 
