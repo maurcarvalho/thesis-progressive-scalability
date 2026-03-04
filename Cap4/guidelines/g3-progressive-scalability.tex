@@ -113,16 +113,16 @@ The spectrum is not strictly linear: a team may apply Isolate to one module whil
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \textbf{Premature Distribution}: extraction attempted before readiness threshold ($\varepsilon_m < 0.8$)\\
-  A team extracts the Orders module into its own service because "it handles the most traffic," despite low throughput divergence and incomplete schema isolation. Re-embedding the module later requires undoing infrastructure, CI, and data ownership changes~\cite{gravanis2021dont, su2024from}.
+  A team extracts a module into its own service because "it handles the most traffic," despite low throughput divergence and incomplete schema isolation. Re-embedding the module later requires undoing infrastructure, CI, and data ownership changes~\cite{gravanis2021dont, su2024from}.
 
   \item \textbf{Uniform Scaling Assumption}: throughput divergence ignored ($\Delta\Theta$ not assessed)\\
-  All four modules are deployed behind identical auto-scaling rules, even though Orders handles 10$\times$ the traffic of Shipments. The underloaded modules waste resources while the overloaded one remains constrained.
+  All modules are deployed behind identical auto-scaling rules, even though one handles 10$\times$ the traffic of the others. Underloaded modules waste resources while the overloaded one remains constrained.
 
   \item \textbf{Shared Database as Implicit Coupling}: data ownership incomplete ($\omega < 1.0$)\\
-  Inventory runs \texttt{SELECT} queries directly against the \texttt{orders.order\_items} table to compute reorder thresholds. When Orders refactors its schema, Inventory's queries break silently, and neither module can be extracted independently.
+  One module runs \texttt{SELECT} queries directly against another module's tables (e.g., querying \texttt{order\_items} to compute reorder thresholds). When the owning module refactors its schema, the dependent module's queries break silently, and neither can be extracted independently.
 
   \item \textbf{Synchronous Call Chains Under Load}: sync ratio exceeds threshold ($\rho_{\mathrm{sync}} > 0.3$)\\
-  The order placement flow calls Inventory synchronously to reserve stock, then Payments synchronously to charge the card. A latency spike in Payments blocks the entire chain, propagating failures upstream to the customer.
+  A workflow calls multiple modules synchronously in sequence: validate stock, then charge payment, then create shipment. A latency spike in any downstream module blocks the entire chain, propagating failures upstream to the customer.
 
   \item \textbf{Infrastructure Lock-In}: abstraction coverage incomplete ($\alpha < 1.0$)\\
   Domain services call \texttt{redis.get()} and \texttt{kafka.produce()} directly instead of using adapter interfaces. Transitioning from Tune to Decouple requires rewriting business logic to swap the infrastructure provider.
