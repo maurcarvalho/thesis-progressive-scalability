@@ -50,6 +50,7 @@
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 \documentclass[msc, eng]{ita}    % ITA.cls based on standard book.cls
 % Quando alterar a classe, por exemplo de [msc] para [msc, eng]) rode mais uma vez o botão BUILD OUTPUT caso haja erro
+\usepackage{lmodern}
 \usepackage{ae}
 \usepackage{graphicx}
 \usepackage{epsfig}
@@ -89,7 +90,7 @@
 
 % --- Code listings (TypeScript) ---
 \usepackage{listings}
-\usepackage{xcolor}
+% \usepackage{xcolor} % already loaded by ita.cls with [table] option
 \usepackage{pifont}
 
 
@@ -162,6 +163,11 @@
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 \onehalfspacing
 
+% Allow slightly looser line breaking to prevent overfull hbox from long \texttt paths
+\tolerance=2000
+\emergencystretch=2em
+\hyphenpenalty=50
+
 %singlespacing Para um espaçamento simples
 %onehalfspacing Para um espaçamento de 1,5
 %doublespacing Para um espaçamento duplo
@@ -210,13 +216,13 @@
 \kwcip{Microservices}
 
 % Data da defesa (mês em maiúsculo, se trabalho em inglês, e minúsculo se trabalho em português)
-\date{09}{JUNE}{2025}
+\date{28}{MARCH}{2026}
 
 % Número CDU - (somente para TG)
 %\cdu{???.??}
 
 % Glossario
-\makenoidxglossaries % to use glossaries pkg
+\makenoidxglossaries
 \frontmatter
 
 % TODO:ABREV E SIMBOLOS
@@ -248,11 +254,10 @@
 \renewcommand\bibname{\itareferencesnamebabel} %renomear título do capítulo referências
 \printbibliography
 
-% ----- TODO ANEXOS E APENDICES --------
-% Apendices
-%\appendix
-%\chapter{Exemplo de Apendice} %opcional
-%\input{ApeA/apendiceA}
+% ----- APPENDICES --------
+\appendix
+\chapter{Glossary of Technologies and Patterns}
+\input{ApeA/apendiceA}
 
 % Anexos
 %\annex
