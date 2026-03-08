@@ -7,9 +7,6 @@ G2 embeds maintainability as an architectural property by treating the cost of c
 \subsection*{Intent and Rationale}
 The primary driver of maintainability degradation is not system size but the accumulation of hidden coupling, ambiguous dependency direction, and architectural drift~\cite{gravanis2021dont,blinowski2022monolithic}. G2 constrains how modules interact and how dependencies are introduced, prioritizing change locality and controlled dependency growth over short-term reuse so that the effort to evolve the system scales sublinearly with its size~\cite{arya2024beyond,berry2024isItWorth}.
 
-\subsection*{Applicability}
-G2 applies once G1 boundaries are in place and the system is expected to evolve continuously. It does not prescribe specific frameworks or CI pipelines; its scope is limited to metrics and design practices that influence long-term changeability.
-
 \subsection*{Objectives}
 
 \emph{Research contributions:}
@@ -21,16 +18,15 @@ G2 applies once G1 boundaries are in place and the system is expected to evolve 
 
 \emph{Implementation objectives:}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Stable dependency direction:} Prevent cycles and cascading change through disciplined layering and contract-first boundaries.
-  \item \emph{Controlled API surface:} Constrain public surface growth to preserve refactoring freedom and minimize downstream obligations.
-  \item \emph{Automated drift detection:} Track structural signals continuously so that degradation is caught while corrective actions remain localized.
-  \item \emph{Independent module testability:} Ensure each module is testable using only its declared dependencies.
+  \item \emph{Dependency direction by stability:} Beyond G1's cycle prevention, rank modules by volatility so that dependencies always flow toward the more stable abstraction.
+  \item \emph{Controlled API surface growth:} Track public surface size over time and constrain growth rate to preserve refactoring freedom.
+  \item \emph{Trend-aware drift detection:} Extend G1's point-in-time checks with time-series tracking so that gradual degradation is caught before it becomes irreversible.
 \end{itemize}
 
 \subsection*{Key Principles}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Information hiding as the unit of modularity:} A module's boundary is defined by the design decisions it conceals, not by its size or feature count~\cite{parnas1972informationhiding}. Cross-module reuse of internal code is treated as a maintainability risk unless mediated through an explicit contract.
-  \item \emph{Dependency direction reflects stability:} Dependencies flow toward stable abstractions; unstable modules never become dependencies of stable ones~\cite{martin2012clean}. Cycles violate this principle and are treated as maintainability violations.
+  \item \emph{Reuse through contract, not exposure:} G1 enforces that internals are hidden; G2 adds that cross-module reuse of even public code is a maintainability risk unless mediated through a stable, versioned contract~\cite{parnas1972informationhiding}.
+  \item \emph{Dependency direction reflects stability:} Beyond G1's cycle prohibition, dependencies must flow toward stable abstractions; volatile modules never become dependencies of stable ones~\cite{martin2012clean}.
   \item \emph{Change locality within bounded contexts:} Each bounded context owns its model and language; cross-context interaction occurs through explicit contracts, not shared internals~\cite{evans2003ddd}. Most changes should be implementable within a single module.
   \item \emph{Coupling is a spectrum, not a binary:} Data coupling through published events is preferable to content coupling through shared internals~\cite{yourdon1979structured}. G2 metrics quantify where each module sits on this spectrum, making drift visible before it becomes irreversible.
 \end{itemize}
