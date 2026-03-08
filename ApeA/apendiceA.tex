@@ -1,18 +1,80 @@
-\section{Uma Primeira Seção para o Apêndice}
+\section{Metric Formal Definitions}
+\label{app:metrics}
 
+This appendix provides the formal definitions for all metrics introduced in the guideline chapters. The composite $b_m$ (G1) and $\varepsilon_m$ (G3) remain inline in their respective guidelines; the composite $\mu_m$ (G2) is defined below alongside its individual components.
 
-% EXEMPLO DE EQUACAO
-%\begin{equation}
-%M=\left[ \begin{array}{ccc}
-%M_{11} & M_{12} & M_{13} \\
-%M_{21} & M_{22} & M_{23} \\
-%M_{31} & M_{32} & M_{33}
-%\end{array} \right]
-%\end{equation}
+\subsection{G1: Boundary Enforcement Metrics}
+\label{app:metrics-g1}
 
-% EXEMPLO DE FIGURA
-%\begin{figure}[h]
-%\centering
-%\includegraphics[height=5cm, width=5cm]%%%%%{ApeA/pragas_ciclo_cupim}
-%\caption{Uma figura que está no apêndice}\label{FD}
-%\end{figure}
+The four count metrics ($C_{\mathrm{undecl}}$, $C_{\mathrm{forbid}}$, $C_{\mathrm{leak}}$, $C_{\mathrm{event}}$) tally cross-module references violating their respective boundary condition. Let $M$ be the set of modules, $D \subseteq M \times M$ the declared dependencies, $F \subseteq M \times M$ the forbidden dependencies, and $\operatorname{pub}(B)$ the public API of module $B$.
+
+\begin{itemize}[itemsep=6pt]
+  \item $C_{\mathrm{undecl}}$: references where $(A, B) \notin D$. Target: 0~\cite{deLauretis2019from}.
+  \item $C_{\mathrm{forbid}}$: references where $(A, B) \in F$. Target: 0~\cite{martin2012clean}.
+  \item $C_{\mathrm{leak}}$: references targeting symbols outside $\operatorname{pub}(B)$. Target: 0~\cite{parnas1972informationhiding}.
+  \item $C_{\mathrm{event}}$: event subscriptions where the $(subscriber, publisher)$ pair has no declared dependency. Target: 0~\cite{richardson2018microservices}.
+\end{itemize}
+
+\noindent
+The isolation pass rate captures hidden runtime dependencies:
+\[
+  P_{\mathrm{iso}} = \frac{|T_{\mathrm{pass}}|}{|T_{\mathrm{iso}}|}
+\]
+where $T_{\mathrm{iso}}$ is the total number of module-scoped isolation tests and $T_{\mathrm{pass}}$ the number that pass. Target: $P_{\mathrm{iso}} = 100\%$~\cite{fairbanks2010justenough}.
+
+\subsection{G2: Maintainability Metrics}
+\label{app:metrics-g2}
+
+Let $M$ be the set of modules and $R$ the multiset of cross-module references.
+
+\begin{itemize}[itemsep=6pt]
+  \item \textbf{API-Only Dependency Ratio ($\rho_{\mathrm{api}}$).}
+  \[
+    \rho_{\mathrm{api}} = \frac{|R_{\mathrm{api}}|}{|R|}
+  \]
+  where $R_{\mathrm{api}} \subseteq R$ = references targeting only the provider module's declared public surface. Boundary bypass mechanisms (reflection, dynamic loading) count as non-API references.\\
+  Target: $\rho_{\mathrm{api}} \geq 0.95$~\cite{parnas1972informationhiding}.
+
+  \item \textbf{Public API Surface Growth Rate ($G_{\mathrm{api}}$).}
+  \[
+    G_{\mathrm{api}}(m) = \frac{|API_m(t)| - |API_m(t - \Delta t)|}{\Delta t}
+  \]
+  where $API_m(t)$ = set of public symbols exported by module $m$ at time $t$, $\Delta t$ = measurement period (sprint or release).\\
+  Target: $G_{\mathrm{api}}(m) \to 0$~\cite{parnas1972informationhiding}.
+
+  \item \textbf{Change Coupling Index ($CCI$).}
+  \[
+    CCI = \frac{\sum_{A \neq B} C(A,B)}{\sum_{A} C(A)}
+  \]
+  where $C(A,B)$ = commits where modules $A$ and $B$ both change, $C(A)$ = total commits touching module $A$.\\
+  Target: $CCI \leq 0.2$~\cite{FordParsons2017}.
+
+  \item \textbf{Module Complexity Concentration ($\Gamma$).}
+  \[
+    \Gamma = \frac{\max_{m \in M} |API_m|}{\frac{1}{|M|} \sum_{m \in M} |API_m|}
+  \]
+  where $|API_m|$ = number of public symbols exported by module $m$.\\
+  Target: $\Gamma \leq 3.0$~\cite{martin2012clean}.
+
+  \item \textbf{Contract Stability Index ($\sigma_m$).}
+  \[
+    \sigma_m = \frac{|\operatorname{API}_m(t) \cap \operatorname{API}_m(t - \Delta t)|}{|\operatorname{API}_m(t - \Delta t)|}
+  \]
+  where $\operatorname{API}_m(t)$ and $\operatorname{API}_m(t - \Delta t)$ = public symbol sets at current and previous measurement.\\
+  Target: $\sigma_m \geq 0.9$ per release cycle~\cite{FordParsons2017}.
+
+  \item \textbf{Fan-In Concentration ($\phi_m$).}
+  \[
+    \phi_m = \frac{|\{A \in M \setminus \{m\} : \exists\, r \in \operatorname{refs}(A \to m)\}|}{|M| - 1}
+  \]
+  where $\operatorname{refs}(A \to m)$ = set of references from module $A$ to module $m$.\\
+  Target: $\phi_m \leq 0.5$ for bounded context modules~\cite{yourdon1979structured}.
+\end{itemize}
+
+\noindent
+\textbf{Composite Maintainability Index ($\mu_m$).} For each module $m$:
+\[
+  \mu_m = 0.25\,\rho_{\mathrm{api}} + 0.20\,\sigma_m + 0.20\,(1 - \phi_m) + 0.15\,(1 - CCI) + 0.10\,\frac{1}{\Gamma} + 0.10\,(1 - \tilde{G}_{\mathrm{api}})
+\]
+where all signals are evaluated for module $m$, and $\tilde{G}_{\mathrm{api}} = \min\!\bigl(G_{\mathrm{api}}(m) / |API_m(t{-}\Delta t)|,\; 1\bigr)$ normalizes growth to the $[0, 1]$ range (0 = no change, 1 = 100\% growth or more). Weights reflect relative impact on cost of change; teams should calibrate them to their context.\\
+Target: $\mu_m \geq 0.8$~\cite{FordParsons2017}.
