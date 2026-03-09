@@ -393,20 +393,25 @@ Because all metrics are tagged with \texttt{module} labels from inception, the s
 \subsection*{Common Failure Modes and Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Aggregate-only monitoring (the black box monolith):}
+  \item \textbf{Aggregate-Only Monitoring}\\
   Monitoring only application-level metrics (total latency, total errors) without module attribution. When a performance issue arises, the team cannot isolate which module is responsible, leading to unfocused investigation and delayed resolution.
+  \emph{Approach:} attach module context to every log, metric, and trace so that signals can be filtered by bounded context.
 
-  \item \emph{Instrumentation after extraction:}
-  Adding observability only after a module is extracted. This eliminates the pre-extraction baseline, making it impossible to determine whether performance changes are caused by the extraction or by unrelated factors. It also means the team learns to use monitoring tools under the pressure of a production incident.
+  \item \textbf{Instrumentation After Extraction}\\
+  Adding observability only after a module is extracted. This eliminates the pre-extraction baseline, making it impossible to determine whether performance changes are caused by the extraction or by unrelated factors.
+  \emph{Approach:} instrument from day one inside the monolith, establishing baselines before any extraction decision.
 
-  \item \emph{Log-only observability:}
-  Relying exclusively on log searching for debugging without traces or metrics. Logs provide point-in-time information but lack the causal chain that traces provide and the statistical patterns that metrics reveal. Module-scoped debugging requires all three pillars.
+  \item \textbf{Log-Only Observability}\\
+  Relying exclusively on log searching for debugging without traces or metrics. Logs provide point-in-time information but lack the causal chain that traces provide and the statistical patterns that metrics reveal.
+  \emph{Approach:} adopt all three observability pillars (logs, metrics, traces) with module-scoped attribution.
 
-  \item \emph{Custom observability frameworks:}
-  Building bespoke logging, metrics, and tracing infrastructure instead of adopting OpenTelemetry. Custom frameworks create vendor lock-in, increase maintenance burden, and are unlikely to integrate with the observability built into Temporal and Kafka. OpenTelemetry's vendor-neutral approach ensures interoperability.
+  \item \textbf{Custom Observability Frameworks}\\
+  Building bespoke logging, metrics, and tracing infrastructure instead of adopting OpenTelemetry. Custom frameworks create vendor lock-in, increase maintenance burden, and are unlikely to integrate with the observability built into Temporal and Kafka.
+  \emph{Approach:} use OpenTelemetry's vendor-neutral SDK for interoperability across all infrastructure components.
 
-  \item \emph{Alert fatigue from application-level thresholds:}
-  Setting alert thresholds on aggregate application metrics rather than per-module metrics. When a single module's latency spikes, an application-level threshold may or may not trigger, depending on overall traffic distribution. Module-scoped alerts (e.g., ``orders module p99 latency > 200ms'') are more precise and actionable.
+  \item \textbf{Alert Fatigue from Application-Level Thresholds}\\
+  Setting alert thresholds on aggregate application metrics rather than per-module metrics. When a single module's latency spikes, an application-level threshold may or may not trigger, depending on overall traffic distribution.
+  \emph{Approach:} set module-scoped alerts (e.g., ``orders module p99 latency > 200ms'') for precise, actionable signals.
 \end{itemize}
 
 
