@@ -97,7 +97,7 @@ Despite strong boundary enforcement, Tiny Store's baseline state reflects a comm
 
   \item \emph{Transactional assumptions:} When an order is placed, the system could benefit from the fact that inventory reservation happens in the same process. After extraction, the ``place order $\to$ reserve inventory'' flow must tolerate partial failures. G4 addresses this by including Temporal\footnote{\url{https://temporal.io}} as a durable workflow orchestrator from inception. Temporal persists workflow state automatically, provides built-in retry and timeout policies per activity, and executes compensating actions reliably even across process restarts. The workflow runs inside the monolith from day one, then survives extraction unchanged; this is an architectural requirement, not a migration step.
 
-  \item \emph{Anti-corruption layers:} Tiny Store includes ACL gateways from inception (Listings~\ref{lst:g4-acl-inventory} and~\ref{lst:g4-acl-payments}). The orders module communicates with inventory and payments exclusively through gateway interfaces (\texttt{InventoryGateway}, \texttt{PaymentGateway}). The adapter implementations translate between domain models, so that swapping an in-process call for an HTTP client after extraction requires changing only the adapter, not the domain logic.
+  \item \emph{Anti-corruption layers:} Tiny Store includes Anti-Corruption Layer gateways from inception (Listings~\ref{lst:g4-acl-inventory} and~\ref{lst:g4-acl-payments}). The orders module communicates with inventory and payments exclusively through gateway interfaces (\texttt{InventoryGateway}, \texttt{PaymentGateway}). The adapter implementations translate between domain models, so that swapping an in-process call for an HTTP client after extraction requires changing only the adapter, not the domain logic.
 
   \item \emph{No API versioning:} The orders module's public handlers do not carry version metadata. In a co-located monolith, this is acceptable because all consumers are updated simultaneously. After extraction, the orders service must support multiple API versions to allow independent deployment of consumers.
 \end{enumerate}
@@ -303,7 +303,7 @@ export async function orderFulfillmentWorkflow(
 
 \begin{lstlisting}[language=TypeScript,caption={Temporal activities: in-process today, network calls after extraction ({\ttfamily order-fulfillment.activities.ts})},label={lst:g4-temporal-activities}]
 // libs/modules/orders/src/workflows/order-fulfillment.activities.ts
-// Activities call module APIs through ACL gateways.
+// Activities call module APIs through Anti-Corruption Layer gateways.
 // Today: in-process. After extraction: swap for HTTP/gRPC clients.
 // The workflow code does NOT change.
 
@@ -340,7 +340,7 @@ export async function createShipment(
   The Temporal workflow provides several properties that pure event choreography lacks: (i) the full compensation path is visible in a single file rather than scattered across listeners; (ii) Temporal's execution history records every activity attempt, retry, and compensation, providing audit-grade observability; (iii) timeout and retry policies are declared per activity rather than implemented ad hoc in each listener; and (iv) the workflow is testable using Temporal's time-skipping test framework, which can simulate failures at any step and verify the correct compensation sequence.
 
   \item \emph{Step 4: Introduce anti-corruption layers in downstream modules.}
-  In the inventory module, create a translation layer that maps the \texttt{OrderPlaced} event payload into inventory's own internal command. This way, if orders changes its event schema (e.g., renames a field or restructures the payload), the inventory module's ACL absorbs the change without affecting inventory's domain logic.
+  In the inventory module, create a translation layer that maps the \texttt{OrderPlaced} event payload into inventory's own internal command. This way, if orders changes its event schema (e.g., renames a field or restructures the payload), the inventory module's Anti-Corruption Layer absorbs the change without affecting inventory's domain logic.
 
 \begin{lstlisting}[language=TypeScript,caption={ACL: Orders $\to$ Inventory gateway ({\ttfamily inventory-gateway.acl.ts})},label={lst:g4-acl-inventory}]
 // libs/modules/orders/src/acl/inventory-gateway.acl.ts
@@ -440,7 +440,7 @@ After completing Steps 1--5, the orders module operates on production-grade infr
 \DoMark & Own database schema (no shared tables) & Step 1 \\
 \DoMark & Event publishing through Kafka-backed port & Step 2 \\
 \DoMark & Temporal workflow with compensating actions & Step 3 \\
-\DoMark & ACLs in all downstream consumers & Step 4 \\
+\DoMark & Anti-Corruption Layers in all downstream consumers & Step 4 \\
 \DoMark & Versioned event contracts and public API & Step 5 \\
 \DoMark & No direct cross-module imports (G1) & Baseline \\
 \DoMark & Centralized wiring in composition root & Baseline \\
@@ -451,7 +451,7 @@ After completing Steps 1--5, the orders module operates on production-grade infr
 
 \vspace{0.5em}
 \noindent
-When all prerequisites are met, extracting orders means: deploying it as a standalone service with its own database, switching the \texttt{InMemoryEventPublisher} to the \texttt{KafkaEventPublisher} (pointing to the \texttt{orders.events} topic), replacing Temporal activity implementations from in-process handler calls to HTTP/gRPC client calls, and routing incoming requests through a network endpoint. The Temporal workflow code remains identical. The Kafka topic structure remains identical. The ACLs in downstream consumers remain identical. No domain logic changes. No saga redesign. No downstream module rewrites.
+When all prerequisites are met, extracting orders means: deploying it as a standalone service with its own database, switching the \texttt{InMemoryEventPublisher} to the \texttt{KafkaEventPublisher} (pointing to the \texttt{orders.events} topic), replacing Temporal activity implementations from in-process handler calls to HTTP/gRPC client calls, and routing incoming requests through a network endpoint. The Temporal workflow code remains identical. The Kafka topic structure remains identical. The Anti-Corruption Layers in downstream consumers remain identical. No domain logic changes. No saga redesign. No downstream module rewrites.
 
 \subsection*{Operationalizing Extraction: The Extract Command}
 
@@ -614,20 +614,25 @@ This operationalization of G4's principles provides production teams with the co
 \subsection*{Common Failure Modes and Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{``We'll fix it during migration'' (Deferred Readiness):}
-  Postponing migration preparation until extraction is imminent. At that point, the accumulated coupling (shared tables, implicit transactions, unversioned APIs) makes extraction a multi-month project instead of a multi-day configuration change. G4 treats readiness as a continuous investment, not a phase.
+  \item \textbf{Deferred Readiness}\\
+  Postponing migration preparation until extraction is imminent. At that point, the accumulated coupling (shared tables, implicit transactions, unversioned APIs) makes extraction a multi-month project instead of a multi-day configuration change.
+  \emph{Approach:} treat readiness as a continuous investment; apply G4 steps incrementally from the first sprint.
 
-  \item \emph{Shared database as a hidden integration layer:}
+  \item \textbf{Shared Database as Hidden Integration}\\
   Two modules that appear decoupled at the code level but share database tables are coupled at the persistence level. This is the most common and most expensive migration blocker, because it requires data migration, schema splitting, and potentially retroactive event sourcing to disentangle.
+  \emph{Approach:} enforce per-module \texttt{pgSchema()} and expose needed data through domain events.
 
-  \item \emph{Cross-module transactions masking distributed failure modes:}
-  Relying on database transactions to maintain consistency across modules hides the failure modes that will surface after extraction. When the inventory reservation and the order creation are in the same transaction, partial failure is impossible. After extraction, partial failure is the default. Teams that have not designed compensating actions discover this in production. Introducing Temporal inside the monolith \emph{before} extraction forces the team to confront these failure modes early, when debugging is still straightforward.
+  \item \textbf{Cross-Module Transactions Masking Failure Modes}\\
+  Relying on database transactions to maintain consistency across modules hides the failure modes that will surface after extraction. When the inventory reservation and the order creation are in the same transaction, partial failure is impossible. After extraction, partial failure is the default. Teams that have not designed compensating actions discover this in production.
+  \emph{Approach:} introduce saga orchestration inside the monolith before extraction, forcing the team to confront failure modes early.
 
-  \item \emph{Payload coupling without anti-corruption layers:}
-  When downstream modules consume event payloads directly without translation, any change to the upstream module's event schema breaks all consumers simultaneously. This creates a coordination bottleneck that is incompatible with independent deployment, which is one of the primary motivations for extraction.
+  \item \textbf{Payload Coupling Without Anti-Corruption Layers}\\
+  When downstream modules consume event payloads directly without translation, any change to the upstream module's event schema breaks all consumers simultaneously. This creates a coordination bottleneck that is incompatible with independent deployment.
+  \emph{Approach:} place an Anti-Corruption Layer at each integration point to translate between domain models.
 
-  \item \emph{Premature extraction without readiness:}
-  Extracting a module that has not been prepared (shared state, no ACLs, no saga) creates a distributed monolith: the operational complexity of microservices with the coupling characteristics of a monolith. This is strictly worse than the original state~\cite{gravanis2021dont}.
+  \item \textbf{Premature Extraction Without Readiness}\\
+  Extracting a module that has not been prepared (shared state, no Anti-Corruption Layers, no saga) creates a distributed monolith: the operational complexity of microservices with the coupling characteristics of a monolith. This is strictly worse than the original state~\cite{gravanis2021dont}.
+  \emph{Approach:} require Extraction Readiness ($\varepsilon_m$) $\geq 0.8$ and all G4 preparation steps complete before initiating extraction.
 \end{itemize}
 
 
@@ -644,13 +649,13 @@ G4 metrics assess whether a module is structurally prepared for extraction, comp
   \]
   \emph{Threshold:} complete data ownership ($\omega_m = 1$) before extraction. \\
 
-  \item \textbf{ACL Coverage:}
+  \item \textbf{Anti-Corruption Layer Coverage:}
   Without explicit translation boundaries, upstream modules' internal model changes propagate directly to downstream consumers, creating tight coupling that prevents independent evolution \cite{evans2003ddd}. Anti-corruption layers serve as contractual buffers that translate between domain models, ensuring that one module's refactoring doesn't cascade into breaking changes for its consumers. This metric quantifies how well protected the module's integration points are from external model changes, directly impacting its ability to evolve independently after extraction.
   \[
     \gamma = \frac{|I_{\mathrm{ACL}}|}{|I|}
   \]
-  where $I$ is the set of all cross-module integration points and $I_{\mathrm{ACL}}$ is the subset mediated by an ACL.
-  \emph{Target:} all integration points protected by ACLs ($\gamma = 1$). \\
+  where $I$ is the set of all cross-module integration points and $I_{\mathrm{ACL}}$ is the subset mediated by an Anti-Corruption Layer.
+  \emph{Target:} all integration points protected by Anti-Corruption Layers ($\gamma = 1$). \\
 
   \item \textbf{Saga Completeness:}
   Cross-module workflows that rely on database transactions for consistency will fail catastrophically after extraction, when ACID guarantees no longer span module boundaries \cite{richardson2018microservices}. Saga patterns replace atomic transactions with choreographed sequences that include explicit compensating actions for each step, ensuring that distributed workflows can recover from partial failures. This metric measures how comprehensively the module's workflows have been prepared for the eventual consistency requirements of distributed deployment.
@@ -704,7 +709,7 @@ G4 metrics assess whether a module is structurally prepared for extraction, comp
   For each cross-module workflow, document the happy path, the failure modes, and the compensating actions. Include sequence diagrams that show both the in-process flow (current) and the distributed flow (post-extraction). The saga documentation should be testable: each compensating action should have a corresponding integration test.
 
   \item \emph{Event Contract Registry:}
-  Maintain a registry of all published event contracts, including version history, schema, and consuming modules. This registry serves as the source of truth for ACL design and for assessing the impact of schema changes.
+  Maintain a registry of all published event contracts, including version history, schema, and consuming modules. This registry serves as the source of truth for Anti-Corruption Layer design and for assessing the impact of schema changes.
 \end{itemize}
 
 \subsection*{Tooling Capabilities Checklist}
@@ -735,7 +740,7 @@ Event-driven communication & Async events via Kafka & Direct method calls \\
 Schema isolation & Own tables, $\omega_m = 1$ & Shared tables across modules \\
 Idempotent consumers & Deduplication keys present & No idempotency guarantees \\
 Saga/compensation & Temporal workflows defined & Ad-hoc error handling \\
-ACL in place & Translation layer at boundary & Direct model sharing \\
+Anti-Corruption Layer in place & Translation layer at boundary & Direct model sharing \\
 Independent CI pipeline & Nx target with scoped tests & Monolith-wide pipeline only \\
 \hline
 \end{tabular}
