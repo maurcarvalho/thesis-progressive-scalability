@@ -373,20 +373,25 @@ This progression from D0 to D2 is a deployment topology change, not a rewrite. T
 \subsection*{Common Failure Modes and Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Repository splitting during extraction:}
-  Moving an extracted module to a separate repository breaks atomic refactoring, duplicates shared libraries, and disables workspace-wide boundary verification. The monorepo should remain unified; only deployment targets multiply.
+  \item \textbf{Repository Splitting During Extraction}\\
+  Moving an extracted module to a separate repository breaks atomic refactoring, duplicates shared libraries, and disables workspace-wide boundary verification.
+  \emph{Approach:} keep the monorepo unified; only deployment targets multiply.
 
-  \item \emph{``Build everything'' CI:}
-  Running all tests and builds on every commit regardless of what changed. This wastes CI resources, slows feedback loops, and creates incentives to skip tests. Module-aware CI (D1) solves this without sacrificing correctness.
+  \item \textbf{Build Everything CI}\\
+  Running all tests and builds on every commit regardless of what changed. This wastes CI resources, slows feedback loops, and creates incentives to skip tests.
+  \emph{Approach:} use module-aware CI (D1) to build and test only affected modules.
 
-  \item \emph{Infrastructure bolted on during extraction:}
-  Adding Kafka, Temporal, or database provisioning only when a module is extracted. This creates a ``big bang'' infrastructure change that compounds the risk of the extraction itself. G5 requires infrastructure-as-code from day one (D0).
+  \item \textbf{Infrastructure Bolted On During Extraction}\\
+  Adding Kafka, Temporal, or database provisioning only when a module is extracted. This creates a ``big bang'' infrastructure change that compounds the risk of the extraction itself.
+  \emph{Approach:} require infrastructure-as-code from day one (D0), so extraction changes only configuration.
 
-  \item \emph{Monolithic Dockerfile for a modular system:}
+  \item \textbf{Monolithic Dockerfile for a Modular System}\\
   A single Dockerfile that copies the entire repository into the image, including modules that the deployment target does not use. This increases image size, extends build times, and leaks code that should not be present in a specific service's runtime.
+  \emph{Approach:} use per-target Dockerfiles that copy only the modules needed for each deployment unit.
 
-  \item \emph{Coordinated deployments after extraction:}
-  Requiring all deployment targets to be released simultaneously. This negates the independent deployment benefit that motivated extraction. Each target should have its own release pipeline, triggered by changes to its affected scope.
+  \item \textbf{Coordinated Deployments After Extraction}\\
+  Requiring all deployment targets to be released simultaneously. This negates the independent deployment benefit that motivated extraction.
+  \emph{Approach:} each target has its own release pipeline, triggered by changes to its affected scope.
 \end{itemize}
 
 
