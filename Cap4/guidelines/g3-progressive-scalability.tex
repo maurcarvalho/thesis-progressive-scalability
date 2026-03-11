@@ -63,14 +63,14 @@ G3 is implemented through three architectural mechanisms, all established at pro
 \small
 \caption{Progressive Scalability Spectrum for Modular Monoliths}
 \label{tab:scalability-spectrum}
-\begin{tabularx}{\linewidth}{p{0.04\linewidth} >{\raggedright\arraybackslash\hyphenpenalty=10000}p{0.14\linewidth} X p{0.28\linewidth}}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash\hyphenpenalty=10000}p{0.18\linewidth} X p{0.30\linewidth}}
 \toprule
-\textbf{Level} & \textbf{Intervention} & \textbf{Description} & \textbf{Metric Trigger} \\
+\textbf{Level} & \textbf{Description} & \textbf{Metric Trigger} \\
 \midrule
-Tune & Vertical Optimization & Resource tuning, caching, query optimization, concurrency improvements within the monolith. No structural change. & Throughput divergence or latency variance exceeds baseline. \\
-Decouple & Async Decoupling & Replace synchronous inter-module calls with asynchronous channels for modules with divergent throughput. & Sync ratio $> 0.3$ between connected modules with $>$2:1 throughput divergence. \\
-Isolate & Data Isolation & Separate module-scoped persistence (dedicated schemas, read replicas, or separate databases) for modules with divergent data access patterns. & Data ownership $< 1.0$ or shared database contention detected. \\
-Extract & Selective Extraction & Deploy a bounded context as an independent service with its own runtime, persistence, and deployment pipeline. & Extraction readiness $\geq 0.8$ and Tune--Isolate steps insufficient. \\
+Tune -- Vertical Optimization & Resource tuning, caching, query optimization, concurrency improvements within the monolith. No structural change. & Throughput divergence or latency variance exceeds baseline. \\
+Decouple -- Async Decoupling & Replace synchronous inter-module calls with asynchronous channels for modules with divergent throughput. & Sync ratio $> 0.3$ between connected modules with $>$2:1 throughput divergence. \\
+Isolate -- Data Isolation & Separate module-scoped persistence (dedicated schemas, read replicas, or separate databases) for modules with divergent data access patterns. & Data ownership $< 1.0$ or shared database contention detected. \\
+Extract -- Selective Extraction & Deploy a bounded context as an independent service with its own runtime, persistence, and deployment pipeline. & Extraction readiness $\geq 0.8$ and Tune--Isolate steps insufficient. \\
 \bottomrule
 \end{tabularx}
 \end{table}
