@@ -2,27 +2,27 @@
 \section{G3: Design for Progressive Scalability}
 \label{sec:g3-design-progressive-scalability}
 
-G3 focuses on designing modular monoliths so that scalability is achieved progressively rather than through premature distribution. \emph{Progressive scalability} is the capacity of a modular monolith to accommodate increasing load, data volume, and organizational growth through a deliberate sequence of architectural interventions, each proportional to the observed need, without requiring a wholesale migration to a distributed architecture.
+G3 focuses on designing modular monoliths so that scalability is achieved progressively rather than through premature distribution. \emph{Progressive scalability} is the capacity of a modular monolith to accommodate increasing load, data volume, and organizational growth through a deliberate sequence of architectural steps, each proportional to the observed need, without requiring a wholesale migration to a distributed architecture.
 
-G3 requires that G1 boundaries are enforced and G2 maintainability discipline is in place. It completes the Architectural Design Dimension (G1--G3): G1 enforces modular boundaries, G2 preserves maintainability through bounded cost of change, and G3 ensures that the resulting structure can absorb growth without collapsing into either a monolithic bottleneck or a premature microservices decomposition.
+G3 requires that G1 boundaries are enforced and G2 maintainability discipline is in place. It completes the Architectural Design Dimension (G1--G3): G1 enforces modular boundaries, G2 preserves maintainability through bounded cost of change, and G3 ensures that the resulting structure can accommodate growth without collapsing into either a monolithic bottleneck or a premature microservices decomposition.
 
 \subsection*{Intent and Rationale}
 
-The prevailing narrative in cloud-native literature frames scalability as an inherently distributed concern: when the system must scale, it must be decomposed into independently deployable services~\cite{arya2024beyond, blinowski2022monolithic}. This framing creates a false dichotomy. Teams are implicitly told to choose between a monolith that cannot scale and microservices that can, ignoring the intermediate architectural states that a well-modularized monolith can occupy. In practice, load concentrates in specific modules and specific data domains expand faster than others. A system designed for progressive scalability acknowledges this unevenness and provides mechanisms to address it surgically.
+The prevailing narrative in cloud-native literature frames scalability as an inherently distributed concern: when the system must scale, it must be decomposed into independently deployable services~\cite{arya2024beyond, blinowski2022monolithic}. This framing creates a false dichotomy. Teams are implicitly told to choose between a monolith that cannot scale and microservices that can, ignoring the intermediate architectural states that a well-modularized monolith can occupy. In practice, load concentrates in specific modules and specific data domains expand faster than others. A system designed for progressive scalability acknowledges this unevenness and provides mechanisms to address it in a targeted manner.
 
-G3 treats scalability as a \emph{gradient} rather than a binary switch. The guideline defines a four-level Progressive Scalability Spectrum (Table~\ref{tab:scalability-spectrum}): \emph{Tune} (vertical optimization), \emph{Decouple} (asynchronous boundaries), \emph{Isolate} (data separation), and \emph{Extract} (selective service extraction) as a last resort. Each level is triggered by observable metrics rather than speculative anticipation, and each intervention is reversible if conditions change.
+G3 treats scalability as a \emph{spectrum} rather than a binary switch. The guideline defines a four-level Progressive Scalability Spectrum (Table~\ref{tab:scalability-spectrum}): \emph{Tune} (vertical optimization), \emph{Decouple} (asynchronous boundaries), \emph{Isolate} (data separation), and \emph{Extract} (selective service extraction) as a last resort. Each level is triggered by observable metrics rather than speculative anticipation, and each step is reversible if conditions change.
 
 \subsection*{Objectives}
 
 \emph{Research contributions:}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Formalize scalability as a metric-driven gradient:} Define a progression spectrum (Tune, Decouple, Isolate, Extract) where each transition is governed by quantifiable thresholds, replacing the binary monolith-or-microservices framing with a sequence of proportional, reversible interventions.
+  \item \emph{Formalize scalability as a metric-driven spectrum:} Define a progression spectrum (Tune, Decouple, Isolate, Extract) where each transition is governed by quantifiable thresholds, replacing the binary monolith-or-microservices framing with a sequence of proportional, reversible steps.
   \item \emph{Synthesize cross-guideline extraction readiness:} Combine boundary health (G1), maintainability signals (G2), and scalability preparation (G3) into a per-module score that grounds extraction decisions in architectural evidence rather than intuition. No existing work in the SLR corpus provides such a cross-concern composite for modular monoliths.
 \end{itemize}
 
 \emph{Implementation objective:}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Embed scalability infrastructure from inception:} Design the architecture so that the infrastructure for all spectrum levels (caching, async channels, schema isolation) is present from the initial deployment. Infrastructure abstraction and extraction optionality are addressed in the Key Principles below.
+  \item \emph{Embed scalability infrastructure from the start:} Design the architecture so that the infrastructure for all spectrum levels (caching, async channels, schema isolation) is present from the initial deployment. Infrastructure abstraction and extraction optionality are addressed in the Key Principles below.
 \end{itemize}
 
 
@@ -30,16 +30,16 @@ G3 treats scalability as a \emph{gradient} rather than a binary switch. The guid
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Scale where it hurts, not where it might:}
-  Scaling interventions are driven by observed bottlenecks, not speculative anticipation. Module-level metrics provide the evidence base.
+  Scaling actions are driven by observed bottlenecks, not speculative anticipation. Module-level metrics provide the evidence base.
 
-  \item \emph{Asynchronous boundaries as scalability seams:}
-  The boundary between two modules becomes a scalability seam when their throughput requirements diverge. An asynchronous channel at this seam absorbs load spikes without propagating backpressure to the consumer.
+  \item \emph{Asynchronous boundaries enable independent scaling:}
+  The boundary between two modules becomes a scalability boundary when their throughput requirements diverge. An asynchronous channel at this boundary accommodates load spikes without propagating cascading load to the consumer.
 
-  \item \emph{Infrastructure and data are abstraction-ready from inception:}
+  \item \emph{Infrastructure and data are abstraction-ready from the start:}
   G1 establishes per-module schemas. G3 extends this by requiring that both data access and infrastructure dependencies are mediated through ports and published contracts, so that any spectrum transition is a configuration change rather than a rewrite.
 
-  \item \emph{Every intervention is reversible by design:}
-  Each spectrum-level transition preserves the option to retreat. Infrastructure abstractions and communication channels are structured so that rolling back requires configuration changes, not architectural rework.
+  \item \emph{Every step is reversible by design:}
+  Each spectrum-level transition preserves the option to roll back. Infrastructure abstractions and communication channels are structured so that reverting requires configuration changes, not architectural rework.
 \end{itemize}
 
 \subsection*{Implementation Mechanisms}
@@ -71,13 +71,13 @@ G3 is implemented through three architectural mechanisms, all established at pro
 Tune & Vertical Optimization & Resource tuning, caching, query optimization, concurrency improvements within the monolith. No structural change. & Throughput divergence or latency variance exceeds baseline. \\
 Decouple & Async Decoupling & Replace synchronous inter-module calls with asynchronous channels for modules with divergent throughput. & Sync ratio $> 0.3$ between connected modules with $>$2:1 throughput divergence. \\
 Isolate & Data Isolation & Separate module-scoped persistence (dedicated schemas, read replicas, or separate databases) for modules with divergent data access patterns. & Data ownership $< 1.0$ or shared database contention detected. \\
-Extract & Selective Extraction & Deploy a bounded context as an independent service with its own runtime, persistence, and deployment pipeline. & Extraction readiness $\geq 0.8$ and Tune--Isolate interventions insufficient. \\
+Extract & Selective Extraction & Deploy a bounded context as an independent service with its own runtime, persistence, and deployment pipeline. & Extraction readiness $\geq 0.8$ and Tune--Isolate steps insufficient. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \noindent
-The spectrum is not strictly linear: a team may apply Isolate to one module while another remains at Tune. Each intervention should be justified by evidence that the previous level is insufficient.
+The spectrum is not strictly linear: a team may apply Isolate to one module while another remains at Tune. Each step should be justified by evidence that the previous level is insufficient.
 
 
 \subsection*{Common Failure Modes and Anti-Patterns}
@@ -108,7 +108,7 @@ G1 and G2 anti-patterns remain relevant at the G3 level. The five patterns below
 
 \subsection*{The Progressive Scalability Gap}
 
-The Progressive Scalability Gap is the distance between architectural correctness and scalability readiness. A module can have perfect boundary scores (G1) and stable maintainability trends (G2) while sharing a database connection pool with three other modules, communicating exclusively through blocking calls, and depending on infrastructure through concrete implementations. When load arrives, scaling such a module requires a coordinated migration rather than a surgical intervention.
+The Progressive Scalability Gap is the distance between architectural correctness and scalability readiness. A module can have perfect boundary scores (G1) and stable maintainability trends (G2) while sharing a database connection pool with three other modules, communicating exclusively through blocking calls, and depending on infrastructure through concrete implementations. When load arrives, scaling such a module requires a coordinated migration rather than a targeted step.
 
 A system closes this gap not by distributing prematurely, but by progressively preparing its modules for independent scaling: isolating data, abstracting infrastructure, and introducing asynchronous boundaries before they are needed. G3's metrics make this preparation visible and measurable.
 
@@ -152,7 +152,7 @@ where $b_m$ = boundary compliance (G1), $(1 - \rho_{\mathrm{sync}}^{(m)})$ = asy
 
 Comparative analyses demonstrate that the monolith-versus-microservices trade-offs are context-dependent, yet stop short of proposing what a team should do between these two poles~\cite{jatkiewicz2023differences, berry2024isItWorth}. Industry experience reinforces the ambiguity: documented retreats from microservices~\cite{segment2023, auth02019} and evidence that monoliths remain viable at significant scale~\cite{medium2019} suggest that distribution is not a universal solution~\cite{lima2024accelerating, gravanis2021dont}.
 
-Two proposals come closest to progressive scalability. The ``sliceable monolith''~\cite{montesi2021sliceable} keeps the system unified until a slice needs independent deployment, but focuses on deployment granularity rather than the intermediate interventions (async boundaries, data isolation, infrastructure abstraction) that precede extraction. The Strangler Fig pattern~\cite{stranglerPatterns} offers incremental migration but operates at the application boundary rather than addressing internal modular preparation. The evolutionary architecture perspective~\cite{FordParsons2017} provides the philosophical foundation but does not operationalize it for scaling decisions at the module level.
+Two proposals come closest to progressive scalability. The ``sliceable monolith''~\cite{montesi2021sliceable} keeps the system unified until a slice needs independent deployment, but focuses on deployment granularity rather than the intermediate steps (async boundaries, data isolation, infrastructure abstraction) that precede extraction. The Strangler Fig pattern~\cite{stranglerPatterns} offers incremental migration but operates at the application boundary rather than addressing internal modular preparation. The evolutionary architecture perspective~\cite{FordParsons2017} provides the philosophical foundation but does not operationalize it for scaling decisions at the module level.
 
 No existing work in the SLR corpus provides a formalized intermediate-state model between monolith and microservices, quantified progression triggers, or a composite extraction readiness metric synthesizing signals across guidelines. G3 addresses these three gaps.
 
@@ -161,11 +161,11 @@ No existing work in the SLR corpus provides a formalized intermediate-state mode
 G3 contributes to the modular monolith literature in three ways:
 
 \begin{enumerate}[itemsep=8pt,topsep=2pt]
-  \item \emph{A formalized scalability gradient.} The Progressive Scalability Spectrum replaces the binary ``monolith or microservices'' framing with four intermediate states (Tune, Decouple, Isolate, Extract), each with explicit metric triggers and rollback paths.
+  \item \emph{A formalized scalability spectrum.} The Progressive Scalability Spectrum replaces the binary ``monolith or microservices'' framing with four intermediate states (Tune, Decouple, Isolate, Extract), each with explicit metric triggers and rollback paths.
 
   \item \emph{Metric-driven progression triggers.} Each transition is governed by quantifiable thresholds that remove subjectivity. The metrics build on G1's boundary health and G2's maintainability signals, creating a composable chain across guidelines.
 
-  \item \emph{Per-module, reversible interventions.} Scaling decisions are scoped to individual modules and each intervention is reversible through adapter abstractions, preserving architectural optionality~\cite{gravanis2021dont, segment2023}.
+  \item \emph{Per-module, reversible steps.} Scaling decisions are scoped to individual modules and each step is reversible through adapter abstractions, preserving architectural optionality~\cite{gravanis2021dont, segment2023}.
 \end{enumerate}
 
 
@@ -408,6 +408,6 @@ Reference: \texttt{exercises/g3/ex3-direct-redis-import.ts}
 
 \subsection*{Conclusion}
 
-G3 demonstrated that scalability in a modular monolith is a gradient traversed through proportional interventions: vertical optimization before async decoupling, async decoupling before data isolation, data isolation before extraction. The Tiny Store reference implementation shows that infrastructure for all four levels can be embedded from the initial deployment, making scalability a structural property rather than a future migration.
+G3 demonstrated that scalability in a modular monolith is a spectrum traversed through proportional steps: vertical optimization before async decoupling, async decoupling before data isolation, data isolation before extraction. The Tiny Store reference implementation shows that infrastructure for all four levels can be established from the initial deployment, making scalability a structural property rather than a future migration.
 
 With boundaries enforced (G1), maintainability preserved (G2), and scalability infrastructure prepared (G3), the architecture is structurally ready for growth. G4 addresses the next concern: when a module's extraction readiness score warrants the Extract level, how to prepare it for independent deployment through event-driven contracts, saga orchestration, and controlled topology changes.
