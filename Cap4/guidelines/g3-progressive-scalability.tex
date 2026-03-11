@@ -65,7 +65,7 @@ G3 is implemented through three architectural mechanisms, all established at pro
 \label{tab:scalability-spectrum}
 \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash\hyphenpenalty=10000}p{0.18\linewidth} X p{0.30\linewidth}}
 \toprule
-\textbf{Level} & \textbf{Description} & \textbf{Metric Trigger} \\
+\textbf{Level -- Intervention} & \textbf{Description} & \textbf{Metric Trigger} \\
 \midrule
 Tune -- Vertical Optimization & Resource tuning, caching, query optimization, concurrency improvements within the monolith. No structural change. & Throughput divergence or latency variance exceeds baseline. \\
 Decouple -- Async Decoupling & Replace synchronous inter-module calls with asynchronous channels for modules with divergent throughput. & Sync ratio $> 0.3$ between connected modules with $>$2:1 throughput divergence. \\
