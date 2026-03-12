@@ -68,8 +68,8 @@ G3 is implemented through three architectural mechanisms, all established at pro
 \textbf{Action} & \textbf{Description} & \textbf{Metric Trigger} \\
 \midrule
 Vertical Optimization (Tune) & Resource tuning, caching, query optimization, concurrency improvements within the monolith. No structural change. & Throughput divergence or latency variance exceeds baseline. \\
-Async Decoupling (Decouple) & Replace synchronous inter-module calls with asynchronous channels for modules with divergent throughput. & Sync ratio $> 0.3$ between connected modules with $>$2:1 throughput divergence. \\
-Data Isolation (Isolate) & Separate module-scoped persistence (dedicated schemas, read replicas, or separate databases) for modules with divergent data access patterns. & Data ownership $< 1.0$ or shared database contention detected. \\
+Async Decoupling (Decouple) & Replace synchronous inter-module calls with asynchronous channels for modules with divergent throughput. & Sync Ratio exceeds 30\% between connected modules with $>$2:1 throughput divergence. \\
+Data Isolation (Isolate) & Separate module-scoped persistence (dedicated schemas, read replicas, or separate databases) for modules with divergent data access patterns. & Data Ownership below 100\% or shared database contention detected. \\
 Selective Extraction (Extract) & Deploy a bounded context as an independent service with its own runtime, persistence, and deployment pipeline. & $\varepsilon_m = 1$ and Tune--Isolate steps insufficient. \\
 \bottomrule
 \end{tabularx}
@@ -88,19 +88,19 @@ G1 and G2 anti-patterns remain relevant at the G3 level. The five patterns below
   A team extracts a module into its own service because ``it handles the most traffic,'' despite low throughput divergence and incomplete schema isolation. Re-embedding the module later requires undoing infrastructure, CI, and data ownership changes~\cite{gravanis2021dont, su2024from}.
   \emph{Approach:} require $\varepsilon_m = 1$ (all G1, G2, and G3 gates pass) before any extraction decision.
 
-  \item \textbf{Uniform Scaling Assumption} ($\Delta\Theta$ not monitored)\\
+  \item \textbf{Uniform Scaling Assumption} (Throughput Divergence not monitored)\\
   All modules are deployed behind identical auto-scaling rules, even though one handles 10$\times$ the traffic of the others. Underloaded modules waste resources while the overloaded one remains constrained.
   \emph{Approach:} monitor Module Throughput Profile ($\Theta_m$) per module and scale only the modules that need it.
 
-  \item \textbf{Shared Database as Implicit Coupling} ($\omega < 1.0$)\\
+  \item \textbf{Shared Database as Implicit Coupling} (Data Ownership below 100\%)\\
   One module runs \texttt{SELECT} queries directly against another module's tables. When the owning module refactors its schema, the dependent module's queries break silently, and neither can be extracted independently.
   \emph{Approach:} enforce per-module \texttt{pgSchema()} and expose needed data through domain events.
 
-  \item \textbf{Synchronous Call Chains Under Load} ($\rho_{\mathrm{sync}} > 0.3$)\\
+  \item \textbf{Synchronous Call Chains Under Load} (Sync Ratio exceeds 30\%)\\
   A workflow calls multiple modules synchronously in sequence: validate stock, then charge payment, then create shipment. A latency spike in any downstream module blocks the entire chain, propagating failures upstream.
   \emph{Approach:} replace synchronous calls with event-driven choreography or, when orchestration is needed, a dedicated saga.
 
-  \item \textbf{Infrastructure Lock-In} ($\alpha < 1.0$)\\
+  \item \textbf{Infrastructure Lock-In} (Abstraction Coverage below 100\%)\\
   Domain services call \texttt{redis.get()} and \texttt{kafka.produce()} directly instead of using adapter interfaces. Transitioning from Tune to Decouple requires rewriting business logic to swap the infrastructure provider.
   \emph{Approach:} access all infrastructure through port interfaces; swap implementations via adapter pattern.
 \end{itemize}
@@ -121,13 +121,13 @@ A system closes this gap not by distributing prematurely, but by progressively p
 \textbf{Metric} & \textbf{What it measures} & \textbf{Target} & \textbf{Source} \\
 \midrule
 \emph{Monitoring indicators} & & & \\
-Throughput Divergence ($\Delta\Theta$) & Load imbalance across connected modules & Monitor & \cite{richardson2018microservices} \\
-Latency Variance ($\sigma^2_{L,m}$) & Response time consistency under load & Monitor & \cite{richardson2018microservices} \\
+Throughput Divergence & Load imbalance across connected modules & Monitor & \cite{richardson2018microservices} \\
+Latency Variance & Response time consistency under load & Monitor & \cite{richardson2018microservices} \\
 \midrule
 \emph{Verification metrics} & & & \\
-Sync Ratio ($\rho_{\mathrm{sync}}$) & Proportion of synchronous cross-module calls & $\leq 0.3$ & \cite{dragoni2017microservices} \\
-Data Ownership ($\omega$) & Tables with unambiguous single-module ownership & $1.0$ & \cite{evans2003ddd} \\
-Abstraction Coverage ($\alpha$) & Infrastructure access through ports/interfaces & $1.0$ & \cite{FordParsons2017} \\
+Sync Ratio & Proportion of synchronous cross-module calls & $\leq 30\%$ & \cite{dragoni2017microservices} \\
+Data Ownership & Tables with unambiguous single-module ownership & 100\% & \cite{evans2003ddd} \\
+Abstraction Coverage & Infrastructure access through ports/interfaces & 100\% & \cite{FordParsons2017} \\
 \midrule
 \emph{Composite} & & & \\
 Extraction Readiness ($\varepsilon_m$) & Binary: all G1 + G2 + G3 gates pass & $1$ & This work \\
@@ -137,9 +137,9 @@ Extraction Readiness ($\varepsilon_m$) & Binary: all G1 + G2 + G3 gates pass & $
 
 \medskip
 \noindent
-Where G2 metrics are continuous values that reveal trends, G3 metrics split into two categories. Monitoring indicators (Throughput Divergence, Latency Variance) have no pass/fail threshold; they signal when a module should transition to the next spectrum level. Verification metrics (Sync Ratio, Data Ownership, Abstraction Coverage) are hard gates that must be met before extraction is considered. Formal definitions for each metric are provided in Appendix~\ref{app:metrics-g3}.
+Where G2 metrics are continuous values that reveal trends, G3 metrics split into two categories. Monitoring indicators (Throughput Divergence, Latency Variance) have no pass/fail threshold; they signal when a module should transition to the next spectrum level. Verification metrics (Sync Ratio, Data Ownership, Abstraction Coverage) are hard gates that must be met before extraction is considered.
 
-The Extraction Readiness Score ($\varepsilon_m$) is binary: $\varepsilon_m = 1$ when all three guideline gates pass, $0$ otherwise. Specifically, a module is ready for extraction when $b_m = 1$ (G1 boundary compliance), $g_m = 1$ (all six G2 targets met), and all three G3 verification metrics meet their targets ($\rho_{\mathrm{sync}} \leq 0.3$, $\omega = 1.0$, $\alpha = 1.0$). This mirrors the binary design of $b_m$ and $g_m$: extraction is a gate, not a gradient.
+The Extraction Readiness gate ($\varepsilon_m$) is binary: $\varepsilon_m = 1$ when all three guideline gates pass, $0$ otherwise. Specifically, a module is ready for extraction when $b_m = 1$ (G1 boundary compliance), $g_m = 1$ (all six G2 targets met), and all three G3 verification metrics meet their targets (Sync Ratio $\leq 30\%$, Data Ownership = 100\%, Abstraction Coverage = 100\%). This mirrors the binary design of $b_m$ and $g_m$: extraction is a gate, not a gradient.
 
 
 \subsection*{Literature Support Commentary}
@@ -312,7 +312,7 @@ The tutorial walks through four verification steps (~30 minutes) that build prac
 \toprule
 \textbf{\#} & \textbf{Question} & \textbf{Command} & \textbf{Expected} \\
 \midrule
-1 & Are all infrastructure calls going through abstractions? & \texttt{grep -rn "from 'ioredis\textbackslash|from 'bullmq\textbackslash|from 'pg'" libs/modules/*/src/} & No results ($\alpha = 1.0$) \\
+1 & Are all infrastructure calls going through abstractions? & \texttt{grep -rn "from 'ioredis\textbackslash|from 'bullmq\textbackslash|from 'pg'" libs/modules/*/src/} & No results (100\%) \\
 2 & Does the queue flow use the adapter pattern? & \texttt{grep -rn "QueueAdapter" libs/shared/infrastructure/src/queue/} & Adapter found \\
 3 & Does each module own its own schema? & \texttt{docker exec -it tiny-store-postgres-1 psql -U tinystore -d tinystore -c '\textbackslash dn'} & \texttt{inventory}, \texttt{orders}, \texttt{payments}, \texttt{shipments} \\
 4 & Is the module ready for extraction? & \texttt{npx ts-node tools/metrics/extraction-readiness.ts --module orders} & $\varepsilon_m = 1$, READY \\

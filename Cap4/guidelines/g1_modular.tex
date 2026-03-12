@@ -29,7 +29,7 @@ G1 focuses on enforcing the \emph{outer} boundary between bounded-context module
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Make modularity measurable and enforceable:} Define boundary enforcement as a measurable, automated constraint rather than an informal convention.
   \item \emph{Formalize the enforcement gap:} Demonstrate that conceptual knowledge of anti-patterns is insufficient without executable checks in the CI pipeline.
-  \item \emph{Provide a composite boundary health metric:} Combine five boundary checks into a per-module score ($b_m$) that feeds G2 maintainability and G3 extraction readiness.
+  \item \emph{Provide a composite boundary health gate:} Combine five boundary checks into a per-module binary gate ($b_m$) that feeds G2 maintainability and G3 extraction readiness.
 \end{itemize}
 
 \emph{Implementation objectives:}
@@ -74,16 +74,16 @@ This research proposes implementing G1 through a combination of (i) structural e
 \subsubsection*{Structural Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Convenience-Driven Imports}: encapsulation leakage rises ($C_{\mathrm{leak}} \uparrow$)\\
+  \item \textbf{Convenience-Driven Imports} (Encapsulation Leakage rises)\\
   A developer imports an internal entity class directly from another module because the path is shorter than going through the public API. Over time, dozens of such shortcuts create a web of hidden coupling that locks the provider's internal structure in place~\cite{parnas1972informationhiding}.
 
-  \item \textbf{Shared Utility Creep}: undeclared dependencies rise ($C_{\mathrm{undecl}} \uparrow$)\\
+  \item \textbf{Shared Utility Creep} (Undeclared Dependencies rise)\\
   A \texttt{shared/utils} package starts with generic helpers (date formatting, string validation) but gradually absorbs domain logic such as \texttt{calculateShippingCost} or \texttt{validatePaymentStatus}. Modules couple through this shared layer rather than through explicit contracts~\cite{martin2012clean}.
 
-  \item \textbf{Implicit Wiring via Framework Magic}: isolation tests fail ($P_{\mathrm{iso}} \downarrow$)\\
+  \item \textbf{Implicit Wiring via Framework Magic} (Isolation Pass Rate drops)\\
   DI containers, auto-configuration, or classpath scanning silently wire modules together. A \texttt{@ComponentScan} annotation may inject a bean from one module into another without any declared dependency, creating coupling invisible to static analysis~\cite{rocha2021catalogingDI}.
 
-  \item \textbf{Event Handlers Outside the Composition Root}: event violations rise ($C_{\mathrm{event}} \uparrow$)\\
+  \item \textbf{Event Handlers Outside the Composition Root} (Event Violations rise)\\
   Event subscriptions are scattered across module initializers rather than centralized in a single wiring location. Each hidden subscription is a cross-module dependency that works at runtime but is invisible to architectural review~\cite{richardson2018microservices}.
 
   \item \textbf{Boundary Enforcement Treated as Optional}: all boundary metrics degrade\\
@@ -93,19 +93,19 @@ This research proposes implementing G1 through a combination of (i) structural e
 \subsubsection*{Design-Level Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Extreme Granularity}: undeclared dependencies across many small modules ($C_{\mathrm{undecl}} \uparrow$)\\
+  \item \textbf{Extreme Granularity} (Undeclared Dependencies across many small modules)\\
   Teams slice the system into excessively narrow domains such as \texttt{StockCheck}, \texttt{ReservationHold}, \texttt{WarehouseAllocation}, and \texttt{StockReplenishment} instead of grouping them under a cohesive bounded context like \texttt{Inventory}. Each micro-domain cannot fulfill a business workflow independently, forcing constant cross-module calls for routine operations~\cite{dragoni2017microservices,evans2003ddd}.
 
-  \item \textbf{Speculative Generality}: unused interfaces leak across boundaries ($C_{\mathrm{leak}} \uparrow$)\\
+  \item \textbf{Speculative Generality} (Encapsulation Leakage rises)\\
   The codebase accumulates abstract factories, strategy patterns, and extension hooks designed for hypothetical requirements that may never materialize. Each speculative abstraction adds exported symbols that cross module boundaries without serving a current need. The YAGNI principle~\cite{extremeProgramming} applies at the architectural level.
 
-  \item \textbf{Leaky Abstractions in Public Contracts}: encapsulation leakage rises ($C_{\mathrm{leak}} \uparrow$)\\
+  \item \textbf{Leaky Abstractions in Public Contracts} (Encapsulation Leakage rises)\\
   A module exposes DTOs or event payloads that mirror its internal database schema (column names like \texttt{payment\_status\_id}, nullable fields reflecting storage trade-offs) rather than domain concepts. When the module refactors its schema, all consumers break even though no business rule changed~\cite{fowler2002,evans2003ddd}.
 
-  \item \textbf{Circular Dependencies}: forbidden dependency count rises ($C_{\mathrm{forbid}} \uparrow$)\\
+  \item \textbf{Circular Dependencies} (Forbidden Dependencies rise)\\
   Module A depends on B which depends on A, often through indirect paths spanning three or more modules. Cycles make independent testing and extraction impossible because changing any module in the cycle requires understanding all of them~\cite{martin2012clean,yourdon1979structured}. G1 treats any cycle as a blocking violation.
 
-  \item \textbf{Test Coupling Across Boundaries}: isolation tests fail on cross-module fixtures ($P_{\mathrm{iso}} \downarrow$)\\
+  \item \textbf{Test Coupling Across Boundaries} (Isolation Pass Rate drops)\\
   Test code in one module directly instantiates domain objects from another module to build fixtures or assert on internal state. A refactoring of the provider's entities breaks the consumer's test suite, even though production code respects the boundary~\cite{fairbanks2010justenough}.
 \end{itemize}
 
@@ -128,24 +128,24 @@ All five boundary metrics act as binary gates: each must meet its target for the
 \medskip
 \noindent
 \small
-\begin{tabularx}{\linewidth}{p{0.26\linewidth} c X c p{0.20\linewidth}}
+\begin{tabularx}{\linewidth}{p{0.26\linewidth} X c p{0.20\linewidth}}
 \toprule
-\textbf{Metric} & \textbf{Symbol} & \textbf{What it measures} & \textbf{Target} & \textbf{Source} \\
+\textbf{Metric} & \textbf{What it measures} & \textbf{Target} & \textbf{Source} \\
 \midrule
-Undeclared Dependencies & $C_{\mathrm{undecl}}$ & Cross-module refs without declared \emph{requires} & 0 & \cite{deLauretis2019from} \\
-Forbidden Dependencies & $C_{\mathrm{forbid}}$ & Refs violating explicit \emph{forbids} rules & 0 & \cite{martin2012clean} \\
-Encapsulation Leakage & $C_{\mathrm{leak}}$ & Refs bypassing the provider's public API & 0 & \cite{parnas1972informationhiding} \\
-Event Violations & $C_{\mathrm{event}}$ & Event handlers without declared dependency & 0 & \cite{richardson2018microservices} \\
-Isolation Pass Rate & $P_{\mathrm{iso}}$ & Module tests passing with declared deps only & 100\% & \cite{fairbanks2010justenough} \\
+Undeclared Dependencies & Cross-module refs without declared \emph{requires} & 0 & \cite{deLauretis2019from} \\
+Forbidden Dependencies & Refs violating explicit \emph{forbids} rules & 0 & \cite{martin2012clean} \\
+Encapsulation Leakage & Refs bypassing the provider's public API & 0 & \cite{parnas1972informationhiding} \\
+Event Violations & Event handlers without declared dependency & 0 & \cite{richardson2018microservices} \\
+Isolation Pass Rate & Module tests passing with declared deps only & 100\% & \cite{fairbanks2010justenough} \\
 \midrule
-\emph{Composite} & $b_m$ & All five gates pass for module $m$ & 1 & \cite{FordParsons2017} \\
+\emph{Composite ($b_m$)} & All five gates pass for module $m$ & 1 & \cite{FordParsons2017} \\
 \bottomrule
 \end{tabularx}
 \normalsize
 
 \medskip
 \noindent
-Formal definitions for each metric are provided in Appendix~\ref{app:metrics-g1}. The composite $b_m = 1$ when all five metrics meet their targets for module $m$, 0 otherwise; it feeds into G3's extraction readiness score ($\varepsilon_m$).
+The composite $b_m = 1$ when all five metrics meet their targets for module $m$, 0 otherwise. It feeds into G3's extraction readiness gate ($\varepsilon_m$).
 
 \subsection*{Tooling Capabilities Checklist}
 Any open-source or proprietary tool used to enforce modular boundaries should support:
@@ -166,7 +166,7 @@ The contribution is not the individual practices (encapsulation, dependency decl
 
   \item \emph{Five-metric boundary model.} Undeclared dependencies, forbidden references, encapsulation leakage, isolation pass rate, and event subscription violations provide complete coverage of structural, runtime, and data-flow coupling.
 
-  \item \emph{Composite boundary health score ($b_m$).} A per-module score that feeds directly into G2's maintainability index and G3's extraction readiness, creating a composable metric chain across guidelines.
+  \item \emph{Composite boundary health gate ($b_m$).} A per-module binary gate that feeds directly into G2 and G3, creating a composable chain across guidelines.
 \end{enumerate}
 
 \subsection*{Literature Support Commentary}
@@ -328,9 +328,9 @@ Each exercise introduces a single, controlled boundary breach and observes the f
 \textbf{Ex.} & \textbf{What you change} & \textbf{Run} & \textbf{Signal} \\
 \midrule
 0 & Establish baseline & \texttt{test:boundary}, \texttt{test:integration} & pass (baseline) \\
-1 & Export internal symbols (leak) & \texttt{test:boundary} & $C_{\mathrm{leak}}\uparrow$ \\
-2 & Add direct cross-module import & \texttt{test:boundary} & $C_{\mathrm{undecl}}\uparrow$ / $C_{\mathrm{forbid}}\uparrow$ \\
-3 & Subscribe inside module (hidden wiring) & \texttt{test:boundary}, \texttt{test:integration} & $P_{\mathrm{iso}}\downarrow$ / $C_{\mathrm{event}}\uparrow$ \\
+1 & Export internal symbols (leak) & \texttt{test:boundary} & Encapsulation Leakage rises \\
+2 & Add direct cross-module import & \texttt{test:boundary} & Undeclared/Forbidden Deps rise \\
+3 & Subscribe inside module (hidden wiring) & \texttt{test:boundary}, \texttt{test:integration} & Isolation Pass Rate drops \\
 \bottomrule
 \end{tabularx}
 \normalsize
