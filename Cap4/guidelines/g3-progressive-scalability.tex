@@ -70,7 +70,7 @@ G3 is implemented through three architectural mechanisms, all established at pro
 Vertical Optimization (Tune) & Resource tuning, caching, query optimization, concurrency improvements within the monolith. No structural change. & Throughput divergence or latency variance exceeds baseline. \\
 Async Decoupling (Decouple) & Replace synchronous inter-module calls with asynchronous channels for modules with divergent throughput. & Sync ratio $> 0.3$ between connected modules with $>$2:1 throughput divergence. \\
 Data Isolation (Isolate) & Separate module-scoped persistence (dedicated schemas, read replicas, or separate databases) for modules with divergent data access patterns. & Data ownership $< 1.0$ or shared database contention detected. \\
-Selective Extraction (Extract) & Deploy a bounded context as an independent service with its own runtime, persistence, and deployment pipeline. & Extraction readiness $\varepsilon_m = 1.0$ and Tune--Isolate steps insufficient. \\
+Selective Extraction (Extract) & Deploy a bounded context as an independent service with its own runtime, persistence, and deployment pipeline. & $\varepsilon_m = 1$ and Tune--Isolate steps insufficient. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -84,9 +84,9 @@ The spectrum is not strictly linear: a team may apply Isolate to one module whil
 G1 and G2 anti-patterns remain relevant at the G3 level. The five patterns below pass both G1 and G2 gates but compromise the system's ability to scale progressively.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Premature Distribution} ($\varepsilon_m < 1.0$)\\
+  \item \textbf{Premature Distribution} ($\varepsilon_m = 0$)\\
   A team extracts a module into its own service because ``it handles the most traffic,'' despite low throughput divergence and incomplete schema isolation. Re-embedding the module later requires undoing infrastructure, CI, and data ownership changes~\cite{gravanis2021dont, su2024from}.
-  \emph{Approach:} require all five Extraction Readiness components to meet their targets ($\varepsilon_m = 1.0$) before any extraction decision.
+  \emph{Approach:} require $\varepsilon_m = 1$ (all G1, G2, and G3 gates pass) before any extraction decision.
 
   \item \textbf{Uniform Scaling Assumption} ($\Delta\Theta$ not monitored)\\
   All modules are deployed behind identical auto-scaling rules, even though one handles 10$\times$ the traffic of the others. Underloaded modules waste resources while the overloaded one remains constrained.
@@ -130,7 +130,7 @@ Data Ownership ($\omega$) & Tables with unambiguous single-module ownership & $1
 Abstraction Coverage ($\alpha$) & Infrastructure access through ports/interfaces & $1.0$ & \cite{FordParsons2017} \\
 \midrule
 \emph{Composite} & & & \\
-Extraction Readiness ($\varepsilon_m$) & Synthesis of G1 + G2 + G3 signals per module & $1.0$ & This work \\
+Extraction Readiness ($\varepsilon_m$) & Binary: all G1 + G2 + G3 gates pass & $1$ & This work \\
 \bottomrule
 \end{tabularx}
 \normalsize
@@ -139,12 +139,7 @@ Extraction Readiness ($\varepsilon_m$) & Synthesis of G1 + G2 + G3 signals per m
 \noindent
 Where G2 metrics are continuous values that reveal trends, G3 metrics split into two categories. Monitoring indicators (Throughput Divergence, Latency Variance) have no pass/fail threshold; they signal when a module should transition to the next spectrum level. Verification metrics (Sync Ratio, Data Ownership, Abstraction Coverage) are hard gates that must be met before extraction is considered. Formal definitions for each metric are provided in Appendix~\ref{app:metrics-g3}.
 
-The Extraction Readiness Score ($\varepsilon_m$) synthesizes G1 boundary health, G2 maintainability, and G3 scalability signals into a per-module readiness score. G2 compliance acts as a binary prerequisite: all six G2 metrics must meet their targets before extraction readiness is assessed.
-\[
-  \varepsilon_m = 0.25 \cdot b_m + 0.25 \cdot (1 - \rho_{\mathrm{sync}}^{(m)}) + 0.20 \cdot g_m + 0.15 \cdot \omega_m + 0.15 \cdot v_m
-\]
-where $b_m$ = boundary compliance (G1), $(1 - \rho_{\mathrm{sync}}^{(m)})$ = async readiness, $g_m$ = G2 compliance (1 if all six targets met, 0 otherwise), $\omega_m$ = schema isolation, $v_m$ = event contract versioning.
-The score ranges from 0 to 1 and tracks how close a module is to extraction readiness. Extraction requires $\varepsilon_m = 1.0$, meaning all five components meet their targets. Values below 1.0 indicate which dimensions still need preparation. The relative ranking of weights reflects the literature: boundary compliance and async readiness carry the highest weight because they most directly determine whether a module can operate independently. The specific numerical weights are proposed by this work and remain subject to empirical validation through practitioner interviews.
+The Extraction Readiness Score ($\varepsilon_m$) is binary: $\varepsilon_m = 1$ when all three guideline gates pass, $0$ otherwise. Specifically, a module is ready for extraction when $b_m = 1$ (G1 boundary compliance), $g_m = 1$ (all six G2 targets met), and all three G3 verification metrics meet their targets ($\rho_{\mathrm{sync}} \leq 0.3$, $\omega = 1.0$, $\alpha = 1.0$). This mirrors the binary design of $b_m$ and $g_m$: extraction is a gate, not a gradient.
 
 
 \subsection*{Literature Support Commentary}
@@ -305,7 +300,7 @@ const checks: CheckResult[] = [
 \end{lstlisting}
 
 \noindent
-In the Tiny Store, the Orders module scores 100/100 ($\varepsilon_m = 1.00$) because all boundaries are enforced, events are versioned, and schemas are isolated. In systems with mixed communication patterns, async readiness should be computed as a continuous ratio rather than a binary check.
+In the Tiny Store, the Orders module achieves $\varepsilon_m = 1$ because all G1, G2, and G3 gates pass: boundaries are enforced, contracts are stable, events are versioned, and schemas are isolated. In systems with mixed communication patterns, async readiness should be computed as a continuous ratio rather than a binary check.
 
 \subsection*{Tutorial: Step-by-Step Application}
 
@@ -320,7 +315,7 @@ The tutorial walks through four verification steps (~30 minutes) that build prac
 1 & Are all infrastructure calls going through abstractions? & \texttt{grep -rn "from 'ioredis\textbackslash|from 'bullmq\textbackslash|from 'pg'" libs/modules/*/src/} & No results ($\alpha = 1.0$) \\
 2 & Does the queue flow use the adapter pattern? & \texttt{grep -rn "QueueAdapter" libs/shared/infrastructure/src/queue/} & Adapter found \\
 3 & Does each module own its own schema? & \texttt{docker exec -it tiny-store-postgres-1 psql -U tinystore -d tinystore -c '\textbackslash dn'} & \texttt{inventory}, \texttt{orders}, \texttt{payments}, \texttt{shipments} \\
-4 & Is the module ready for extraction? & \texttt{npx ts-node tools/metrics/extraction-readiness.ts --module orders} & $\varepsilon_m = 1.00$, READY \\
+4 & Is the module ready for extraction? & \texttt{npx ts-node tools/metrics/extraction-readiness.ts --module orders} & $\varepsilon_m = 1$, READY \\
 \bottomrule
 \end{tabularx}
 \normalsize
@@ -335,7 +330,7 @@ Each exercise introduces a violation that passes G1 and G2 gates but degrades a 
 \needspace{4\baselineskip}
 \begin{lstlisting}[language=bash,caption={G3 baseline check},label={lst:g3-ex0-baseline}]
 npm run test:scalability
-# All green: rho_sync=0.0, omega=1.0, alpha=1.0, epsilon=1.0
+# All green: rho_sync=0.0, omega=1.0, alpha=1.0, epsilon=1
 \end{lstlisting}
 
 \subsubsection*{Exercise 1: Synchronous Cross-Module Call (Sync Ratio $\uparrow$)}
