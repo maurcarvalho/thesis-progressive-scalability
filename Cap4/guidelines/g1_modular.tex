@@ -6,22 +6,8 @@ G1 enforces clear modular boundaries to prevent unintended coupling, preserve en
 \subsection*{Intent and Rationale}
 Modularity in a monolith should be treated as an enforceable architectural property rather than an assumed outcome of refactoring. Without enforcement, boundaries degrade through convenience-driven imports, shared utilities, and implicit wiring~\cite{parnas1972informationhiding}. G1 treats boundary enforcement as a preventive control: making coupling explicit, reviewable, and auditable.
 
-\subsection*{Conceptual Overview}
-Define clear boundaries around each bounded-context module so that:
-\begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item Each module encapsulates its internal implementation and feature-level organization.
-  \item Dependencies between modules occur only through explicitly declared and verifiable interfaces, whether synchronous (public API calls) or asynchronous (event subscriptions and command channels).
-  \item Unintended coupling is prevented through automated enforcement, enabling independent evolution of modules within a single deployable system.
-\end{itemize}
-
-
-\subsection*{Applicability Conditions and Scope}
-G1 is applicable when a system is decomposed into logical modules within a single codebase. Inter-module dependencies must be explicitly declared and automatically verifiable, independent of packaging, deployment, or distribution decisions. This guideline assumes a two-level decomposition strategy:
-\begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Bounded Context Modules:} The codebase is decomposed into bounded-context modules (for example, under a \texttt{modules/} root), and each bounded context is treated as a first-class module boundary.
-  \item \emph{Package-by-Feature Within Modules:} Inside each module, code is organized by feature (use cases, domain concepts, aggregates) to localize behavior and reduce scattering, without weakening the outer module boundary.
-\end{itemize}
-G1 focuses on enforcing the \emph{outer} boundary between bounded-context modules. The internal package-by-feature organization is treated as a complementary structuring mechanism, and its detailed rules are addressed in subsequent topics.
+\subsection*{Applicability}
+G1 applies to systems decomposed into bounded-context modules within a single codebase, where inter-module dependencies are explicitly declared and automatically verifiable. It assumes two-level decomposition: bounded contexts as first-class module boundaries, and package-by-feature organization within each module. G1 focuses on enforcing the \emph{outer} boundary; internal structuring rules are addressed in subsequent guidelines.
 
 \subsection*{Objectives}
 
@@ -37,35 +23,22 @@ G1 focuses on enforcing the \emph{outer} boundary between bounded-context module
   \item \emph{Encapsulation and controlled dependency:} Keep internal classes hidden; allow cross-module access only through declared interfaces.
   \item \emph{Automated early verification:} Detect boundary violations at build or test time, not at runtime.
   \item \emph{Architectural drift prevention:} Defend module boundaries against convenience-driven erosion patterns.
-  \item \emph{Isolation guarantees:} Forbid specific module pairs from depending on each other.
 \end{itemize}
 
 \subsection*{Key Principles}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Provided Interface vs.\ Internal Components:}
-    \begin{itemize}[noitemsep,topsep=1pt,leftmargin=1.5em]
-      \item \emph{Provided Interface:} Public classes, services, APIs, or events explicitly exposed to other modules.
-      \item \emph{Internal Components:} Classes, utilities, or data that should remain private within the module.
-    \end{itemize}
+  \item \emph{Explicit dependency declarations:} All dependencies on other modules must be declared in a central descriptor (annotation, configuration file, or build rule) so that boundary compliance is automatically verifiable. Component boundaries enforced at the programming model level make modularity a build-time property rather than a convention~\cite{ghemawat2023towards}.
 
-  \item \emph{Explicit Declarations:}
-    All dependencies on other modules must be declared in a central descriptor to provide auto-verifiability (for example, annotation, configuration file, or YAML).
+  \item \emph{Contract-mediated communication:} Cross-module interaction occurs through public interfaces (synchronous calls) or domain events (asynchronous channels), never through direct references to another module's internals. This keeps each module's internal model free to evolve without coordinating with consumers~\cite{richardson2018microservices}.
 
-  \item \emph{Forbidden Dependencies:}
-    Declare modules that must never depend on each other to enforce stronger isolation where necessary.
-
-  \item \emph{Inter-Module Communication:}
-    Use either synchronous calls via public interfaces or asynchronous event-driven channels, and avoid direct references to another module's internals.
-
-  \item \emph{Boundary-First Discipline:}
-    Package-by-feature improves cohesion within a bounded context, but it does not replace module boundaries. A feature slice must not become a cross-module dependency mechanism (for example, by importing internal feature code from other modules).
+  \item \emph{Boundary over feature convenience:} Package-by-feature improves cohesion within a bounded context, but a feature slice must not become a cross-module dependency path. When internal feature code is imported across boundaries, the module's encapsulation is violated regardless of how well-organized the internals are~\cite{parnas1972informationhiding}.
 \end{itemize}
 
 \subsection*{Implementation Mechanisms}
-This research proposes implementing G1 through a combination of (i) structural encapsulation, (ii) explicit dependency declaration, and (iii) automated verification:
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Structural encapsulation:} Separate public API packages from internal packages, and restrict visibility so that only the declared API is importable across module boundaries.
   \item \emph{Declarative dependency model:} Maintain a module descriptor that defines which modules are required and which are forbidden, and keep it version-controlled with boundary changes.
+  \item \emph{Forbidden dependency declarations:} Declare module pairs that must never depend on each other to enforce stronger isolation where the domain requires it (for example, Payments must not import Shipments internals).
   \item \emph{Automated verification:} Fail the build when undeclared cross-module references are detected, and optionally verify event subscriptions and command usage against declared dependencies.
 \end{itemize}
 
@@ -170,9 +143,14 @@ The contribution is not the individual practices (encapsulation, dependency decl
 \end{enumerate}
 
 \subsection*{Literature Support Commentary}
-The foundational argument for modular boundaries rests on information hiding~\cite{parnas1972informationhiding}: modules must encapsulate implementation details behind stable interfaces. The SLR conducted in Chapter~3 reveals that modularity is widely acknowledged as a prerequisite for sustainable architecture, yet few works operationalize it as an enforceable property. A survey of 63 decomposition studies shows that most approaches focus on \emph{identifying} boundaries but stop short of prescribing enforcement mechanisms~\cite{abgaz2023decomposition}. Converging evidence supports G1's approach: clean boundaries enable progressive decomposition without rewrites~\cite{montesi2021sliceable}, component boundaries enforced at the programming model level reinforce modularity as a build-time property~\cite{ghemawat2023towards}, and boundary definition is a top decision driver for modulith adoption~\cite{prakash2024systematic}.
 
-Modernization roadmaps position coupling analysis as the first diagnostic step~\cite{wolfart2021modernizing}, and migration failures confirm that undeclared dependencies create invisible coupling that only surfaces under separation pressure~\cite{deLauretis2019from}. The modular monolith is increasingly recognized as a deliberate architectural choice rather than a transitional compromise~\cite{su2024modular,gravanis2021dont}, with industry experience at scale validating that automated boundary enforcement is the decisive factor in controlling complexity~\cite{shopify2020monolith,jovanovic2024rewriting}.
+The principle that modules should encapsulate implementation details behind stable interfaces is well established since Parnas's foundational work on information hiding~\cite{parnas1972informationhiding}. Decomposition research has operationalized this principle extensively: a systematic review of 63 studies shows that boundary identification techniques are mature, covering static analysis, dynamic analysis, and domain-driven approaches~\cite{abgaz2023decomposition}. However, the same review reveals that most approaches stop at \emph{identification}: they propose how to find boundaries, but not how to enforce them once found. The assumption is that boundaries, once drawn, will be respected.
+
+In practice, this assumption fails. Modernization case studies consistently report that undeclared dependencies and implicit coupling are the primary obstacles to architectural evolution~\cite{wolfart2021modernizing, deLauretis2019from}. The problem is not that teams draw wrong boundaries, but that correct boundaries erode over time when no automated mechanism prevents violations. In a microservices architecture, the network boundary enforces separation by default: a broken contract produces a runtime failure. In a monolith, a broken boundary produces a successful compilation, and the violation becomes visible only when extraction pressure arrives.
+
+Two lines of recent work converge on G1's approach. First, the ``sliceable monolith'' concept demonstrates that clean boundaries enable progressive decomposition without rewrites~\cite{montesi2021sliceable}, and component boundaries enforced at the programming model level make modularity a build-time property rather than a convention~\cite{ghemawat2023towards}. Second, industry experience validates that the modular monolith is a deliberate architectural choice rather than a transitional compromise~\cite{su2024modular, gravanis2021dont}, with boundary definition identified as a top decision driver for modulith adoption~\cite{prakash2024systematic} and automated enforcement as the decisive factor in controlling complexity at scale~\cite{shopify2020monolith, jovanovic2024rewriting}.
+
+G1 addresses the gap between boundary identification and boundary enforcement. Where existing decomposition research tells teams \emph{where} to draw boundaries, G1 prescribes \emph{how} to make those boundaries automatically verifiable, ensuring that the architectural intent survives the pressure of daily development.
 
 \section{G1 Applied: The Modular Tiny Store Example}
 \label{sec:g1-demo-tiny-store}
@@ -232,15 +210,12 @@ npm run test:integration
   \item \emph{Step 1: Separate Public Surface from Internal Components.}
   Cross-module usage occurs only through module entrypoints (\texttt{@tiny-store/modules-*}):
 
-  \begin{lstlisting}[language=TypeScript,caption={Public entrypoint import (allowed)},label={lst:g1-do-public-import}]
+  \begin{lstlisting}[language=TypeScript,caption={Public vs.\ internal imports},label={lst:g1-imports}]
 // DO: import via public entrypoint (handler, not entity)
 import { PlaceOrderHandler } from '@tiny-store/modules-orders';
-  \end{lstlisting}
-
-  \begin{lstlisting}[language=TypeScript,caption={Cross-module import of internals (blocked)},label={lst:g1-dont-internals-import}]
 // DON'T: entities and repositories are internal to the module
-import { Order } from '@tiny-store/modules-orders';
-import { OrderRepository } from '@tiny-store/modules-orders';
+import { Order } from '@tiny-store/modules-orders';             // blocked
+import { OrderRepository } from '@tiny-store/modules-orders';   // blocked
   \end{lstlisting}
 
   \noindent
@@ -251,14 +226,10 @@ import { OrderRepository } from '@tiny-store/modules-orders';
 
   \begin{lstlisting}[language=TypeScript,caption={Code-based boundary descriptor},label={lst:g1-descriptor}]
 export const moduleBoundaries = {
-  orders: {
-    requires: ['shared-domain', 'shared-infrastructure'],
-    forbids: ['inventory', 'payments', 'shipments'],
-  },
-  inventory: {
-    requires: ['shared-domain', 'shared-infrastructure'],
-    forbids: ['orders', 'payments', 'shipments'],
-  },
+  orders:    { requires: ['shared-domain', 'shared-infrastructure'],
+               forbids:  ['inventory', 'payments', 'shipments'] },
+  inventory: { requires: ['shared-domain', 'shared-infrastructure'],
+               forbids:  ['orders', 'payments', 'shipments'] },
 } as const;
   \end{lstlisting}
 
@@ -290,13 +261,13 @@ npm run test:boundary
 \begin{lstlisting}[language=TypeScript,caption={Public surface test},label={lst:g1-boundary-spec}]
 describe('Module Public Surface', () => {
   it('does not expose Inventory internals', async () => {
-    const inventory = await import('@tiny-store/modules-inventory');
-    expect((inventory as any).Product).toBeUndefined();
-    expect((inventory as any).InventoryRepository).toBeUndefined();
+    const mod = await import('@tiny-store/modules-inventory');
+    expect((mod as any).Product).toBeUndefined();
+    expect((mod as any).InventoryRepository).toBeUndefined();
   });
   it('exposes Orders public handlers', async () => {
-    const orders = await import('@tiny-store/modules-orders');
-    expect((orders as any).PlaceOrderHandler).toBeDefined();
+    const mod = await import('@tiny-store/modules-orders');
+    expect((mod as any).PlaceOrderHandler).toBeDefined();
   });
 });
 \end{lstlisting}
@@ -305,13 +276,10 @@ describe('Module Public Surface', () => {
   Detect runtime coupling invisible to static analysis:
 
   \begin{lstlisting}[language=TypeScript,caption={Module isolation test},label={lst:g1-isolation}]
-describe('Orders module isolation', () => {
-  it('loads with declared dependencies only', async () => {
-    const module = await loadModule('orders', {
-      allowed: ['shared-domain', 'shared-infrastructure'],
-    });
-    expect(module).toBeDefined();
-  });
+it('loads orders with declared dependencies only', async () => {
+  const mod = await loadModule('orders',
+    { allowed: ['shared-domain', 'shared-infrastructure'] });
+  expect(mod).toBeDefined();
 });
   \end{lstlisting}
 
@@ -320,20 +288,13 @@ describe('Orders module isolation', () => {
 \subsection*{Exercise Walkthrough: Controlled Violations and Signals}
 Each exercise introduces a single, controlled boundary breach and observes the failure signal. All exercises pass G1's boundary gate at baseline; the violation produces a specific, measurable signal.
 
-\subsubsection*{Exercise summary}
-\small
-\noindent
-\begin{tabularx}{\linewidth}{c X c c}
-\toprule
-\textbf{Ex.} & \textbf{What you change} & \textbf{Run} & \textbf{Signal} \\
-\midrule
-0 & Establish baseline & \texttt{test:boundary}, \texttt{test:integration} & pass (baseline) \\
-1 & Export internal symbols (leak) & \texttt{test:boundary} & Encapsulation Leakage rises \\
-2 & Add direct cross-module import & \texttt{test:boundary} & Undeclared/Forbidden Deps rise \\
-3 & Subscribe inside module (hidden wiring) & \texttt{test:boundary}, \texttt{test:integration} & Isolation Pass Rate drops \\
-\bottomrule
-\end{tabularx}
-\normalsize
+\subsubsection*{Exercise Summary}
+\begin{itemize}[itemsep=2pt,topsep=2pt]
+  \item \textbf{Ex.\,0:} Establish baseline — all checks pass.
+  \item \textbf{Ex.\,1:} Export internal symbols → Encapsulation Leakage rises.
+  \item \textbf{Ex.\,2:} Direct cross-module import → Undeclared/Forbidden Dependencies rise.
+  \item \textbf{Ex.\,3:} Subscribe inside module → Isolation Pass Rate drops.
+\end{itemize}
 
 \subsubsection*{Exercises}
 \begin{itemize}[itemsep=10pt,topsep=4pt]
@@ -350,11 +311,8 @@ export * from './domain/entities/order';
 export * from './domain/repositories/order-repository';
   \end{lstlisting}
 
-  \begin{lstlisting}[language=bash,caption={Run boundary enforcement after Exercise 1},label={lst:g1-ex1-run}]
-npm run test:boundary    # FAILS: C_leak increases
-  \end{lstlisting}
-
   \noindent
+  Run \texttt{npm run test:boundary}: fails because Encapsulation Leakage rises.\\
   \textbf{Fix:} remove these exports; expose a contract instead (handler/port/event).
 
   \item \emph{Exercise 2: Direct Cross-Module Import (undeclared dependency).}
@@ -365,11 +323,8 @@ npm run test:boundary    # FAILS: C_leak increases
 import { SomeInventoryHandler } from '@tiny-store/modules-inventory';
   \end{lstlisting}
 
-  \begin{lstlisting}[language=bash,caption={Run boundary enforcement after Exercise 2},label={lst:g1-ex2-run}]
-npm run test:boundary    # FAILS: C_undecl or C_forbid increases
-  \end{lstlisting}
-
   \noindent
+  Run \texttt{npm run test:boundary}: fails because Undeclared or Forbidden Dependencies rise.\\
   \textbf{Fix:} replace with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory).
 
   \item \emph{Exercise 3: Hidden Event Wiring (implicit dependency).}
@@ -380,12 +335,8 @@ npm run test:boundary    # FAILS: C_undecl or C_forbid increases
 EventBus.getInstance().subscribe('OrderPlaced', (e) => this.handle(e));
   \end{lstlisting}
 
-  \begin{lstlisting}[language=bash,caption={Run enforcement after Exercise 3},label={lst:g1-ex3-run}]
-npm run test:boundary && npm run test:integration
-# P_iso drops, C_event may increase
-  \end{lstlisting}
-
   \noindent
+  Run \texttt{npm run test:boundary \&\& npm run test:integration}: Isolation Pass Rate drops.\\
   \textbf{Fix:} move the subscription to \texttt{register-listeners.ts}.
 \end{itemize}
 

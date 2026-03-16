@@ -19,7 +19,7 @@ The primary driver of maintainability degradation is not system size but the acc
 \emph{Implementation objectives:}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Dependencies flow toward stability:} Dependencies point from volatile modules (those that change frequently) toward stable ones (those with fewer dependents and slower-changing contracts), not the reverse.
-  \item \emph{Controlled API surface growth:} Track public surface size over time and constrain growth rate to preserve refactoring freedom.
+  \item \emph{Stable contracts under evolution:} Track whether public exports are retained across releases so that contract churn does not erode refactoring freedom.
   \item \emph{Trend-aware drift detection:} Extend G1's point-in-time checks with time-series tracking so that gradual degradation is caught before it becomes irreversible.
 \end{itemize}
 
@@ -43,7 +43,7 @@ The primary driver of maintainability degradation is not system size but the acc
 G1 anti-patterns (convenience imports, implicit wiring, circular dependencies) remain relevant at the G2 level. However, G2 introduces a subtler class of failure: patterns that respect every boundary rule yet gradually erode the system's ability to change. These degradations are invisible to point-in-time checks because they accumulate across commits, not within a single snapshot. The three patterns below pass all G1 gates but erode maintainability over time:
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Overloaded Module Exports} (API Surface grows, Boundary Ratio drops)\\
+  \item \textbf{Overloaded Module Exports} (Contract Stability drops, Boundary Ratio drops)\\
   A module's public entrypoint grows from 7 to 15 exports across three sprints. Each new export is a downstream contractual obligation: once another module depends on it, the export cannot be renamed or removed without coordinated changes~\cite{parnas1972informationhiding}.
   \emph{Approach:} audit each export for cross-module consumers; internalize exports consumed only within the module and expose composite operations instead of granular internals.
 
@@ -87,25 +87,28 @@ G2 inherits all G1 boundary gates and tracks them \emph{over time}. Where G1 met
 \medskip
 \noindent
 \small
-\begin{tabularx}{\linewidth}{p{0.32\linewidth} X c p{0.12\linewidth}}
+\begin{tabularx}{\linewidth}{p{0.28\linewidth} X c p{0.20\linewidth}}
 \toprule
 \textbf{Metric} & \textbf{What it measures} & \textbf{Target} & \textbf{Source} \\
 \midrule
-API Boundary Ratio & Cross-module refs through public APIs & $\geq 0.95$ & \cite{parnas1972informationhiding} \\
-API Surface Growth & Export count change per period & Stable & \cite{parnas1972informationhiding} \\
-Change Coupling Index & Co-change frequency across modules & $\leq 0.2$ & \cite{FordParsons2017} \\
-Complexity Concentration & Largest module surface vs. average & $\leq 3.0$ & \cite{martin2012clean} \\
-Contract Stability & Public API exports retained across releases & $\geq 0.9$ & \cite{FordParsons2017} \\
-Dependency Attraction & Whether a single module attracts too many dependents & $\leq 0.5$ & \cite{yourdon1979structured} \\
+\emph{Coupling indicators} & & & \\
+API Boundary Ratio & Public API refs / total cross-module refs & $\geq 0.95$ & \cite{parnas1972informationhiding} \\
+Change Coupling Index & Commits touching 2+ modules / total commits & $\leq 0.2$ & \cite{FordParsons2017} \\
+Dependency Attraction & Max inbound deps / total modules & $\leq 0.5$ & \cite{yourdon1979structured} \\
+\midrule
+\emph{Surface stability} & & & \\
+Complexity Concentration & Largest module surface / average surface & $\leq 3.0$ & \cite{martin2012clean} \\
+Contract Stability & Exports retained across releases & $\geq 0.9$ & \cite{FordParsons2017} \\
+\midrule
+\emph{Composite} & & & \\
+Maintainability Gate ($g_m$) & All five targets met for module $m$ & $1$ & This work \\
 \bottomrule
 \end{tabularx}
 \normalsize
 
 \medskip
 \noindent
-The ``Stable'' target for API Surface Growth means net growth near zero across measurement periods. Occasional additions are expected, but sustained upward trends signal surface bloat.
-
-A module meeting all six targets indicates that its public surface is stable, its dependencies point in the right direction, and changes remain confined within bounded contexts. This is the baseline condition for G3's extraction readiness assessment: only modules that sustain all G2 targets over time are considered candidates for independent deployment.
+The composite $g_m = 1$ when all five metrics meet their targets for module $m$, $0$ otherwise. It feeds into G3's extraction readiness gate ($\varepsilon_m$), ensuring that only modules with sustained maintainability discipline are considered candidates for independent deployment.
 
 \subsection*{Core Contribution}
 
@@ -114,7 +117,7 @@ G2 contributes to the modular monolith literature in two ways:
 \begin{enumerate}[itemsep=8pt,topsep=2pt]
   \item \emph{The Incremental Maintainability Degradation as a formal concept.} The phenomenon of boundaries eroding over time is well known informally. G2 frames it as a distinct architectural concern, grounded in Lehman's laws of software evolution~\cite{lehman1980programs}, and positions it as the gap between boundary correctness (G1) and boundary sustainability.
 
-  \item \emph{Systematic application of the coupling spectrum to modular monoliths.} Yourdon and Constantine's coupling types~\cite{yourdon1979structured} were defined for modules in general. G2 applies them to bounded contexts where no deployment boundary enforces separation, and provides six metrics that quantify where each module sits on the spectrum, making drift visible and measurable.
+  \item \emph{Systematic application of the coupling spectrum to modular monoliths.} Yourdon and Constantine's coupling types~\cite{yourdon1979structured} were defined for modules in general. G2 applies them to bounded contexts where no deployment boundary enforces separation, and provides five metrics that quantify where each module sits on the spectrum, making drift visible and measurable.
 \end{enumerate}
 
 \subsection*{Literature Support Commentary}
@@ -124,7 +127,7 @@ G2 argues that most of these maintainability benefits do not depend on deploymen
 
 Several studies support this position. Modular monoliths can achieve maintainability comparable to microservices when boundary discipline is sustained~\cite{gravanis2021dont,blinowski2022monolithic}. The critical factor is not the deployment model but the consistency of modular enforcement~\cite{wolfart2021modernizing}. Premature migration to microservices often increases maintenance cost without proportional benefit, suggesting that the maintainability gains attributed to microservices may be achievable through less disruptive means~\cite{berry2024isItWorth}.
 
-The challenge, however, is that a monolith provides no natural enforcement mechanism. In a microservices architecture, a broken contract produces a runtime failure. In a monolith, a broken contract produces a successful compilation. Architectural fitness functions have been proposed as a mechanism for continuous validation~\cite{FordParsons2017}, and this concept has been extended into executable checks~\cite{thoughtworks2017fitnessfunction}. G2 builds on both by defining what those fitness functions should measure in a modular monolith: the six metrics above are designed to replicate, through automated measurement, the maintainability feedback that microservices get for free through deployment isolation.
+The challenge, however, is that a monolith provides no natural enforcement mechanism. In a microservices architecture, a broken contract produces a runtime failure. In a monolith, a broken contract produces a successful compilation. Architectural fitness functions have been proposed as a mechanism for continuous validation~\cite{FordParsons2017}, and this concept has been extended into executable checks~\cite{thoughtworks2017fitnessfunction}. G2 builds on both by defining what those fitness functions should measure in a modular monolith: the five metrics above are designed to replicate, through automated measurement, the maintainability feedback that microservices get for free through deployment isolation.
 
 The result is an architecture that captures the maintainability benefits of microservices (explicit contracts, controlled coupling, independent evolvability) without incurring the operational costs of distributed deployment, preserving the option to extract individual modules when, and only when, the evidence justifies it.
 
@@ -142,11 +145,7 @@ The following steps demonstrate how to measure each G2 metric against the Tiny S
 
 \subsubsection*{Step 1: Do dependencies flow in the right direction?}
 
-\begin{lstlisting}[language=bash,caption={Extract and filter the module dependency graph},label={lst:g2-dep-graph}]
-npx nx graph --file=dep-graph.json
-\end{lstlisting}
-
-Every bounded-context module depends only on shared libraries; no module-to-module edge exists:
+Extract the dependency graph (\texttt{npx nx graph --file=dep-graph.json}). Every bounded-context module depends only on shared libraries; no module-to-module edge exists:
 
 \begin{lstlisting}[language=bash,caption={Expected dependency direction (baseline)},label={lst:g2-dep-baseline}]
   modules-orders    -> shared-domain, shared-infrastructure
@@ -167,7 +166,7 @@ done
 # orders: 20, inventory: 17, payments: 8, shipments: 9
 \end{lstlisting}
 
-These numbers form the $t_0$ snapshot for API Surface Growth.
+These numbers form the $t_0$ snapshot for Contract Stability tracking.
 
 \subsubsection*{Step 3: Are all imports going through the public API?}
 All imports in the composition root (\texttt{register-listeners.ts}) use the public path \texttt{@tiny-store/modules-*}, so the API Boundary Ratio is 1.0. Any internal path import would lower this ratio.
@@ -203,33 +202,21 @@ if (paymentStatus !== PaymentStatus.SUCCEEDED) {
 }
 \end{lstlisting}
 
-\needspace{4\baselineskip}
-\begin{lstlisting}[language=bash,caption={Verify G1 passes but G2 degrades},label={lst:g2-ex1-run}]
-npm run test:boundary          # G1: PASSES (public entrypoint)
-npx nx graph --file=dep-graph.json
-# New edge: modules-shipments -> modules-payments (did not exist at baseline)
-\end{lstlisting}
-
 \noindent
-G1 passes, but the Nx dependency graph gains a new module-to-module edge. Shipments can no longer evolve independently of Payments' domain model.\\
+Run \texttt{npm run test:boundary}: G1 passes (public entrypoint). But the dependency graph gains a new module-to-module edge (\texttt{shipments $\to$ payments}). Shipments can no longer evolve independently of Payments' domain model.\\
 \textbf{Fix:} Remove the enum export; enrich the \texttt{OrderPaid} event payload with payment status instead.
 
 \subsubsection*{Exercise 2: Transitive Orchestration ($C_{\mathrm{forbid}} \uparrow$, blast radius)}
 Cross-module orchestration is added to the composition root, expanding the blast radius of changes. Modify the \texttt{OrderPaid} subscription in \texttt{register-listeners.ts} to query Payments before creating a shipment:
 
 \begin{lstlisting}[language=TypeScript,caption={Violation: three-module orchestration in one handler},label={lst:g2-ex2-violation}]
-import { GetPaymentHandler } from '@tiny-store/modules-payments';
-
-const getPaymentHandler = new GetPaymentHandler(db);
-
 eventBus.subscribe('OrderPaid', async (event) => {
   const { orderId } = event.payload;
-  const payment = await getPaymentHandler.handle(orderId);
+  const payment = await getPaymentHandler.handle(orderId);  // Payments
   if (payment.status === 'REFUNDED') return;
-  const order = await getOrderHandler.handle(orderId);
-  await createShipmentHandler.handle({
-    orderId, shippingAddress: order.shippingAddress,
-  });
+  const order = await getOrderHandler.handle(orderId);      // Orders
+  await createShipmentHandler.handle({                      // Shipments
+    orderId, shippingAddress: order.shippingAddress });
 });
 \end{lstlisting}
 
@@ -237,7 +224,7 @@ eventBus.subscribe('OrderPaid', async (event) => {
 G1 passes, but the handler now orchestrates three modules in sequence. A change to any handler's return type expands the blast radius across Payments, Orders, and Shipments.\\
 \textbf{Fix:} Enrich the \texttt{OrderPaid} event payload with all data Shipments needs. If orchestration is necessary, extract it into a dedicated saga.
 
-\subsubsection*{Exercise 3: Public Surface Bloat (API Surface Growth $\uparrow$)}
+\subsubsection*{Exercise 3: Public Surface Bloat (Contract Stability $\downarrow$)}
 Five valid exports are added in a single sprint, inflating the public surface without violating any boundary rule. In \texttt{libs/modules/payments/src/index.ts}, add:
 
 \begin{lstlisting}[language=TypeScript,caption={Surface bloat: valid but excessive exports},label={lst:g2-ex3-violation}]
@@ -250,22 +237,16 @@ export * from './features/retry-payment/handler';
 \end{lstlisting}
 
 \noindent
-G1 passes ($C_{\mathrm{leak}} = 0$, all exports are handlers). But $|API_{\mathrm{payments}}|$ grew 63\% in one sprint (8$\to$13). Each export is a downstream contract that constrains future refactoring.\\
-\textbf{Fix:} Remove exports consumed only within the module. Set an API Surface Growth threshold in CI.
+G1 passes ($C_{\mathrm{leak}} = 0$, all exports are handlers). But Contract Stability drops from 1.0 to 0.62: only 8 of the 13 exports existed in the previous period. Each new export is a downstream obligation that constrains future refactoring.\\
+\textbf{Fix:} Remove exports consumed only within the module. Flag Contract Stability drops in CI.
 
 \subsubsection*{Exercise Summary}
-\small
-\noindent
-\begin{tabularx}{\linewidth}{c X c c}
-\toprule
-\textbf{Ex.} & \textbf{What you change} & \textbf{G2 signal} & \textbf{G1} \\
-\midrule
-1 & Payments exports enum, Shipments consumes it & new dep edge, API Boundary Ratio $\downarrow$ & \checkmark \\
-2 & Composition root orchestrates 3 modules & blast radius $\times 3$ & \checkmark \\
-3 & Payments exports 5 valid handlers & API Surface Growth $\uparrow$ (8$\to$13) & \checkmark \\
-\bottomrule
-\end{tabularx}
-\normalsize
+All three exercises pass G1 boundary gates:
+\begin{itemize}[itemsep=2pt,topsep=2pt]
+  \item \textbf{Ex.\,1:} Payments exports enum, Shipments consumes it → new dep edge, API Boundary Ratio $\downarrow$.
+  \item \textbf{Ex.\,2:} Composition root orchestrates 3 modules → blast radius $\times 3$.
+  \item \textbf{Ex.\,3:} Payments exports 5 valid handlers → Contract Stability $\downarrow$ (1.0$\to$0.62).
+\end{itemize}
 
 \subsection*{Conclusion}
 
