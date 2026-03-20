@@ -204,9 +204,9 @@ if (paymentStatus !== PaymentStatus.SUCCEEDED) {
 
 \noindent
 Run \texttt{npm run test:boundary}: G1 passes (public entrypoint). But the dependency graph gains a new module-to-module edge (\texttt{shipments $\to$ payments}). Shipments can no longer evolve independently of Payments' domain model.\\
-\textbf{Fix:} Remove the enum export; enrich the \texttt{OrderPaid} event payload with payment status instead.
+\emph{Resolution:} Remove the enum export; enrich the \texttt{OrderPaid} event payload with payment status instead.
 
-\subsubsection*{Exercise 2: Transitive Orchestration ($C_{\mathrm{forbid}} \uparrow$, blast radius)}
+\subsubsection*{Exercise 2: Transitive Orchestration (Forbidden Dependencies $\uparrow$, blast radius)}
 Cross-module orchestration is added to the composition root, expanding the blast radius of changes. Modify the \texttt{OrderPaid} subscription in \texttt{register-listeners.ts} to query Payments before creating a shipment:
 
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: three-module orchestration in one handler},label={lst:g2-ex2-violation}]
@@ -222,7 +222,7 @@ eventBus.subscribe('OrderPaid', async (event) => {
 
 \noindent
 G1 passes, but the handler now orchestrates three modules in sequence. A change to any handler's return type expands the blast radius across Payments, Orders, and Shipments.\\
-\textbf{Fix:} Enrich the \texttt{OrderPaid} event payload with all data Shipments needs. If orchestration is necessary, extract it into a dedicated saga.
+\emph{Resolution:} Enrich the \texttt{OrderPaid} event payload with all data Shipments needs. If orchestration is necessary, extract it into a dedicated saga.
 
 \subsubsection*{Exercise 3: Public Surface Bloat (Contract Stability $\downarrow$)}
 Five valid exports are added in a single sprint, inflating the public surface without violating any boundary rule. In \texttt{libs/modules/payments/src/index.ts}, add:
@@ -237,8 +237,8 @@ export * from './features/retry-payment/handler';
 \end{lstlisting}
 
 \noindent
-G1 passes ($C_{\mathrm{leak}} = 0$, all exports are handlers). But Contract Stability drops from 1.0 to 0.62: only 8 of the 13 exports existed in the previous period. Each new export is a downstream obligation that constrains future refactoring.\\
-\textbf{Fix:} Remove exports consumed only within the module. Flag Contract Stability drops in CI.
+G1 passes (Encapsulation Leakage = 0, all exports are handlers). But Contract Stability drops from 1.0 to 0.62: only 8 of the 13 exports existed in the previous period. Each new export is a downstream obligation that constrains future refactoring.\\
+\emph{Resolution:} Remove exports consumed only within the module. Flag Contract Stability drops in CI.
 
 \subsubsection*{Exercise Summary}
 All three exercises pass G1 boundary gates:
