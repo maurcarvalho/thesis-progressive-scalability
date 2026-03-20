@@ -1,52 +1,240 @@
 \pagebreak
-\section{G6: Observability Patterns}
+\section{G6: Introduce Observability Patterns}
 \label{sec:g6-introduce-observability-patterns}
 
-In this section, we present G6, which advocates reducing operational complexity by incorporating observability patterns such as structured logging, metrics collection, and traceability within the modular monolith. G6 ensures that, even without a distributed tracing framework, teams can monitor and trace module interactions, detect performance bottlenecks, and troubleshoot failures before they escalate.
+G6 embeds module-scoped observability into the modular monolith so that the system is transparent by construction, not instrumented as an afterthought. Without module-level visibility into latency, throughput, and cross-module interaction patterns, the trigger conditions defined in G3's scalability spectrum and the readiness assessments prescribed by G4 cannot be evaluated. G6 completes the Operational Fit Dimension (G4--G6) by providing the feedback loop that connects scaling decisions to evidence.
 
-\subsection*{Conceptual Overview}
-To be done during research.
+\subsection*{Intent and Rationale}
+
+Monolithic systems are traditionally treated as observability black boxes. Application Performance Monitoring tools report aggregate metrics (total request latency, overall error rate) but do not distinguish between modules. When the system slows down, the team knows \emph{that} something is slow, but not \emph{which module} is responsible or \emph{which cross-module interaction} is the bottleneck.
+
+This opacity creates two problems. First, it prevents evidence-based scaling decisions: G3's metrics require module-level attribution that aggregate monitoring cannot provide. Second, it makes post-extraction comparison impossible: without pre-extraction baselines, the team cannot determine whether extraction improved or degraded performance.
+
+Microservices solve this by default because each service has its own metrics endpoint, log stream, and trace context. G6 achieves the same visibility inside the monolith by scoping instrumentation to module boundaries. The key insight is that the instrumentation is identical: OpenTelemetry spans, structured logs with module context, and metrics with module labels work the same way whether the module runs in-process or as a separate service. The same dashboards and traces survive extraction unchanged.
 
 \subsection*{Objectives}
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Internal metrics collection:} To be done.
-  \item \emph{Traceability of interactions:} To be done.
-  \item \emph{Monitoring patterns:} To be done.
+
+\emph{Research contributions:}
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \emph{Formalize module-scoped observability for monoliths:} Define the instrumentation practices that make a monolith's internal module interactions as observable as inter-service communication in a distributed system.
+  \item \emph{Close the observability feedback loop:} Connect monitoring evidence to G3's scaling triggers, G4's readiness assessments, and G5's deployment decisions, creating a self-reinforcing cycle where data drives architectural progression.
+\end{itemize}
+
+\emph{Implementation objectives:}
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \emph{Module-level attribution:} Every metric, log entry, and trace span is attributable to a specific module.
+  \item \emph{Cross-module interaction visibility:} Traces show the full request path across module boundaries, including handler calls, workflow executions, and event produce/consume cycles.
+  \item \emph{Baseline establishment:} Module-level performance baselines are recorded before any extraction, enabling before/after comparison.
+  \item \emph{Observability survival across extraction:} The same instrumentation, dashboards, and alerts work without modification after a module is extracted.
 \end{itemize}
 
 \subsection*{Key Principles}
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Principle 1:} To be done.
-  \item \emph{Principle 2:} To be done.
-  \item \emph{Principle 3:} To be done.
-  \item \emph{Principle 4:} To be done.
-  \item \emph{Principle 5:} To be done.
+
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \emph{Instrument at the module boundary, not inside it:} Observability instrumentation is placed at the module's public surface: handler entry points, event publisher calls, and listener invocations. Internal method calls are not instrumented unless they represent distinct domain operations. This keeps overhead low and ensures metrics remain meaningful after extraction~\cite{FordParsons2017}.
+
+  \item \emph{Correlation IDs are non-negotiable:} Every request receives a correlation ID (trace ID) that is propagated to every module invocation, every message header, and every log entry. Without correlation IDs, cross-module debugging requires manual timestamp alignment, which is impractical in production. Context propagation standards provide this automatically when spans are created at module boundaries~\cite{richardson2018microservices}.
+
+  \item \emph{Metrics feed architectural decisions, not just operational alerts:} G6 metrics are the primary input for G3's scalability spectrum (``which module needs scaling?''), G4's readiness assessment, and G5's deployment decisions. Dashboards should be organized by module and by guideline dimension, not only by infrastructure component~\cite{fairbanks2010justenough}.
+
+  \item \emph{Same dashboards before and after extraction:} If the observability setup must be redesigned after extraction, the team loses the baseline and debugging familiarity built during the monolith phase. Metric names, trace span names, log structures, and dashboard layouts must be extraction-agnostic from day one~\cite{ghemawat2023towards}.
 \end{itemize}
 
-\subsection*{Metrics \& Verification}
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Log coverage per module:} To be done.
-  \item \emph{Request trace success rate:} To be done.
-  \item \emph{Metric collection latency:} To be done.
-  \item \emph{Alert accuracy:} To be done.
+\subsection*{Implementation Mechanisms}
+
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \emph{Structured logging with module context:} Every log entry carries the originating module name, a correlation ID from the active trace, and structured fields (JSON). Log aggregation tools can filter by module without code changes after extraction.
+
+  \item \emph{Module-scoped metrics:} Each module emits latency, throughput, and error rate metrics tagged with the module name. These metrics feed directly into G3's trigger conditions. The same metrics endpoint is scraped before and after extraction.
+
+  \item \emph{Distributed tracing inside the monolith:} Trace spans are created for each module handler invocation and each event produce/consume interaction. A single trace visualizes the full order fulfillment flow across module boundaries. After extraction, trace context propagates over the network automatically.
+
+  \item \emph{Leveraging built-in infrastructure observability:} Workflow engines provide execution history and activity-level metrics without custom instrumentation. Event broker consumer lag metrics signal backpressure between modules. G6 leverages these built-in capabilities rather than reimplementing them.
 \end{itemize}
 
-\subsection*{Documentation Guidelines}
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{ADR Template:} To be done.
-  \item \emph{Module Descriptor:} To be done.
-  \item \emph{Change Log Practices:} To be done.
+\subsection*{Common Failure Modes and Anti-Patterns}
+
+G1--G5 anti-patterns remain relevant at the G6 level. The five patterns below pass all prior gates but leave the system blind to the evidence needed for architectural decisions.
+
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \textbf{Aggregate-Only Monitoring} (Metric Coverage below 100\%)\\
+  Monitoring only application-level metrics without module attribution. When a performance issue arises, the team cannot isolate which module is responsible.
+  \emph{Approach:} attach module context to every log, metric, and trace.
+
+  \item \textbf{Instrumentation After Extraction} (Baseline Coverage = 0)\\
+  Adding observability only after a module is extracted, eliminating the pre-extraction baseline and making it impossible to evaluate whether extraction improved or degraded the system.
+  \emph{Approach:} instrument from day one inside the monolith, establishing baselines before any extraction decision.
+
+  \item \textbf{Log-Only Observability} (Trace Completeness = 0)\\
+  Relying exclusively on log searching without traces or metrics. Logs provide point-in-time information but lack the causal chain that traces provide and the statistical patterns that metrics reveal.
+  \emph{Approach:} adopt all three observability pillars (logs, metrics, traces) with module-scoped attribution.
+
+  \item \textbf{Custom Observability Frameworks} (vendor lock-in risk)\\
+  Building bespoke instrumentation instead of adopting vendor-neutral standards. Custom frameworks increase maintenance burden and are unlikely to integrate with infrastructure-provided observability.
+  \emph{Approach:} use vendor-neutral instrumentation SDKs for interoperability across all infrastructure components.
+
+  \item \textbf{Alert Fatigue from Application-Level Thresholds} (Alert Precision drops)\\
+  Setting alert thresholds on aggregate metrics rather than per-module metrics. A single module's latency spike may or may not trigger an application-level threshold, depending on traffic distribution~\cite{FordParsons2017}.
+  \emph{Approach:} set module-scoped alerts for precise, actionable signals.
 \end{itemize}
 
-\subsection*{Tool Capabilities}
-Any open‐source or proprietary software tool used to support G6 should address:
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Metrics collection library:} To be done.
-  \item \emph{Traceability instrumentation:} To be done.
-  \item \emph{Dashboard integration:} To be done.
-  \item \emph{Alerting framework:} To be done.
-  \item \emph{Log aggregation support:} To be done.
-\end{itemize}
+\subsection*{Metrics and Verification}
+
+\medskip
+\noindent
+\small
+\begin{tabularx}{\linewidth}{p{0.28\linewidth} X c p{0.12\linewidth}}
+\toprule
+\textbf{Metric} & \textbf{What it measures} & \textbf{Target} & \textbf{Source} \\
+\midrule
+Trace Completeness & Cross-module flows with complete traces & $\geq 0.95$ & \cite{FordParsons2017} \\
+Metric Coverage & Module operations emitting metrics & 100\% & \cite{martin2012clean} \\
+Log Attribution Rate & Log entries with module and trace context & 100\% & \cite{fairbanks2010justenough} \\
+Alert Precision & Alerts scoped to specific modules & $\geq 0.8$ & \cite{FordParsons2017} \\
+Baseline Coverage & Modules with pre-extraction baselines & 100\% & \cite{wolfart2021modernizing} \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\medskip
+\noindent
+G6 metrics are assessed as part of the extraction readiness review (G4). Before any module is extracted, trace completeness, metric coverage, and baseline coverage must meet targets. After extraction, the same metrics are compared against pre-extraction baselines to verify that observability survived the topology change.
+
+\subsection*{Core Contribution}
+
+G6 contributes to the modular monolith literature in three ways:
+
+\begin{enumerate}[itemsep=8pt,topsep=2pt]
+  \item \emph{Module-scoped observability as a monolith practice.} Research on modular monoliths notes that monoliths lack observability practices comparable to microservices, treating the system as a ``single black box''~\cite{montesi2021sliceable}. G6 addresses this by making internal module interactions as observable as inter-service communication, using the same vendor-neutral standards.
+
+  \item \emph{Observability continuity across extraction.} By instrumenting at the module boundary from day one, G6 ensures that dashboards, traces, and alerts survive extraction unchanged. The only difference after extraction is the addition of network latency between spans, which is precisely the information needed to evaluate performance impact.
+
+  \item \emph{The observability feedback loop.} G6 connects monitoring evidence to G3's scaling triggers and G4's readiness assessments, creating a self-reinforcing cycle. Without this loop, the scalability spectrum operates on intuition rather than evidence.
+\end{enumerate}
 
 \subsection*{Literature Support Commentary}
-Microservices literature heavily emphasizes observability and distributed tracing, yet monoliths often lack comparable practices, treating the system as a single black box~\cite{montesi2021sliceable}. Consequently, hidden complexity surfaces only during outages. G6 transfers proven observability techniques like module-scoped metrics, correlation IDs and log aggregation to the monolith domain, offering early insight into inter-module behavior and making complexity visible when teams are still small.
+
+Observability is extensively discussed in the microservices literature, where distributed tracing, centralized logging, and metrics collection are considered essential~\cite{arya2024beyond}. However, these practices are rarely advocated for monolithic systems, where the assumption is that a single process does not need distributed observability tools. This creates a dangerous gap: when extraction occurs, the team must simultaneously learn new monitoring tools, establish baselines, and debug a newly distributed system.
+
+Research on modular monoliths notes the observability deficit~\cite{montesi2021sliceable, gravanis2021dont}. G6 addresses this by introducing production-grade observability inside the monolith, scoped to module boundaries. The contribution is not the tooling itself, which is well-established, but the practice of applying it at the module boundary level inside a monolith, creating continuity across the entire scalability spectrum.
+
+
+%% ============================================================
+%% G6 APPLIED
+%% ============================================================
+\section{G6 Applied: Observability in the Tiny Store}
+\label{sec:g6-applied}
+
+G6 is demonstrated through the Tiny Store observability infrastructure, which produces module-scoped logs, metrics, and traces from day one.\footnote{Full source: \url{https://github.com/maurcarvalho/tiny-store}, observability layer at \texttt{libs/shared/infrastructure/src/observability/}}
+
+\subsection*{Tutorial: Step-by-Step Application}
+
+The following tutorial walks through applying the guideline to the Tiny Store codebase. Each step introduces a specific preparation mechanism, building incrementally from the current state to a fully verified structure.
+
+\subsubsection*{Step 1: Do all logs carry module context?}
+
+A shared logger factory injects the module name and the current correlation ID from the active trace:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Module-scoped structured logger},label={lst:g6-logger}]
+export function getModuleLogger(moduleName: string): ModuleLogger {
+  return {
+    info: (message, data?) => log('info', moduleName, message, data),
+    error: (message, data?) => log('error', moduleName, message, data),
+  };
+}
+// Output: {"module":"orders","trace_id":"abc123","message":"Order placed"}
+\end{lstlisting}
+
+\subsubsection*{Step 2: Does each module emit its own metrics?}
+
+Each module registers latency, throughput, and error metrics tagged with the module name:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Module-scoped metrics factory},label={lst:g6-metrics}]
+export function getModuleMeter(moduleName: string): ModuleMetrics {
+  const meter = metrics.getMeter(`tiny-store.${moduleName}`);
+  return {
+    requestCounter: meter.createCounter(`${moduleName}.requests`),
+    errorCounter: meter.createCounter(`${moduleName}.errors`),
+    latencyHistogram: meter.createHistogram(`${moduleName}.latency`),
+  };
+}
+\end{lstlisting}
+
+\noindent
+These metrics are exported to Prometheus and visualized in per-module Grafana dashboards. The same dashboard works after extraction because metric names are unchanged.\footnote{Dashboard configuration: \texttt{infra/grafana/dashboards/module-overview.json}}
+
+\subsubsection*{Step 3: Does a trace span the full order fulfillment flow?}
+
+Each module handler creates a span at the module boundary. Event headers carry trace context for cross-module correlation:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Traced handler with metrics integration},label={lst:g6-traced-handler}]
+const tracer = getModuleTracer('orders');
+const metrics = getModuleMeter('orders');
+
+export async function placeOrderHandler(params: PlaceOrderParams) {
+  return tracer.startActiveSpan('orders.placeOrder', async (span) => {
+    const start = Date.now();
+    try {
+      const order = Order.create(params);
+      await orderRepository.save(order);
+      await eventPublisher.publish('orders.events', event,
+        injectTraceContext({}));  // propagate trace to consumers
+      metrics.requestCounter.add(1, { handler: 'placeOrder' });
+      return order;
+    } finally {
+      metrics.latencyHistogram.record(Date.now() - start);
+      span.end();
+    }
+  });
+}
+\end{lstlisting}
+
+\subsubsection*{Step 4: Are alerts scoped to modules?}
+
+Alert rules use module labels for targeted incident response:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=yaml,caption={Module-scoped Prometheus alert rule},label={lst:g6-alert}]
+- alert: HighErrorRate
+  expr: |
+    (sum(rate({__name__=~".+_errors_total"}[5m])) by (module)
+     / sum(rate({__name__=~".+_requests_total"}[5m])) by (module)
+    ) > 0.05
+  annotations:
+    summary: "High error rate in {{ $labels.module }} module"
+\end{lstlisting}
+
+\noindent
+These alerts feed directly into G3's trigger conditions: per-module error rate and latency spikes signal when a module should advance on the scalability spectrum.\footnote{Full alert rules: \texttt{infra/prometheus/alerts.yml}}
+
+\subsection*{Exercise Walkthrough: Controlled Violations and Signals}
+
+\subsubsection*{Exercise 1: Missing Module Context in Logs (Log Attribution Rate $\downarrow$)}
+
+A handler uses \texttt{console.log} instead of the module logger. Log entries lack module name and trace ID, making it impossible to filter logs by bounded context or correlate them with traces.\\
+\emph{Resolution:} replace with \texttt{getModuleLogger('orders').info(...)}.
+
+\subsubsection*{Exercise 2: Uninstrumented Handler (Metric Coverage $\downarrow$)}
+
+A new handler is added without creating a trace span or recording metrics. The handler's latency and error rate are invisible to dashboards and alerts.\\
+\emph{Resolution:} wrap the handler in \texttt{tracer.startActiveSpan()} and record metrics in the \texttt{finally} block.
+
+\subsubsection*{Exercise Summary}
+Each exercise assumes a clean baseline. After each exercise, revert the violation before proceeding to the next.
+
+\small
+\noindent
+\begin{tabularx}{\linewidth}{c X c c}
+\toprule
+\textbf{Ex.} & \textbf{What you change} & \textbf{G6 signal} & \textbf{G1--G5} \\
+\midrule
+1 & \texttt{console.log} instead of module logger & Log Attribution Rate $\downarrow$ & \checkmark \\
+2 & Handler without trace span or metrics & Metric Coverage $\downarrow$ & \checkmark \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\subsection*{Conclusion}
+
+G6 demonstrated that module-scoped observability can be embedded inside a monolith using the same instrumentation standards used in distributed systems. The Tiny Store implementation shows that structured logs, per-module metrics, and distributed traces established from day one create an observability posture that survives extraction unchanged.
+
+With boundaries enforced (G1), maintainability preserved (G2), scalability infrastructure prepared (G3), migration readiness embedded (G4), deployment strategy aligned (G5), and observability closing the feedback loop (G6), the six guidelines form a complete architectural progression. The remaining guidelines (G7--G12), addressing Organizational Alignment and Guideline Orientation, are outlined in Chapter~\ref{chap:next-steps} as directions for future work.
