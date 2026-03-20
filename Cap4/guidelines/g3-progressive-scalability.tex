@@ -179,7 +179,7 @@ G3 is demonstrated in the Tiny Store reference implementation.\footnote{Full sou
 The \texttt{CacheService} enforces module-namespaced keys through a \texttt{buildKey()} method, ensuring cache entries are isolated per bounded context. An \texttt{InMemoryCacheAdapter} serves development; a \texttt{RedisCacheAdapter} is injected for production:
 
 \needspace{4\baselineskip}
-\begin{lstlisting}[language=TypeScript,caption={CacheService with module-namespaced keys},label={lst:g3-cache-service}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={CacheService with module-namespaced keys},label={lst:g3-cache-service}]
 class CacheService {
   private buildKey(module: string, key: string): string {
     return `${this.globalPrefix}:${module}:${key}`;
@@ -196,7 +196,7 @@ A read-through caching decorator applies this pattern declaratively. When Tune-l
 The \texttt{QueueService} provides module-scoped queues following the \texttt{module:purpose} naming convention, with the same adapter pattern as the cache layer:
 
 \needspace{4\baselineskip}
-\begin{lstlisting}[language=TypeScript,caption={QueueService with adapter pattern},label={lst:g3-queue-service}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={QueueService with adapter pattern},label={lst:g3-queue-service}]
 class QueueService {
   async enqueue<T>(queue: string, data: T): Promise<Job<T>> {
     return this.adapter.enqueue(queue, data);
@@ -215,7 +215,7 @@ The \texttt{InMemoryQueueAdapter} ships with the initial deployment; a \texttt{B
 Each module declares its own PostgreSQL schema using Drizzle ORM's \texttt{pgSchema()} API, co-located with the module source:
 
 \needspace{4\baselineskip}
-\begin{lstlisting}[language=TypeScript,caption={Per-module PostgreSQL schema isolation (inventory/db/schema.ts)},label={lst:g3-schema-isolation}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Per-module PostgreSQL schema isolation (inventory/db/schema.ts)},label={lst:g3-schema-isolation}]
 import { pgSchema, text, integer, timestamp } from 'drizzle-orm/pg-core';
 
 const inventorySchema = pgSchema('inventory');
@@ -239,7 +239,7 @@ When monitoring signals (connection pool saturation, lock wait times, replicatio
 Extract is reached only when Tune, Decouple, and Isolate have been exhausted for a specific module. At this point, the module is already decoupled asynchronously and owns its data exclusively. Extraction is a topology change: the domain logic, repository interfaces, and event handlers remain unchanged. The Tiny Store repository includes a working example (\texttt{docker-compose.l3.yml})\footnote{Full file: \url{https://github.com/maurcarvalho/tiny-store/blob/main/docker-compose.l3.yml}} that deploys Orders as an independent service:
 
 \needspace{4\baselineskip}
-\begin{lstlisting}[language=yaml,caption={Extract-level topology (docker-compose.l3.yml, abbreviated)},label={lst:g3-l3-extraction}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=yaml,caption={Extract-level topology (docker-compose.l3.yml, abbreviated)},label={lst:g3-l3-extraction}]
 services:
   orders-service:
     build: { context: ., dockerfile: apps/orders-service/Dockerfile }
@@ -264,7 +264,7 @@ Three infrastructure changes occur, none touching domain logic: (1) \texttt{DATA
 Tiny Store includes an automated extraction readiness calculator that scores each module across five dimensions corresponding to the $\varepsilon_m$ formula:
 
 \needspace{4\baselineskip}
-\begin{lstlisting}[language=TypeScript,caption={Extraction readiness scoring (extraction-readiness.ts)},label={lst:g3-readiness-score}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Extraction readiness scoring (extraction-readiness.ts)},label={lst:g3-readiness-score}]
 const checks: CheckResult[] = [
   checkCrossModuleImports(mod),        // 25 pts (G1)
   checkEventBusUsage(mod),             // 20 pts (async)
@@ -307,7 +307,7 @@ Run \texttt{npm run test:scalability}: all green (Sync Ratio = 0, Data Ownership
 \subsubsection*{Exercise 1: Synchronous Cross-Module Call (Sync Ratio $\uparrow$)}
 A blocking call is introduced between modules, coupling their availability and degrading async readiness. Modify \texttt{create-shipment/service.ts} to import and call \texttt{GetPaymentHandler} from the payments module:
 
-\begin{lstlisting}[language=TypeScript,caption={Violation: synchronous cross-module import},label={lst:g3-ex1-violation}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: synchronous cross-module import},label={lst:g3-ex1-violation}]
 // VIOLATION: synchronous cross-module import
 import { GetPaymentHandler } from '@tiny-store/modules-payments';
 const payment = await this.getPaymentHandler.handle(dto.orderId);
@@ -321,7 +321,7 @@ Reference: \texttt{exercises/g3/ex1-sync-payment-check.ts}
 \subsubsection*{Exercise 2: Shared Table Access (Data Ownership $\downarrow$)}
 A raw SQL query reads directly from another module's table, breaking data isolation without triggering any import violation. In the orders module, add:
 
-\begin{lstlisting}[language=TypeScript,caption={Violation: cross-module table access},label={lst:g3-ex2-violation}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: cross-module table access},label={lst:g3-ex2-violation}]
 // VIOLATION: orders reads inventory's table directly
 const rows = await this.db.execute(
   sql`SELECT stock_quantity FROM inventory.products WHERE sku = ${item.sku}`);
@@ -335,7 +335,7 @@ Reference: \texttt{exercises/g3/ex2-shared-inventory-view.ts}
 \subsubsection*{Exercise 3: Direct Infrastructure Dependency (Abstraction Coverage $\downarrow$)}
 The adapter layer is bypassed with a direct library import, locking the module to a specific infrastructure provider. In the inventory module, add:
 
-\begin{lstlisting}[language=TypeScript,caption={Violation: direct infrastructure import},label={lst:g3-ex3-violation}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: direct infrastructure import},label={lst:g3-ex3-violation}]
 // VIOLATION: direct infrastructure dependency
 import Redis from 'ioredis';
 const redis = new Redis({ host: process.env['REDIS_HOST'] });
