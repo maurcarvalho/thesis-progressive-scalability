@@ -11,10 +11,9 @@ Modern software architecture treats modularity as a primary mechanism for balanc
   \label{fig:modular-deployment-units}
 \end{figure}
 
-\pagebreak
 This research proposes that progressive scalability depends first on enforceable modularity: clear boundaries, explicit contracts, and build-time checks that detect boundary corruption early. The guidelines are presented by impact, with G1 as the foundation: without verifiable boundary enforcement, later guidelines cannot assume stable module interfaces.
 
-This section introduces the concepts needed for the Architectural Design guidelines (G1--G3). Architectural design can be framed as an evolutionary progression in separation of concerns, from technical separation (MVC, layered structures) toward dependency discipline and domain-centric organization (Hexagonal, Onion, Clean Architecture)~\cite{cockburn2005hexagonal,palermo2008onion,martin2012clean}.
+This section introduces the concepts needed for the Architectural Design guidelines (G1--G3). Architectural design can be framed as an evolutionary progression in separation of concerns, from technical separation (MVC, layered structures) toward dependency discipline and domain-centric organization including Hexagonal, Onion and Clean Architecture ~\cite{cockburn2005hexagonal,palermo2008onion,martin2012clean}.
 
 \begin{figure}[H]
   \centering
@@ -27,9 +26,9 @@ In parallel, packaging strategies evolved from technical layers to feature slice
 
 \subsection*{Cost of Change: Coupling and Cohesion}
 
-Cost of change is often dominated by dependency structure rather than by local code complexity. As Russell L. Ackoff argues, \textit{"A system is never the sum of its parts, it's the product of their interactions."} This perspective motivates treating coupling patterns as first order architectural concerns, because interactions are where change propagates, coordination increases, and unintended side effects emerge.
+Cost of change is often dominated by dependency structure rather than by local code complexity. Coupling patterns are first-order architectural concerns because interactions are where change propagates, coordination increases, and unintended side effects emerge.
 
-When introducing coupling and cohesion, this research proposal explicitly draws on the structured design foundations of Edward Yourdon and Larry Constantine, whose work provides a rigorous vocabulary for understanding how dependency structure shapes maintainability and change amplification \cite{yourdon1979structured}. Their framing is used here to examine three claims that are central to the Architectural Design Dimension (G1-G3):
+Structured design theory provides a rigorous vocabulary for understanding how dependency structure shapes maintainability and change amplification~\cite{yourdon1979structured}. Three claims from this tradition are central to the Architectural Design Dimension (G1--G3):
 
 \begin{itemize}
     \item \textbf{Not all coupling is born equal.} Some dependencies are stabilizing and intentional, particularly inside a coherent boundary, while others are accidental and create ripple effects across unrelated areas.
@@ -42,11 +41,13 @@ These claims motivate a baseline definition of what \textit{"good modularity"} i
 This framing also clarifies why domain centric modularity is emphasized. Functional decomposition is generally preferred over technical decomposition when the goal is to reduce change amplification, because it tends to localize business evolution inside a bounded unit. This directly relates to the distinction between intrinsic complexity, which comes from the domain and requirements, and accidental complexity, which comes from architectural and organizational choices. A recurring risk in modularization is mistaking organization for encapsulation, because directory structure alone does not enforce boundaries unless it is backed by interface contracts and dependency rules.
 
 \subsection*{Modular Decomposition Styles: Horizontal vs Vertical}
-A fundamental design decision concerns how system functionality is decomposed. In traditional layered architectures, code is structured by technical responsibilities (presentation, application services, persistence). While this provides separation of concerns, it disperses domain logic across layers and obscures business intent~\cite{fowler2002patterns}. The result is change amplification: modifications to a single feature require coordinated changes across all layers, because the dependency structure encourages features to cut across horizontal boundaries even when the business change is conceptually localized.
+A fundamental design decision concerns how system functionality is decomposed. In traditional layered architectures, code is structured by technical responsibilities (presentation, application services, persistence). While this provides separation of concerns, it disperses domain logic across layers and obscures business intent~\cite{fowler2002patterns}. The result is change amplification: modifications to a single feature require coordinated changes across all layers, because the dependency structure encourages features to cut across horizontal boundaries even when the business change is conceptually localized. 
+
+Figure~\ref{fig:change-coupling-ripple} illustrates this propagation: a single change at the origin node ripples through the dependency graph, impacting components that are structurally coupled but functionally unrelated.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.45\linewidth]{Cap4/guidelines/change-coupled-effect.png}
+  \includegraphics[width=0.40\linewidth]{Cap4/guidelines/change-coupled-effect.png}
   \caption[Coupled-change ripple in a dependency graph]{Coupled-change ripple in a dependency graph. Nodes represent components and directed edges represent dependencies. The change originates at the top node (annotated as the starting point) and propagates along dependency paths. Darker nodes indicate components impacted by the initial modification, while lighter nodes remain unaffected. Concentric halos emphasize the spread of change through the system, illustrating how tighter coupling amplifies change impact beyond the original change.}
   \label{fig:change-coupling-ripple}
 \end{figure}
@@ -56,21 +57,19 @@ Vertical decomposition addresses this by organizing code around features or doma
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.8\linewidth]{Cap4/guidelines/layered-vs-modular.png}
+  \includegraphics[width=0.6\linewidth]{Cap4/guidelines/layered-vs-modular.png}
   \caption[Layered and modular architecture]{Layered and modular architecture. The left side shows a traditional layered decomposition, where code is organized by technical responsibility (presentation, business logic, and data access). The right side shows a modular decomposition, where domain modules (for example, User, Order, and Inventory) each contain their own UI/API, application logic, and persistence concerns, keeping feature changes more localized within module boundaries.}
   \label{fig:layered-vs-modular}
 \end{figure}
 
 
-A key risk is architectural ``cargo culting'': adopting a packaging style without understanding the coupling problem it solves. This risk is elevated when architecture is documented as diagrams but not enforced in code, because teams can claim domain boundaries while the implementation couples through shared models and unrestricted imports.
-
-\pagebreak
+A key risk is architectural \textit{cargo culting}: adopting a packaging style without understanding the coupling problem it solves. This risk is elevated when architecture is documented as diagrams but not enforced in code, because teams can claim domain boundaries while the implementation couples through shared models and unrestricted imports.
 
 \subsection*{Screaming Architecture: Domain Alignment and Model--Code Gap}
 
 A \emph{screaming architecture} communicates its business purpose at a glance: the top-level organization foregrounds domain concepts and use cases rather than frameworks or technical layering~\cite{martin2012clean,martin2011screaming}. When the dominant structural signals emphasize technical concerns, the system drifts away from domain-centric modularity, increasing the cost of change as engineers must reconstruct domain intent from dispersed artifacts.
 
-This risk connects to the \emph{model--code gap}~\cite{fairbanks2010justenough}: the divergence between architecture as documented and architecture as implemented. Fairbanks proposes an \emph{architecturally-evident coding style}, where decisions are encoded directly into module boundaries and enforced dependency rules. Mechanisms include explicit public interfaces, restricted import paths, and structural checks that fail when constraints are violated. The central implication is that modular boundaries should be explicit, inspectable, and continuously enforced.
+This risk connects to the \emph{model--code gap}~\cite{fairbanks2010justenough}: the divergence between architecture as documented and architecture as implemented. An \emph{architecturally-evident coding style} encodes decisions directly into module boundaries and enforced dependency rules through explicit public interfaces, restricted import paths, and structural checks that fail when constraints are violated~\cite{fairbanks2010justenough}. The central implication is that modular boundaries should be explicit, inspectable, and continuously enforced.
 
 \begin{figure}[H]
   \centering
@@ -83,7 +82,7 @@ This risk connects to the \emph{model--code gap}~\cite{fairbanks2010justenough}:
 \pagebreak
 The following directory structure illustrates this principle. Even without inspecting individual files, the system's domain capabilities are immediately apparent:
 
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single,framerule=0.3pt,xleftmargin=0.5cm,xrightmargin=0.5cm]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,frame=single,framerule=0.3pt,xleftmargin=0.5cm,xrightmargin=0.5cm]
 modules/
   orders/
     domain/        # Order aggregate, value objects, events, repositories
@@ -96,7 +95,6 @@ modules/
 
 Architecture embedded in module boundaries, public APIs, and enforced dependency direction becomes continuously verifiable. This is a prerequisite for controlling coupling, sustaining cohesion, and supporting progressive scalability, and directly informs G1--G3.
 
-\pagebreak
 \subsection*{Separation of Concerns and Dependency Discipline}
 
 Separation of concerns can be implemented through architectural styles that constrain dependency direction. Layered Architecture typically structures dependencies outward to inward by technical responsibility, often represented as Presentation, Business, and Persistence layers \cite{fowler2002patterns}. While layering can improve local reasoning, it may also amplify change cost when features cut across layers and when domain logic is fragmented into anemic models and service orchestration.
@@ -105,7 +103,7 @@ Hexagonal Architecture, Onion Architecture, and Clean Architecture formalize a s
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\linewidth]{Cap4/guidelines/hexa-onion-modular.png}
+  \includegraphics[width=0.64\linewidth]{Cap4/guidelines/hexa-onion-modular.png}
   \caption[From layered to modular architecture styles]{Comparison of architectural decomposition styles.}
   \label{fig:layered-vs-hexagonal-vs-modular}
 \end{figure}
@@ -121,22 +119,21 @@ Packaging strategy determines what coupling is easy and what coupling is discour
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.80\linewidth]{Cap4/guidelines/package-by-layer-dir.png}
+  \includegraphics[width=0.75\linewidth]{Cap4/guidelines/package-by-layer-dir.png}
 \end{figure}
 
 \emph{Package by feature} organizes code around features, use cases, or domain capabilities, localizing behavior rather than scattering it across layers~\cite{shaw2018vertical}. The failure mode is turning features into folders without stable interfaces, reintroducing hidden coupling through shared utilities and unrestricted imports. Nominal boundaries without data ownership allow changes in one module to ripple unpredictably into others.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.80\linewidth]{Cap4/guidelines/package-by-feature-dir.png}
+  \includegraphics[width=0.75\linewidth]{Cap4/guidelines/package-by-feature-dir.png}
 \end{figure}
 
-\pagebreak
 \emph{Package by component} organizes code around cohesive components accessed through well-defined interfaces, applying component-based design principles to a monolithic codebase. Component boundaries become enforceable when they define what is exposed publicly, what is hidden internally, and which dependency directions are permitted~\cite{evans2003ddd}. Under these conditions, package by component is the closest analogue to modules in a modular monolith. The failure mode arises when components are not aligned with bounded contexts: overly coarse components accumulate unrelated responsibilities, while overly fine-grained components fragment aggregates across boundaries.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.80\linewidth]{Cap4/guidelines/package-by-component.png}
+  \includegraphics[width=0.75\linewidth]{Cap4/guidelines/package-by-component.png}
 \end{figure}
 
 \subsection*{Modularity as an Enforceable Principle}
@@ -170,6 +167,6 @@ The Architectural Design Dimension (G1-G3) treats module quality as a measurable
 
 This checklist is used later as the baseline for designing boundaries, for defining public APIs and events, and for evaluating whether a proposed module decomposition is likely to reduce change cost rather than merely reshuffle code.
 
-\subsection*{Practical Evaluation for the Architectural Design Dimension (G1–G3)}
+\subsection*{Practical Evaluation for the Architectural Design Dimension (G1-G3)}
 
 This section establishes a causal chain: coupling patterns dominate change cost, cohesion localizes change, separation of concerns reduces dependency on volatile infrastructure, and packaging strategy determines whether the code structure reflects domain intent or technical layers. Modularity becomes sustainable only when interfaces, dependency direction, and enforcement mechanisms make boundaries explicit and verifiable. The following guidelines (G1--G3) translate these foundations into actionable specifications supported by the Tiny Store reference implementation.

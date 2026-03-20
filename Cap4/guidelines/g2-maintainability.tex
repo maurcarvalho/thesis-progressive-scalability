@@ -50,7 +50,7 @@ G1 anti-patterns (convenience imports, implicit wiring, circular dependencies) r
   \item \textbf{Exposing Internal Types for Cross-Module Convenience} (Dependency Attraction rises)\\
   A module re-exports an internal type (e.g., an enum or value object) so that another module can use it directly. The import goes through the public entrypoint, so G1 passes. But the dependency graph gains a new module-to-module edge that did not exist at baseline, coupling the consumer to the provider's domain model~\cite{evans2003ddd}.
   \emph{Approach:} carry the needed data in the domain event payload so consumers never import the provider's types.
-\begin{lstlisting}[language=TypeScript,caption={Fix: event payload replaces cross-module type import},label={lst:g2-ap-internal-fix}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Fix: event payload replaces cross-module type import},label={lst:g2-ap-internal-fix}]
 // Instead of: import { PaymentStatus } from '@tiny-store/modules-payments';
 // The OrderPaid event carries the status the consumer needs:
 eventBus.subscribe('OrderPaid', async ({ payload }) => {
@@ -61,7 +61,7 @@ eventBus.subscribe('OrderPaid', async ({ payload }) => {
   \item \textbf{Feature-Centric Coupling Across Modules} (Change Coupling Index rises)\\
   Adding a cross-cutting feature (e.g., ``gift packaging'') requires simultaneous changes to ordering (option flag), billing (fee calculation), and fulfillment (packaging instructions). The feature, not the module, becomes the unit of change, diluting ownership and increasing coordination cost~\cite{FordParsons2017}.
   \emph{Approach:} assign feature ownership to one module; other modules react to domain events and interpret them through their own logic.
-\begin{lstlisting}[language=TypeScript,caption={Fix: one module owns the decision; others react},label={lst:g2-ap-feature-fix}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Fix: one module owns the decision; others react},label={lst:g2-ap-feature-fix}]
 // Orders owns the gift-wrap decision
 orderCreated.emit({ ...order, giftWrap: true });
 // Billing reacts independently — no shared types
@@ -147,7 +147,7 @@ The following steps demonstrate how to measure each G2 metric against the Tiny S
 
 Extract the dependency graph (\texttt{npx nx graph --file=dep-graph.json}). Every bounded-context module depends only on shared libraries; no module-to-module edge exists:
 
-\begin{lstlisting}[language=bash,caption={Expected dependency direction (baseline)},label={lst:g2-dep-baseline}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={Expected dependency direction (baseline)},label={lst:g2-dep-baseline}]
   modules-orders    -> shared-domain, shared-infrastructure
   modules-inventory -> shared-domain, shared-infrastructure
   modules-payments  -> shared-domain, shared-infrastructure
@@ -159,7 +159,7 @@ If a module-to-module edge appears, coupling has migrated into module internals.
 
 \subsubsection*{Step 2: How large is each module's public surface?}
 
-\begin{lstlisting}[language=bash,caption={Count exported symbols per module},label={lst:g2-api-surface}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={Count exports per module},label={lst:g2-api-surface}]
 for mod in orders inventory payments shipments; do
   echo "$mod: $(grep -c '^export' libs/modules/$mod/src/index.ts) exports"
 done
@@ -173,7 +173,7 @@ All imports in the composition root (\texttt{register-listeners.ts}) use the pub
 
 \subsubsection*{Step 4: Are changes spreading across module boundaries?}
 
-\begin{lstlisting}[language=bash,caption={Detect co-changing modules in recent commits},label={lst:g2-cci}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={Detect co-changing modules in recent commits},label={lst:g2-cci}]
 git log --oneline -50 --name-only | \
   awk '/^[a-f0-9]/{c=$1; next}
        /libs\/modules\//{split($0,a,"/"); m[c][a[3]]}
@@ -187,14 +187,14 @@ Each exercise introduces a change that passes all G1 boundary tests but degrades
 
 \subsubsection*{Exercise 1: Convenience Shortcut That Passes G1 (API Boundary Ratio $\downarrow$)}
 A developer re-exports an internal type for cross-module convenience, creating a hidden dependency edge. In \texttt{libs/modules/payments/src/index.ts}, add:
-\begin{lstlisting}[language=TypeScript,caption={Step 1: Payments exports an internal enum},label={lst:g2-ex1-step1}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Step 1: Payments exports an internal enum},label={lst:g2-ex1-step1}]
 // "Temporary" export added for cross-module convenience
 export * from './domain/enums/payment-status.enum';
 \end{lstlisting}
 
 \noindent
 Then consume it in \texttt{libs/modules/shipments/src/features/create-shipment/service.ts}:
-\begin{lstlisting}[language=TypeScript,caption={Step 2: Shipments depends on Payments' internal type},label={lst:g2-ex1-step2}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Step 2: Shipments depends on Payments' internal type},label={lst:g2-ex1-step2}]
 import { PaymentStatus } from '@tiny-store/modules-payments';
 
 if (paymentStatus !== PaymentStatus.SUCCEEDED) {
@@ -209,7 +209,7 @@ Run \texttt{npm run test:boundary}: G1 passes (public entrypoint). But the depen
 \subsubsection*{Exercise 2: Transitive Orchestration ($C_{\mathrm{forbid}} \uparrow$, blast radius)}
 Cross-module orchestration is added to the composition root, expanding the blast radius of changes. Modify the \texttt{OrderPaid} subscription in \texttt{register-listeners.ts} to query Payments before creating a shipment:
 
-\begin{lstlisting}[language=TypeScript,caption={Violation: three-module orchestration in one handler},label={lst:g2-ex2-violation}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: three-module orchestration in one handler},label={lst:g2-ex2-violation}]
 eventBus.subscribe('OrderPaid', async (event) => {
   const { orderId } = event.payload;
   const payment = await getPaymentHandler.handle(orderId);  // Payments
@@ -227,7 +227,7 @@ G1 passes, but the handler now orchestrates three modules in sequence. A change 
 \subsubsection*{Exercise 3: Public Surface Bloat (Contract Stability $\downarrow$)}
 Five valid exports are added in a single sprint, inflating the public surface without violating any boundary rule. In \texttt{libs/modules/payments/src/index.ts}, add:
 
-\begin{lstlisting}[language=TypeScript,caption={Surface bloat: valid but excessive exports},label={lst:g2-ex3-violation}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Surface bloat: valid but excessive exports},label={lst:g2-ex3-violation}]
 // --- NEW: 5 additional query handlers in one sprint ---
 export * from './features/get-payments-by-order/handler';
 export * from './features/get-payments-by-status/handler';
