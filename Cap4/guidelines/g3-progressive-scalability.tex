@@ -315,7 +315,7 @@ const payment = await this.getPaymentHandler.handle(dto.orderId);
 
 \noindent
 G1/G2 pass: the import uses the public entrypoint. G3 fails: sync ratio rises.\\
-\textbf{Fix:} enrich the \texttt{OrderPaid} event payload with payment status.\\
+\emph{Resolution:} enrich the \texttt{OrderPaid} event payload with payment status.\\
 Reference: \texttt{exercises/g3/ex1-sync-payment-check.ts}
 
 \subsubsection*{Exercise 2: Shared Table Access (Data Ownership $\downarrow$)}
@@ -329,7 +329,7 @@ const rows = await this.db.execute(
 
 \noindent
 G1/G2 pass: no module import, only raw SQL. G3 fails: data ownership drops below 1.0.\\
-\textbf{Fix:} expose stock availability through an \texttt{InventoryUpdated} event.\\
+\emph{Resolution:} expose stock availability through an \texttt{InventoryUpdated} event.\\
 Reference: \texttt{exercises/g3/ex2-shared-inventory-view.ts}
 
 \subsubsection*{Exercise 3: Direct Infrastructure Dependency (Abstraction Coverage $\downarrow$)}
@@ -344,7 +344,7 @@ const cached = await redis.get(`product:${productId}`);
 
 \noindent
 G1/G2 pass: \texttt{ioredis} is a third-party package. G3 fails: abstraction coverage drops below 1.0.\\
-\textbf{Fix:} use \texttt{CacheService} from \texttt{@tiny-store/shared-infrastructure}.\\
+\emph{Resolution:} use \texttt{CacheService} from \texttt{@tiny-store/shared-infrastructure}.\\
 Reference: \texttt{exercises/g3/ex3-direct-redis-import.ts}
 
 \subsubsection*{Exercise Summary}

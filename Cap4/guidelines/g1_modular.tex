@@ -313,7 +313,7 @@ export * from './domain/repositories/order-repository';
 
   \noindent
   Run \texttt{npm run test:boundary}: fails because Encapsulation Leakage rises.\\
-  \textbf{Fix:} remove these exports; expose a contract instead (handler/port/event).
+  \emph{Resolution:} remove these exports; expose a contract instead (handler/port/event).
 
   \item \emph{Exercise 2: Direct Cross-Module Import (undeclared dependency).}
   In an Orders feature file:
@@ -325,7 +325,7 @@ import { SomeInventoryHandler } from '@tiny-store/modules-inventory';
 
   \noindent
   Run \texttt{npm run test:boundary}: fails because Undeclared or Forbidden Dependencies rise.\\
-  \textbf{Fix:} replace with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory).
+  \emph{Resolution:} replace with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory).
 
   \item \emph{Exercise 3: Hidden Event Wiring (implicit dependency).}
   Inside a module's \texttt{listeners/} file:
@@ -337,9 +337,13 @@ EventBus.getInstance().subscribe('OrderPlaced', (e) => this.handle(e));
 
   \noindent
   Run \texttt{npm run test:boundary \&\& npm run test:integration}: Isolation Pass Rate drops.\\
-  \textbf{Fix:} move the subscription to \texttt{register-listeners.ts}.
+  \emph{Resolution:} move the subscription to \texttt{register-listeners.ts}.
 \end{itemize}
 
 \subsection*{Conclusion}
 
-G1 demonstrated that boundary enforcement in a modular monolith requires executable constraints, not documentation alone. The exercises confirmed that each violation produces a specific, measurable signal while the system remains a single deployable unit. With boundaries enforced (G1), the next concern shifts from \emph{whether} modules can remain isolated to \emph{how} they can be evolved safely, motivating G2.
+G1 established that boundary enforcement in a modular monolith requires executable constraints, not documentation alone. The tutorial and exercises demonstrated three properties that are foundational to the remaining guidelines. First, boundary violations are detectable at build time: undeclared dependencies, encapsulation leaks, and forbidden imports each produce a specific, measurable signal that fails the verification gate before the violation reaches production. Second, enforcement is non-invasive: the boundary descriptor, public surface tests, and isolation checks operate alongside the existing codebase without requiring changes to domain logic, event contracts, or module internals. Third, the verification model is composable: each metric (Undeclared Dependencies, Forbidden Dependencies, Encapsulation Leakage, Event Violations, Isolation Pass Rate) targets a distinct coupling vector, and the binary composite $b_m$ aggregates them into a single pass/fail gate per module.
+
+These properties address a gap identified in the literature: decomposition research provides mature techniques for identifying module boundaries~\cite{abgaz2023decomposition}, but does not prescribe how to sustain those boundaries under the pressure of daily development. G1 bridges this gap by making boundary compliance a continuously verified, automatically enforced property. The approach is consistent with the principle that architectural decisions should be evident in code rather than maintained in external documentation~\cite{fairbanks2010justenough}, and with the observation that modularity at scale requires automated enforcement rather than team discipline alone~\cite{shopify2020monolith}.
+
+The Tiny Store exercises further illustrated that G1 violations are necessary but not sufficient for architectural health. Each exercise passed G1's boundary gate at baseline, yet the violations introduced, while structurally correct, degraded properties that G1 does not measure: maintainability trends, coupling direction, and surface stability. This observation motivates G2: with boundaries enforced, the next concern shifts from \emph{whether} modules can remain isolated to \emph{how} their interfaces can evolve without accumulating the implicit coupling that erodes maintainability over time.
