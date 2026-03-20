@@ -11,7 +11,7 @@ The four count metrics ($C_{\mathrm{undecl}}$, $C_{\mathrm{forbid}}$, $C_{\mathr
 \begin{itemize}[itemsep=6pt]
   \item $C_{\mathrm{undecl}}$: references where $(A, B) \notin D$. Target: 0~\cite{deLauretis2019from}.
   \item $C_{\mathrm{forbid}}$: references where $(A, B) \in F$. Target: 0~\cite{martin2012clean}.
-  \item $C_{\mathrm{leak}}$: references targeting symbols outside $\operatorname{pub}(B)$. Target: 0~\cite{parnas1972informationhiding}.
+  \item $C_{\mathrm{leak}}$: references targeting references outside $\operatorname{pub}(B)$. Target: 0~\cite{parnas1972informationhiding}.
   \item $C_{\mathrm{event}}$: event subscriptions where the $(subscriber, publisher)$ pair has no declared dependency. Target: 0~\cite{richardson2018microservices}.
 \end{itemize}
 
@@ -46,14 +46,14 @@ Let $M$ be the set of modules and $R$ the multiset of cross-module references.
   \[
     \Gamma = \frac{\max_{m \in M} |API_m|}{\frac{1}{|M|} \sum_{m \in M} |API_m|}
   \]
-  where $|API_m|$ = number of public symbols exported by module $m$.\\
+  where $|API_m|$ = number of public exports by module $m$.\\
   Target: $\Gamma \leq 3.0$~\cite{martin2012clean}.
 
   \item \textbf{Contract Stability Index ($\sigma_m$).}
   \[
     \sigma_m = \frac{|\operatorname{API}_m(t) \cap \operatorname{API}_m(t - \Delta t)|}{|\operatorname{API}_m(t - \Delta t)|}
   \]
-  where $\operatorname{API}_m(t)$ and $\operatorname{API}_m(t - \Delta t)$ = public symbol sets at current and previous measurement.\\
+  where $\operatorname{API}_m(t)$ and $\operatorname{API}_m(t - \Delta t)$ = public export sets at current and previous measurement.\\
   Target: $\sigma_m \geq 0.9$ per release cycle~\cite{FordParsons2017}.
 
   \item \textbf{Dependency Attraction ($\phi_m$).}
