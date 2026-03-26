@@ -88,11 +88,9 @@ The SOLID principles, properly applied, address many of these failure modes: Sin
 \subsubsection*{The Enforcement Gap}
 
 \noindent
-Recognizing anti-patterns and understanding SOLID principles is necessary but not sufficient. Most of the failure modes described above are well known by the software industry; experienced engineers recognize them on sight during code reviews and design discussions. Yet recognition alone does not prevent them. The gap between conceptual knowledge and daily practice persists because these principles are rarely operationalized as measurable, automated constraints~\cite{fairbanks2010justenough}. They exist as shared understanding in the team's collective memory, not as executable checks in the CI pipeline.
+Most of the failure modes described above are well known; experienced engineers recognize them on sight. Yet recognition alone does not prevent them, because these principles are rarely operationalized as measurable, automated constraints~\cite{fairbanks2010justenough}. They exist as shared understanding, not as executable checks in the CI pipeline.
 
-This gap compounds with growth. A single convenience import is harmless; hundreds of locally reasonable shortcuts across months of fast-paced delivery by multiple engineers and teams produce systemic architectural drift that no amount of documentation or periodic review can reverse. By the time the drift becomes visible, typically during an extraction attempt or a major refactoring, the cost of correction dwarfs the cost of prevention.
-
-The metrics and enforcement gates introduced in this guideline (and extended throughout G2 through G6) represent a deliberate attempt to close this gap: translating what engineers already know into what the build system can verify on every commit.
+This gap compounds with growth. A single convenience import is harmless; hundreds of locally reasonable shortcuts across months of fast-paced delivery produce systemic architectural drift that no amount of documentation or periodic review can reverse. By the time the drift becomes visible, typically during an extraction attempt, the cost of correction dwarfs the cost of prevention. The metrics and enforcement gates introduced in this guideline (and extended throughout G2 through G6) close this gap by translating what engineers already know into what the build system can verify on every commit.
 
 \subsection*{Metrics and Verification}
 
@@ -120,22 +118,12 @@ Isolation Pass Rate & Module tests passing with declared deps only & 100\% & \ci
 \noindent
 The composite $b_m = 1$ when all five metrics meet their targets for module $m$, 0 otherwise. It feeds into G3's extraction readiness gate ($\varepsilon_m$).
 
-\subsection*{Tooling Capabilities Checklist}
-Any open-source or proprietary tool used to enforce modular boundaries should support:
-\begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Module Discovery:} Automatically identify modules via conventions (for example, module folders, annotations) or explicit configuration.
-  \item \emph{Boundary Verification:} Perform automated checks during build/test to detect undeclared cross-module references and fail on violations.
-  \item \emph{Event-Driven Enforcement:} Track published events and subscribers, enforcing that only modules with declared subscriptions handle specific events.
-  \item \emph{Isolated Testing:} Allow tests to load only a given module (and its declared dependencies), failing early if the module tries to wire code from undeclared modules.
-  \item \emph{Documentation Artifacts:} Generate up-to-date artifacts or reports for inclusion in architecture documentation or CI/CD feedback.
-\end{itemize}
-
 \subsection*{Core Contribution}
 
 The contribution is not the individual practices (encapsulation, dependency declaration, automated testing are well-established) but a unified enforcement model that makes boundary discipline measurable and composable:
 
 \begin{enumerate}[itemsep=8pt,topsep=2pt]
-  \item \emph{The Enforcement Gap.} G1 formalizes the gap between conceptual knowledge of anti-patterns and executable enforcement: recognition without automation is insufficient under delivery pressure.
+  \item \emph{The Enforcement Gap.} G1 formalizes the gap described above as a measurable architectural concern, not an informal observation.
 
   \item \emph{Five-metric boundary model.} Undeclared dependencies, forbidden references, encapsulation leakage, isolation pass rate, and event subscription violations provide complete coverage of structural, runtime, and data-flow coupling.
 
@@ -179,25 +167,11 @@ This enforces a publish-subscribe contract: the producing module defines the eve
   \caption{Lifecycle of order-related events across bounded contexts.}
   \label{fig:order-events-lifecycle}
 
-  \vspace{0.5em}
-  \begin{minipage}{0.95\linewidth}
-    \footnotesize
-    \textbf{Statuses:}
-    \begin{description}[leftmargin=!,labelwidth=3.2cm]
-      \item[\texttt{PENDING}] Order created, awaiting inventory check
-      \item[\texttt{CONFIRMED}] Inventory reserved, ready for payment
-      \item[\texttt{REJECTED}] Insufficient stock
-      \item[\texttt{PAID}] Payment successful
-      \item[\texttt{PAYMENT\_FAILED}] Payment declined
-      \item[\texttt{SHIPPED}] Shipment created and dispatched
-      \item[\texttt{CANCELLED}] User cancelled order
-    \end{description}
-  \end{minipage}
 \end{figure}
 
 \subsection*{Tutorial: Step-by-Step Application}
 
-The following tutorial walks through applying G1 to the Tiny Store codebase. Each step introduces a specific boundary enforcement mechanism, building incrementally from a clean baseline to a fully verified modular structure. The steps are designed to be reproducible: the reader can apply them in order to any monorepo with bounded-context modules managed by a workspace-aware build system such as Nx~\cite{nx2024}.
+Each step introduces a specific boundary enforcement mechanism, building incrementally from a clean baseline to a fully verified modular structure. The steps are reproducible on any monorepo with bounded-context modules managed by a workspace-aware build system such as Nx~\cite{nx2024}.
 
 \begin{itemize}[itemsep=8pt,topsep=4pt]
 
@@ -220,9 +194,6 @@ import { PlaceOrderHandler } from '@tiny-store/modules-orders';
 import { Order } from '@tiny-store/modules-orders';             // blocked
 import { OrderRepository } from '@tiny-store/modules-orders';   // blocked
   \end{lstlisting}
-
-  \noindent
-  Reactions to order state changes flow through event contracts and listeners; requests use public handlers. Cross-cutting primitives belong in \texttt{libs/shared/}.
 
   \item \emph{Step 2: Encode Explicit Declarations.}
   Express \emph{requires} and \emph{forbids} in a single, executable source of truth. The \texttt{requires} list declares allowed dependencies; the \texttt{forbids} list encodes domain invariants that must never be violated, making the decision to remove a prohibition explicit and reviewable rather than a silent one-line change:
@@ -342,8 +313,8 @@ EventBus.getInstance().subscribe('OrderPlaced', (e) => this.handle(e));
 
 \subsection*{Conclusion}
 
-G1 established that boundary enforcement in a modular monolith requires executable constraints, not documentation alone. The tutorial and exercises demonstrated three properties that are foundational to the remaining guidelines. First, boundary violations are detectable at build time: undeclared dependencies, encapsulation leaks, and forbidden imports each produce a specific, measurable signal that fails the verification gate before the violation reaches production. Second, enforcement is non-invasive: the boundary descriptor, public surface tests, and isolation checks operate alongside the existing codebase without requiring changes to domain logic, event contracts, or module internals. Third, the verification model is composable: each metric (Undeclared Dependencies, Forbidden Dependencies, Encapsulation Leakage, Event Violations, Isolation Pass Rate) targets a distinct coupling vector, and the binary composite $b_m$ aggregates them into a single pass/fail gate per module.
+The exercises revealed an important asymmetry: every violation that G1 catches is architecturally harmful, but not every architecturally harmful change triggers a G1 violation. A module can pass all five boundary checks while quietly accumulating the kind of coupling that makes future changes expensive: a growing public surface that every consumer must track, a concentration of inbound dependencies on a single module, or a contract that changes with every release. These are not boundary problems; they are \emph{evolution} problems, and they require a different class of metric.
 
-These properties address a gap identified in the literature: decomposition research provides mature techniques for identifying module boundaries~\cite{abgaz2023decomposition}, but does not prescribe how to sustain those boundaries under the pressure of daily development. G1 bridges this gap by making boundary compliance a continuously verified, automatically enforced property. The approach is consistent with the principle that architectural decisions should be evident in code rather than maintained in external documentation~\cite{fairbanks2010justenough}, and with the observation that modularity at scale requires automated enforcement rather than team discipline alone~\cite{shopify2020monolith}.
+This asymmetry is what connects the Architectural Design guidelines into a progression rather than a checklist. G1's binary gate ($b_m$) answers a structural question: \emph{can} modules operate independently? But a passing gate says nothing about \emph{whether} that independence is being preserved as the codebase evolves. G2 picks up exactly where this blind spot begins, shifting from static boundary verification to tracking how module interfaces change over time: coupling direction, surface stability, and the rate at which cross-module dependencies accumulate. G3 then extends the same logic to infrastructure: even with clean boundaries and stable interfaces, a module that shares its database schema or communicates exclusively through synchronous calls cannot be extracted without rewriting its data access layer.
 
-The Tiny Store exercises further illustrated that G1 violations are necessary but not sufficient for architectural health. Each exercise passed G1's boundary gate at baseline, yet the violations introduced, while structurally correct, degraded properties that G1 does not measure: maintainability trends, coupling direction, and surface stability. This observation motivates G2: with boundaries enforced, the next concern shifts from \emph{whether} modules can remain isolated to \emph{how} their interfaces can evolve without accumulating the implicit coupling that erodes maintainability over time.
+Each guideline, in other words, protects against a category of degradation that the previous one is structurally unable to detect. The result is a layered verification model where $b_m$ feeds into G2's maintainability assessment, which in turn feeds into G3's extraction readiness score ($\varepsilon_m$). A team that enforces only G1 will have clean boundaries that silently calcify; a team that enforces G1 and G2 will have maintainable modules that cannot be extracted; only the complete chain produces a system where extraction, when warranted, is a configuration change rather than a rewrite.
