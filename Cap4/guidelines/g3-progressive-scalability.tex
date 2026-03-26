@@ -2,13 +2,13 @@
 \section{G3: Design for Progressive Scalability}
 \label{sec:g3-design-progressive-scalability}
 
-G3 designs modular monoliths so that scalability is achieved progressively rather than through premature distribution. \emph{Progressive scalability} is the capacity of a modular monolith to accommodate increasing load, data volume, and organizational growth through a deliberate sequence of architectural steps, each proportional to the observed need, without requiring a wholesale migration to a distributed architecture. G3 requires that G1 boundaries are enforced and G2 maintainability discipline is in place.
+G3 designs modular monoliths so that scalability is achieved progressively rather than through premature distribution. \emph{Progressive scalability} is the capacity of a modular monolith to address increasing load, data volume, and organizational growth through proportional architectural steps, each triggered by evidence and reversible by design, without requiring wholesale migration to distributed services. G3 requires that G1 boundaries are enforced and G2 maintainability discipline is in place.
 
 \subsection*{Intent and Rationale}
 
 The prevailing narrative in cloud-native literature frames scalability as an inherently distributed concern: when the system must scale, it must be decomposed into independently deployable services~\cite{arya2024beyond, blinowski2022monolithic}. This framing creates a false dichotomy. Teams are implicitly told to choose between a monolith that cannot scale and microservices that can, ignoring the intermediate architectural states that a well-modularized monolith can occupy. In practice, load concentrates in specific modules and specific data domains expand faster than others. A system designed for progressive scalability acknowledges this unevenness and provides mechanisms to address it in a targeted manner.
 
-G3 treats scalability as a \emph{spectrum} rather than a binary switch. The guideline defines a four-level Progressive Scalability Spectrum (Table~\ref{tab:scalability-spectrum}): \emph{Tune} (vertical optimization), \emph{Decouple} (asynchronous boundaries), \emph{Isolate} (data separation), and \emph{Extract} (selective service extraction) as a last resort. Each level is triggered by observable metrics rather than speculative anticipation, and each step is reversible if conditions change.
+G3 operationalizes this through a four-level Progressive Scalability Spectrum (Table~\ref{tab:scalability-spectrum}): Tune, Decouple, Isolate, and Extract, where each transition is metric-driven and each step preserves rollback optionality.
 
 \subsection*{Objectives}
 
@@ -28,16 +28,16 @@ G3 treats scalability as a \emph{spectrum} rather than a binary switch. The guid
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Scale where it hurts, not where it might:}
-  Scaling actions are driven by observed bottlenecks, not speculative anticipation. Module-level metrics provide the evidence base.
+  Scaling actions are driven by observed bottlenecks, not speculative anticipation. Module-level metrics provide the evidence base~\cite{FordParsons2017}.
 
   \item \emph{Asynchronous boundaries enable independent scaling:}
-  The boundary between two modules becomes a scalability boundary when their throughput requirements diverge. An asynchronous channel at this boundary accommodates load spikes without propagating cascading load to the consumer.
+  The boundary between two modules becomes a scalability boundary when their throughput requirements diverge. An asynchronous channel at this boundary accommodates load spikes without propagating cascading load to the consumer~\cite{richardson2018microservices}.
 
   \item \emph{Infrastructure and data are abstraction-ready from the start:}
-  G1 establishes per-module schemas. G3 extends this by requiring that both data access and infrastructure dependencies are mediated through ports and published contracts, so that any spectrum transition is a configuration change rather than a rewrite.
+  G1 establishes per-module schemas. G3 extends this by requiring that both data access and infrastructure dependencies are mediated through ports and published contracts, so that any spectrum transition is a configuration change rather than a rewrite~\cite{cockburn2005hexagonal}.
 
   \item \emph{Every step is reversible by design:}
-  Each spectrum-level transition preserves the option to roll back. Infrastructure abstractions and communication channels are structured so that reverting requires configuration changes, not architectural rework.
+  Each spectrum-level transition preserves the option to roll back. Infrastructure abstractions and communication channels are structured so that reverting requires configuration changes, not architectural rework~\cite{FordParsons2017}.
 \end{itemize}
 
 \subsection*{Implementation Mechanisms}
@@ -108,9 +108,7 @@ G1 and G2 anti-patterns remain relevant at the G3 level. The five patterns below
 
 The Progressive Scalability Gap is the distance between architectural correctness and scalability readiness. The phenomenon is well known informally but unnamed in the literature; G3 formalizes it as a distinct architectural concern, analogous to G2's Incremental Maintainability Degradation. A module can have perfect boundary scores (G1) and stable maintainability trends (G2) while sharing a database connection pool with three other modules, communicating exclusively through blocking calls, and depending on infrastructure through concrete implementations. G1 and G2 cannot detect this because they validate boundaries and maintainability trends, not operational readiness for independent scaling.
 
-The gap widens through deferred decisions. Each time a team chooses a synchronous call over an event, a shared table over a replicated projection, or a direct library import over a port interface, the cost of future scaling increases. Unlike maintainability debt (G2), which manifests as coordination overhead in daily development, scalability debt remains invisible until load arrives, at which point the only option is a coordinated migration rather than a targeted step.
-
-A system closes this gap not by distributing prematurely, but by progressively preparing its modules for independent scaling: isolating data, abstracting infrastructure, and introducing asynchronous boundaries before they are needed. G3's metrics make this preparation visible and measurable.
+The gap widens through deferred decisions. Each time a team chooses a synchronous call over an event, a shared table over a replicated projection, or a direct library import over a port interface, the cost of future scaling increases. Unlike maintainability debt (G2), which manifests as coordination overhead in daily development, scalability debt remains invisible until load arrives, at which point the only option is a coordinated migration rather than a targeted step. The response is not premature distribution but progressive preparation: isolating data, abstracting infrastructure, and introducing asynchronous boundaries before they are needed, so that each scaling step is a targeted configuration change rather than a systemic rewrite.
 
 \subsection*{Metrics and Verification}
 
@@ -266,11 +264,11 @@ Tiny Store includes an automated extraction readiness calculator that scores eac
 \needspace{4\baselineskip}
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Extraction readiness scoring (extraction-readiness.ts)},label={lst:g3-readiness-score}]
 const checks: CheckResult[] = [
-  checkCrossModuleImports(mod),        // 25 pts (G1)
-  checkEventBusUsage(mod),             // 20 pts (async)
-  checkAntiCorruptionLayer(mod),       // 15 pts (G2)
-  checkSchemaIsolation(),              // 20 pts (data)
-  checkVersionedEvents(mod),           // 20 pts (events)
+  checkCrossModuleImports(mod),        // pass/fail (G1 boundary)
+  checkEventBusUsage(mod),             // pass/fail (async readiness)
+  checkAntiCorruptionLayer(mod),       // pass/fail (G2 contracts)
+  checkSchemaIsolation(),              // pass/fail (data ownership)
+  checkVersionedEvents(mod),           // pass/fail (event contracts)
 ];
 \end{lstlisting}
 
@@ -358,6 +356,6 @@ All three exercises pass G1 and G2 gates:
 
 \subsection*{Conclusion}
 
-G3 demonstrated that scalability in a modular monolith is a spectrum traversed through proportional steps: vertical optimization before async decoupling, async decoupling before data isolation, data isolation before extraction. The Tiny Store reference implementation shows that infrastructure for all four levels can be established from the initial deployment, making scalability a structural property rather than a future migration.
+The counterintuitive result of the Tiny Store demonstration is that the marginal cost of each spectrum transition is configuration, not construction. Because caching adapters, queue abstractions, schema isolation, and event contracts are established from the initial deployment, moving a module from Tune to Decouple or from Isolate to Extract does not require building new infrastructure; it requires rebinding existing abstractions to different backends. This inverts the common assumption that scalability preparation is a future investment: in G3's model, the investment is made once at project start, and each scaling step draws on infrastructure that is already present and tested.
 
 With boundaries enforced (G1), maintainability preserved (G2), and scalability infrastructure prepared (G3), the architecture is structurally ready for growth. G4 addresses the next concern: when a module's extraction readiness score warrants the Extract level, how to prepare it for independent deployment through event-driven contracts, saga orchestration, and controlled topology changes.
