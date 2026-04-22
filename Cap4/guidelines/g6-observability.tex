@@ -78,6 +78,13 @@ G1--G5 anti-patterns remain relevant at the G6 level. The five patterns below pa
   \emph{Approach:} set module-scoped alerts for precise, actionable signals.
 \end{itemize}
 
+\subsection*{The Observability Deficit}
+\label{sec:g6-observability-deficit}
+
+Monoliths are treated as observability black boxes. Application-level monitoring reports aggregate metrics (total latency, overall error rate) but cannot attribute performance characteristics to individual modules. Without module-level visibility, G3's scalability triggers cannot be evaluated (``which module needs scaling?''), G4's readiness assessments have no evidence base (``is this module ready for extraction?''), and G5's deployment decisions are made on intuition rather than data.
+
+Microservices close this deficit by default: each service has its own metrics endpoint, log stream, and trace context. In a monolith, this visibility must be deliberately constructed. The Observability Deficit widens as the system grows: more modules produce more aggregate noise, making it progressively harder to isolate the source of performance degradation. G6 closes the deficit by scoping instrumentation to module boundaries, creating the same observability posture inside the monolith that microservices achieve through deployment isolation.
+
 \subsection*{Metrics and Verification}
 
 \medskip
@@ -105,6 +112,8 @@ G6 metrics are assessed as part of the extraction readiness review (G4). Before 
 G6 contributes to the modular monolith literature in three ways:
 
 \begin{enumerate}[itemsep=8pt,topsep=2pt]
+  \item \emph{The Observability Deficit as a formal concept.} G6 names the phenomenon where a modular monolith has clean boundaries and extraction readiness but lacks module-level visibility to evaluate scaling triggers, readiness assessments, and deployment decisions (Section~\ref{sec:g6-observability-deficit}), analogous to G5's Deployment-Architecture Mismatch and G4's Migration Readiness Gap.
+
   \item \emph{Module-scoped observability as a monolith practice.} Research on modular monoliths notes that monoliths lack observability practices comparable to microservices, treating the system as a ``single black box''~\cite{montesi2021sliceable}. G6 addresses this by making internal module interactions as observable as inter-service communication, using the same vendor-neutral standards.
 
   \item \emph{Observability continuity across extraction.} By instrumenting at the module boundary from day one, G6 ensures that dashboards, traces, and alerts survive extraction unchanged. The only difference after extraction is the addition of network latency between spans, which is precisely the information needed to evaluate performance impact.
@@ -116,7 +125,7 @@ G6 contributes to the modular monolith literature in three ways:
 
 Observability is extensively discussed in the microservices literature, where distributed tracing, centralized logging, and metrics collection are considered essential~\cite{arya2024beyond}. However, these practices are rarely advocated for monolithic systems, where the assumption is that a single process does not need distributed observability tools. This creates a dangerous gap: when extraction occurs, the team must simultaneously learn new monitoring tools, establish baselines, and debug a newly distributed system.
 
-Research on modular monoliths notes the observability deficit~\cite{montesi2021sliceable, gravanis2021dont}. G6 addresses this by introducing production-grade observability inside the monolith, scoped to module boundaries. The contribution is not the tooling itself, which is well-established, but the practice of applying it at the module boundary level inside a monolith, creating continuity across the entire scalability spectrum.
+Research on modular monoliths notes what G6 formalizes as the Observability Deficit (Section~\ref{sec:g6-observability-deficit})~\cite{montesi2021sliceable, gravanis2021dont}. G6 addresses this by introducing production-grade observability inside the monolith, scoped to module boundaries. The contribution is not the tooling itself, which is well-established, but the practice of applying it at the module boundary level inside a monolith, creating continuity across the entire scalability spectrum.
 
 
 %% ============================================================
@@ -125,11 +134,9 @@ Research on modular monoliths notes the observability deficit~\cite{montesi2021s
 \section{G6 Applied: Observability in the Tiny Store}
 \label{sec:g6-applied}
 
-G6 is demonstrated through the Tiny Store observability infrastructure, which produces module-scoped logs, metrics, and traces from day one.\footnote{Full source: \url{https://github.com/maurcarvalho/tiny-store}, observability layer at \texttt{libs/shared/infrastructure/src/observability/}}
+G6 is demonstrated through the Tiny Store observability infrastructure, which produces module-scoped logs, metrics, and traces from day one.\footnote{Full source: \url{https://github.com/maurcarvalho/tiny-store}, observability layer at \texttt{libs/shared/infrastructure/src/observability/}} The tutorial walks through four observability pillars: structured logging, module-scoped metrics, distributed tracing, and alert configuration. Each step is reproducible on any modular monolith with handler-based module boundaries.
 
 \subsection*{Tutorial: Step-by-Step Application}
-
-The following tutorial walks through applying the guideline to the Tiny Store codebase. Each step introduces a specific preparation mechanism, building incrementally from the current state to a fully verified structure.
 
 \subsubsection*{Step 1: Do all logs carry module context?}
 
@@ -218,20 +225,18 @@ A handler uses \texttt{console.log} instead of the module logger. Log entries la
 A new handler is added without creating a trace span or recording metrics. The handler's latency and error rate are invisible to dashboards and alerts.\\
 \emph{Resolution:} wrap the handler in \texttt{tracer.startActiveSpan()} and record metrics in the \texttt{finally} block.
 
+\subsubsection*{Exercise 3: Broken Trace Propagation (Trace Completeness $\downarrow$)}
+
+The event publisher does not inject trace context into message headers. Downstream listeners start new traces instead of continuing the existing one. The order fulfillment flow (OrderPlaced $\to$ InventoryReserved $\to$ PaymentProcessed $\to$ ShipmentCreated) shows as four disconnected traces in the trace viewer instead of one unified trace.\\
+\emph{Resolution:} inject trace context via \texttt{injectTraceContext(\{\})} in every \texttt{eventPublisher.publish()} call. Consumers extract the trace context from message headers and continue the parent span, producing a single end-to-end trace.
+
 \subsubsection*{Exercise Summary}
 Each exercise assumes a clean baseline. After each exercise, revert the violation before proceeding to the next.
-
-\small
-\noindent
-\begin{tabularx}{\linewidth}{c X c c}
-\toprule
-\textbf{Ex.} & \textbf{What you change} & \textbf{G6 signal} & \textbf{G1--G5} \\
-\midrule
-1 & \texttt{console.log} instead of module logger & Log Attribution Rate $\downarrow$ & \checkmark \\
-2 & Handler without trace span or metrics & Metric Coverage $\downarrow$ & \checkmark \\
-\bottomrule
-\end{tabularx}
-\normalsize
+\begin{itemize}[itemsep=2pt,topsep=2pt]
+  \item \textbf{Ex.\,1:} Missing module context in logs → Log Attribution Rate drops.
+  \item \textbf{Ex.\,2:} Uninstrumented handler → Metric Coverage drops.
+  \item \textbf{Ex.\,3:} Broken trace propagation → Trace Completeness drops.
+\end{itemize}
 
 \subsection*{Conclusion}
 
