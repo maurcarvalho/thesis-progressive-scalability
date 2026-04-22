@@ -1,52 +1,235 @@
 \pagebreak
-\section{G5: Deployment Strategy}
-\label{sec:g5-align-deployment-strategy}
+\section{G5: Streamline Deployment Strategy}
+\label{sec:g5-streamline-deployment-strategy}
 
-In this section, we present G5, which focuses on aligning deployment pipelines with module boundaries through partial builds, per-module configuration, and segmented observability. G5 ensures that even when the monolith is packaged as a single artifact, internal modularity informs CI/CD practices, deployment validation, and runtime monitoring.
+G5 designs a deployment strategy that reflects and reinforces the modular structure of the monolith. The system ships as a single artifact today, but the pipeline is module-aware from the outset so that producing multiple deployment artifacts, when G3's Extract level is triggered, is a configuration change rather than a pipeline rewrite. G5 requires that G4's migration readiness is in place.
 
-\subsection*{Conceptual Overview}
-To be done during research.
+\subsection*{Intent and Rationale}
+
+Deployment strategy in modular monoliths is frequently treated as trivial: ``it is a monolith, so ship one artifact.'' This simplification creates a hidden cost. When extraction pressure arrives, teams discover that their CI/CD pipeline, Dockerfiles, and infrastructure provisioning assume a single-artifact world. Building a second artifact requires restructuring the pipeline, introducing new build targets, and duplicating configuration. The deployment dimension becomes the bottleneck, not the code.
+
+The root cause is that most deployment pipelines are designed around \emph{deployment units} (``what gets shipped'') rather than \emph{module boundaries} (``what changed and what depends on it''). A module-aware pipeline inverts this: it understands the dependency graph, runs only the tests and builds affected by a change, and can produce multiple deployment artifacts from the same monorepo without structural changes.
+
+G5 treats deployment as a spectrum that mirrors G3's scalability spectrum. The monorepo does not split. The build toolchain does not change. What changes is the number of entry points the pipeline packages into deployable images.
 
 \subsection*{Objectives}
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Partial builds:} To be done.
-  \item \emph{Per-module configuration:} To be done.
-  \item \emph{Segmented observability:} To be done.
+
+\emph{Research contributions:}
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \emph{Formalize a deployment spectrum for modular monoliths:} Define a three-level progression (Single Artifact, Module-Aware CI, Multi-Artifact) where each transition is driven by operational need, mirroring G3's scalability spectrum.
+  \item \emph{Demonstrate monorepo preservation under extraction:} Show that the repository boundary and the deployment boundary are independent concerns, preserving atomic refactoring and shared toolchain as modules are extracted.
+\end{itemize}
+
+\emph{Implementation objectives:}
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \emph{Module-aware CI/CD:} Scope builds, tests, and deployments to affected modules only, using the dependency graph as the pipeline driver.
+  \item \emph{Infrastructure-as-code from day one:} Provision production dependencies (message broker, workflow engine, databases) as part of the standard deployment configuration.
+  \item \emph{Independent deployment after extraction:} Each deployment target has its own release pipeline, triggered by changes to its affected scope.
 \end{itemize}
 
 \subsection*{Key Principles}
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Principle 1:} To be done.
-  \item \emph{Principle 2:} To be done.
-  \item \emph{Principle 3:} To be done.
-  \item \emph{Principle 4:} To be done.
-  \item \emph{Principle 5:} To be done.
+
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \emph{The monorepo never splits:} Repository splitting is one of the most frequently cited causes of migration failure. When modules move to separate repositories, atomic refactoring becomes impossible, shared library versioning introduces diamond dependency problems, and boundary verification (G1) can no longer run across the full codebase. All modules remain in the same workspace regardless of deployment topology~\cite{gravanis2021dont}.
+
+  \item \emph{The dependency graph drives the pipeline:} The module dependency graph encodes the same boundaries enforced by G1. Using it to scope CI decisions ensures that builds, tests, and deployments are grounded in actual dependency relationships rather than file-path heuristics, reducing CI time proportionally to change size rather than repository size~\cite{FordParsons2017}.
+
+  \item \emph{Infrastructure is a deployment dependency, not an afterthought:} G4 introduced durable event streaming and saga orchestration. G5 ensures these are provisioned as part of the deployment configuration from day one. When a module is extracted, the infrastructure remains; only the application topology changes~\cite{ghemawat2023towards}.
+
+  \item \emph{One Dockerfile per deployment target:} Each deployable target packages only its code and transitive dependencies. In the monolith phase, there is one target. When a module is extracted, a second target appears. Modules that are not deployment targets are included as dependencies of whichever target consumes them~\cite{richardson2018microservices}.
 \end{itemize}
 
-\subsection*{Metrics \& Verification}
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Build latency per module:} To be done.
-  \item \emph{Deployment failure rate:} To be done.
-  \item \emph{Observability coverage:} To be done.
-  \item \emph{Rollout blast radius:} To be done.
+\subsection*{Implementation Mechanisms}
+
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \emph{Affected-scope CI:} The CI pipeline computes which projects are impacted by a change using the module dependency graph and runs only their builds and tests. Boundary verification always runs because it is inexpensive and catches architectural regressions regardless of which module changed.
+
+  \item \emph{Multi-stage container builds:} Each deployment target uses a multi-stage Dockerfile that copies only the target module and its transitive dependencies, minimizing image size and preventing code leakage across services.
+
+  \item \emph{Unified infrastructure provisioning:} Docker Compose (local) and deployment configuration (production) provision all dependencies (database, message broker, workflow engine, observability stack) alongside the application. Both monolith and extracted-service topologies share the same infrastructure; only the application layer changes.
+
+  \item \emph{Per-target release pipelines:} After extraction, each deployment target has an independent release pipeline triggered by changes to its affected scope. This enables heterogeneous deployment frequency: the monolith may deploy weekly while an extracted module deploys daily.
 \end{itemize}
 
-\subsection*{Documentation Guidelines}
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{ADR Template:} To be done.
-  \item \emph{Module Descriptor:} To be done.
-  \item \emph{Change Log Practices:} To be done.
+
+\subsubsection*{The Deployment Spectrum}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Deployment Spectrum for Modular Monoliths}
+\label{tab:deployment-spectrum}
+\begin{tabularx}{\linewidth}{p{0.22\linewidth} X p{0.28\linewidth}}
+\toprule
+\textbf{Action} & \textbf{Description} & \textbf{Trigger Condition} \\
+\midrule
+Single Artifact (D0) & One container image from the monolith entry point. All modules ship together. & Default starting point. \\
+Module-Aware CI (D1) & CI scopes tests and builds to affected modules. Still one artifact, but pipeline is faster and module-scoped. & CI times grow beyond acceptable thresholds. \\
+Multi-Artifact (D2) & Monorepo produces multiple container images. Each target has its own pipeline. Shared libs remain in the repo. & G3 Extract level triggered; independent deployment cadence required. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection*{Common Failure Modes and Anti-Patterns}
+
+G1--G4 anti-patterns remain relevant at the G5 level. The five patterns below pass all prior gates but compromise the deployment strategy.
+
+\begin{itemize}[itemsep=8pt,topsep=2pt]
+  \item \textbf{Repository Splitting During Extraction} (atomic refactoring lost)\\
+  Moving an extracted module to a separate repository breaks atomic refactoring, duplicates shared libraries, and disables workspace-wide boundary verification.
+  \emph{Approach:} keep the monorepo unified; only deployment targets multiply.
+
+  \item \textbf{Build Everything CI} (CI Scope Efficiency below 1.0)\\
+  Running all tests and builds on every commit regardless of what changed, wasting CI resources and slowing feedback loops.
+  \emph{Approach:} use module-aware CI to build and test only affected modules.
+
+  \item \textbf{Infrastructure Bolted On During Extraction} (Infrastructure Parity below 1.0)\\
+  Adding event broker, workflow engine, or database provisioning only when a module is extracted, compounding extraction risk with infrastructure risk.
+  \emph{Approach:} require infrastructure-as-code from day one (D0).
+
+  \item \textbf{Monolithic Dockerfile for a Modular System} (image size, build time)\\
+  A single Dockerfile that copies the entire repository into the image, including modules the deployment target does not use.
+  \emph{Approach:} use per-target Dockerfiles that copy only the required modules and transitive dependencies.
+
+  \item \textbf{Coordinated Deployments After Extraction} (Independent Deployment Rate drops)\\
+  Requiring all deployment targets to be released simultaneously, negating the independent deployment benefit that motivated extraction~\cite{richardson2018microservices}.
+  \emph{Approach:} each target has its own release pipeline triggered by its affected scope.
 \end{itemize}
 
-\subsection*{Tool Capabilities}
-Any open‐source or proprietary software tool used to support G5 should address:
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item \emph{Partial build automation:} To be done.
-  \item \emph{Module-specific config manager:} To be done.
-  \item \emph{Observability segmentation tool:} To be done.
-  \item \emph{CI/CD pipeline integration:} To be done.
-  \item \emph{Deployment validation scripts:} To be done.
-\end{itemize}
+
+\subsection*{Metrics and Verification}
+
+\medskip
+\noindent
+\small
+\begin{tabularx}{\linewidth}{p{0.30\linewidth} X c p{0.12\linewidth}}
+\toprule
+\textbf{Metric} & \textbf{What it measures} & \textbf{Target} & \textbf{Source} \\
+\midrule
+CI Scope Efficiency & Ratio of affected to tested modules & $1.0$ & \cite{FordParsons2017} \\
+Build Time per Scope & Wall-clock time for affected builds/tests & $< 5$ min & \cite{fairbanks2010justenough} \\
+Infrastructure Parity & Local infrastructure matching production & $1.0$ & \cite{martin2012clean} \\
+Independent Deployment Rate & Deployments not requiring coordination & $\geq 0.8$ & \cite{richardson2018microservices} \\
+Rollback Success Rate & Independent rollbacks without coordination & $\geq 0.95$ & \cite{FordParsons2017} \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\medskip
+\noindent
+CI Scope Efficiency and Build Time are tracked from D0 onward, providing early signals about pipeline health. After extraction (D2), Independent Deployment Rate and Rollback Success verify that independent deployment is genuinely achievable.
+
+
+\subsection*{Core Contribution}
+
+G5 contributes to the modular monolith literature in three ways:
+
+\begin{enumerate}[itemsep=8pt,topsep=2pt]
+  \item \emph{A formalized deployment spectrum.} The three-level progression (D0, D1, D2) mirrors G3's scalability spectrum, ensuring that deployment complexity grows proportionally with extraction decisions rather than speculatively.
+
+  \item \emph{Monorepo preservation under extraction.} G5 demonstrates that the repository boundary and the deployment boundary are independent concerns: modules can be extracted into independent services while preserving atomic refactoring, shared toolchain, and unified boundary verification.
+
+  \item \emph{Infrastructure-from-day-one as a deployment principle.} By provisioning production dependencies from the initial deployment, G5 eliminates the ``big bang'' infrastructure change that compounds extraction risk, making the transition a topology change rather than an infrastructure project.
+\end{enumerate}
 
 \subsection*{Literature Support Commentary}
-While deployment strategies are extensively studied for microservices(e.g, CI/CD pipelines, blue-green deployments and containerization) few works tie these practices back to a modular monolith’s internal structure~\cite{montesi2021sliceable}. The assumption that monoliths deploy as indivisible units ignores embedded modular boundaries. G5 addresses this gap by proposing partial builds, module-specific configurations, and segmented observability as ways to operationalize monolith modularity in production.
+
+Deployment strategy in modular monoliths is one of the least explored topics in the academic literature. Microservices research extensively covers CI/CD pipelines and container orchestration~\cite{arya2024beyond}, but assumes a multi-repository, multi-service baseline. Studies on monoliths acknowledge simplified deployment as a benefit but rarely analyze how deployment should evolve as modules are extracted~\cite{montesi2021sliceable, gravanis2021dont}.
+
+The monorepo approach is well-documented in industry practice, but its application to modular monoliths, where the repository structure encodes bounded-context boundaries and the deployment strategy must support progressive extraction, has not been systematically examined. G5 fills this gap by defining a deployment spectrum that mirrors G3's scalability spectrum, preserving monolithic simplicity while enabling multi-service deployment when extraction is justified.
+
+
+%% ============================================================
+%% G5 APPLIED
+%% ============================================================
+\section{G5 Applied: Deployment Strategy in the Tiny Store}
+\label{sec:g5-applied}
+
+G5 is demonstrated through the Tiny Store deployment configuration, progressing from a single artifact to multi-artifact extraction.\footnote{Full source: \url{https://github.com/maurcarvalho/tiny-store}}
+
+\subsection*{Tutorial: Step-by-Step Application}
+
+The following tutorial walks through applying the guideline to the Tiny Store codebase. Each step introduces a specific preparation mechanism, building incrementally from the current state to a fully verified structure.
+
+\subsubsection*{Step 1: Is the local environment mirroring production?}
+
+The Docker Compose configuration provisions all infrastructure from day one:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=yaml,caption={Docker Compose: infrastructure from day one (abbreviated)},label={lst:g5-docker-compose}]
+services:
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    ports: ['3000:3000']
+    environment:
+      DATABASE_URL: postgres://tiny:store@postgres:5432/tinystore
+      KAFKA_BROKER: kafka:9092
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on: [postgres, kafka, temporal]
+  postgres: { image: 'postgres:16-alpine' }
+  kafka:     { image: 'confluentinc/cp-kafka:7.6.0' }
+  temporal:  { image: 'temporalio/auto-setup:1.24' }
+  redis:     { image: 'redis:7-alpine' }
+\end{lstlisting}
+
+\subsubsection*{Step 2: Is CI scoped to affected modules?}
+
+The CI pipeline uses the module dependency graph to scope builds:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={Module-aware CI with affected scope},label={lst:g5-ci-affected}]
+# Only affected modules are linted, tested, and built
+- run: npx nx affected --target=lint  --base=$NX_BASE
+- run: npx nx affected --target=test  --base=$NX_BASE
+- run: npx nx affected --target=build --base=$NX_BASE
+\end{lstlisting}
+
+\noindent
+A change to the orders module triggers tests for orders and the API application (which depends on it), but not for inventory, payments, or shipments.\footnote{Full CI workflow: \texttt{.github/workflows/ci.yml}}
+
+\subsubsection*{Step 3: Can the monorepo produce a second artifact?}
+
+When the orders module is extracted, a second Dockerfile packages only orders and its transitive dependencies:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={Extracted service Dockerfile (abbreviated)},label={lst:g5-dockerfile-d2}]
+# apps/orders-service/Dockerfile
+COPY libs/modules/orders/ libs/modules/orders/
+COPY libs/shared/ libs/shared/
+COPY apps/orders-service/ apps/orders-service/
+RUN npx nx build orders-service --prod
+# Image contains only orders + shared; no other modules
+\end{lstlisting}
+
+\noindent
+The monolith's Docker Compose is extended with a second service entry. Both connect to the same infrastructure. The monolith routes order requests to the extracted service via an environment variable (\texttt{ORDERS\_SERVICE\_URL}). No domain logic changes.\footnote{Full Dockerfiles and compose configuration: \texttt{apps/*/Dockerfile}, \texttt{docker-compose.yml}}
+
+\subsection*{Exercise Walkthrough: Controlled Violations and Signals}
+
+\subsubsection*{Exercise 1: Full-Repo CI After Extraction (CI Scope Efficiency $\downarrow$)}
+
+After extracting orders, the CI pipeline still runs all tests on every commit instead of scoping to affected modules. A change to inventory triggers a full rebuild including orders-service tests.\\
+\emph{Resolution:} configure CI to use affected-scope targeting; each deployment target builds only when its dependency graph is impacted.
+
+\subsubsection*{Exercise 2: Coordinated Release (Independent Deployment Rate $\downarrow$)}
+
+The team requires both the monolith and orders-service to be deployed together because they share a database migration script. A hotfix to orders cannot ship without a monolith release.\\
+\emph{Resolution:} ensure each deployment target owns its migrations independently (G4's data ownership); release pipelines are triggered per-target.
+
+\subsubsection*{Exercise Summary}
+Each exercise assumes a clean baseline. After each exercise, revert the violation before proceeding to the next.
+
+\small
+\noindent
+\begin{tabularx}{\linewidth}{c X c c}
+\toprule
+\textbf{Ex.} & \textbf{What you change} & \textbf{G5 signal} & \textbf{G1--G4} \\
+\midrule
+1 & CI runs all tests after extraction & CI Scope Efficiency $\downarrow$ & \checkmark \\
+2 & Shared migration forces coordinated deploy & Independent Deployment Rate $\downarrow$ & \checkmark \\
+\bottomrule
+\end{tabularx}
+\normalsize
+
+\subsection*{Conclusion}
+
+G5 demonstrated that deployment strategy is a progressive concern that mirrors the scalability spectrum. The Tiny Store deployment configuration shows that infrastructure from day one, module-aware CI, and per-target Dockerfiles enable multi-artifact extraction without pipeline rewrites or repository splits.
+
+With boundaries enforced (G1), maintainability preserved (G2), scalability prepared (G3), migration readiness embedded (G4), and deployment strategy aligned (G5), the architecture has one remaining operational concern. G6 addresses observability: the monitoring and tracing infrastructure that validates each progression and provides the evidence base for scaling decisions.
