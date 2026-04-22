@@ -97,12 +97,19 @@ G1--G4 anti-patterns remain relevant at the G5 level. The five patterns below pa
 \end{itemize}
 
 
+\subsection*{The Deployment-Architecture Mismatch}
+\label{sec:g5-deployment-mismatch}
+
+Teams invest in boundary enforcement (G1), maintainability tracking (G2), scalability preparation (G3), and migration readiness (G4), but their deployment pipeline treats the system as a single opaque artifact. The pipeline knows nothing about module boundaries, dependency graphs, or deployment targets. When extraction is triggered, the pipeline becomes the bottleneck: building a second artifact requires restructuring CI, introducing new build targets, and duplicating infrastructure configuration. The architecture is ready; the pipeline is not.
+
+This mismatch compounds because pipeline changes are rarely incremental. Unlike code, which can be refactored gradually, a CI/CD pipeline typically must be restructured in a single coordinated effort. G5 closes this gap by making the pipeline module-aware from day one, so that producing multiple artifacts is a configuration change in the build system, not a pipeline rewrite.
+
 \subsection*{Metrics and Verification}
 
 \medskip
 \noindent
 \small
-\begin{tabularx}{\linewidth}{p{0.30\linewidth} X c p{0.12\linewidth}}
+\begin{tabularx}{\linewidth}{p{0.28\linewidth} X c p{0.12\linewidth}}
 \toprule
 \textbf{Metric} & \textbf{What it measures} & \textbf{Target} & \textbf{Source} \\
 \midrule
@@ -129,6 +136,8 @@ G5 contributes to the modular monolith literature in three ways:
 
   \item \emph{Monorepo preservation under extraction.} G5 demonstrates that the repository boundary and the deployment boundary are independent concerns: modules can be extracted into independent services while preserving atomic refactoring, shared toolchain, and unified boundary verification.
 
+  \item \emph{The Deployment-Architecture Mismatch as a formal concept.} G5 names the phenomenon where a modular architecture is ready for extraction but the deployment pipeline is not (Section~\ref{sec:g5-deployment-mismatch}), analogous to G4's Migration Readiness Gap and G3's Progressive Scalability Gap.
+
   \item \emph{Infrastructure-from-day-one as a deployment principle.} By provisioning production dependencies from the initial deployment, G5 eliminates the ``big bang'' infrastructure change that compounds extraction risk, making the transition a topology change rather than an infrastructure project.
 \end{enumerate}
 
@@ -145,11 +154,9 @@ The monorepo approach is well-documented in industry practice, but its applicati
 \section{G5 Applied: Deployment Strategy in the Tiny Store}
 \label{sec:g5-applied}
 
-G5 is demonstrated through the Tiny Store deployment configuration, progressing from a single artifact to multi-artifact extraction.\footnote{Full source: \url{https://github.com/maurcarvalho/tiny-store}}
+G5 is demonstrated through the Tiny Store deployment configuration, progressing from a single artifact to multi-artifact extraction.\footnote{Full source: \url{https://github.com/maurcarvalho/tiny-store}} The tutorial walks through three deployment stages: infrastructure provisioning, module-aware CI, and multi-artifact production. Each step is reproducible on any monorepo with workspace-aware build tooling.
 
 \subsection*{Tutorial: Step-by-Step Application}
-
-The following tutorial walks through applying the guideline to the Tiny Store codebase. Each step introduces a specific preparation mechanism, building incrementally from the current state to a fully verified structure.
 
 \subsubsection*{Step 1: Is the local environment mirroring production?}
 
@@ -213,20 +220,18 @@ After extracting orders, the CI pipeline still runs all tests on every commit in
 The team requires both the monolith and orders-service to be deployed together because they share a database migration script. A hotfix to orders cannot ship without a monolith release.\\
 \emph{Resolution:} ensure each deployment target owns its migrations independently (G4's data ownership); release pipelines are triggered per-target.
 
+\subsubsection*{Exercise 3: Infrastructure Drift After Extraction (Infrastructure Parity $\downarrow$)}
+
+The extracted orders-service receives a Redis instance in production that is not present in the local \texttt{docker-compose.yml}. Developers run the monolith locally without Redis and encounter no errors; the service fails only in deployed environments because a caching layer is missing.\\
+\emph{Resolution:} unified infrastructure provisioning; \texttt{docker-compose.yml} is the single source of truth for both monolith and extracted services. Every production dependency must be declared in the local configuration from day one.
+
 \subsubsection*{Exercise Summary}
 Each exercise assumes a clean baseline. After each exercise, revert the violation before proceeding to the next.
-
-\small
-\noindent
-\begin{tabularx}{\linewidth}{c X c c}
-\toprule
-\textbf{Ex.} & \textbf{What you change} & \textbf{G5 signal} & \textbf{G1--G4} \\
-\midrule
-1 & CI runs all tests after extraction & CI Scope Efficiency $\downarrow$ & \checkmark \\
-2 & Shared migration forces coordinated deploy & Independent Deployment Rate $\downarrow$ & \checkmark \\
-\bottomrule
-\end{tabularx}
-\normalsize
+\begin{itemize}[itemsep=2pt,topsep=2pt]
+  \item \textbf{Ex.\,1:} Full-repo CI after extraction → CI Scope Efficiency drops.
+  \item \textbf{Ex.\,2:} Shared migration forces coordinated deploy → Independent Deployment Rate drops.
+  \item \textbf{Ex.\,3:} Infrastructure drift after extraction → Infrastructure Parity drops.
+\end{itemize}
 
 \subsection*{Conclusion}
 
