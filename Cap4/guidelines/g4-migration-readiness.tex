@@ -94,7 +94,7 @@ G4 metrics assess whether a module is operationally prepared for extraction, com
 \medskip
 \noindent
 \small
-\begin{tabularx}{\linewidth}{p{0.30\linewidth} X c p{0.12\linewidth}}
+\begin{tabularx}{\linewidth}{p{0.28\linewidth} X c p{0.12\linewidth}}
 \toprule
 \textbf{Metric} & \textbf{What it measures} & \textbf{Target} & \textbf{Source} \\
 \midrule
@@ -156,9 +156,7 @@ Despite strong boundary enforcement, the baseline state reflects a common patter
 
 \subsection*{Tutorial: Step-by-Step Application}
 
-The following tutorial walks through applying the guideline to the Tiny Store codebase. Each step introduces a specific preparation mechanism, building incrementally from the current state to a fully verified structure.
-
-The following steps prepare the Orders module for extraction without extracting it. Each step introduces production-grade infrastructure that functions identically before and after extraction.
+The following tutorial demonstrates G4 through the Orders module, the highest-traffic path and the most probable extraction candidate. Each step introduces a specific preparation mechanism, building incrementally from the current state to full migration readiness. The steps are reproducible on any modular monolith with bounded-context modules and event-driven collaboration.
 
 \subsubsection*{Step 1: How do we decouple domain models across modules?}
 
@@ -280,20 +278,30 @@ eventBus.subscribe('PaymentFailed', async ({ payload }) => {
 G1--G3 pass: no boundary or scalability violation. G4 fails: Saga Completeness drops because the compensation path is incomplete.\\
 \emph{Resolution:} model the workflow as an explicit saga with all compensating actions defined.
 
+\subsubsection*{Exercise 3: Unversioned Event Contract (API Version Coverage $\downarrow$)}
+
+An event is published without version metadata. When the payload schema changes, consumers cannot distinguish old from new format:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: event without version metadata},label={lst:g4-ex3-violation}]
+// No version field; schema changes break all consumers
+await eventBus.publish({
+  eventType: 'OrderPlaced',
+  aggregateId: orderId,
+  payload: { orderId, items, total },  // no version
+});
+\end{lstlisting}
+
+\noindent
+G1--G3 pass: the event uses the public bus and the payload structure is valid. G4 fails: API Version Coverage drops because the contract cannot be evolved independently.\\
+\emph{Resolution:} use a factory function that enforces version metadata (see Step~3 listing).
+
 \subsubsection*{Exercise Summary}
 Each exercise assumes a clean baseline. After each exercise, revert the violation before proceeding to the next.
-
-\small
-\noindent
-\begin{tabularx}{\linewidth}{c X c c}
-\toprule
-\textbf{Ex.} & \textbf{What you change} & \textbf{G4 signal} & \textbf{G1--G3} \\
-\midrule
-1 & Shipments consumes Orders payload directly & Anti-Corruption Layer Coverage $\downarrow$ & \checkmark \\
-2 & Ad hoc error handling instead of saga & Saga Completeness $\downarrow$ & \checkmark \\
-\bottomrule
-\end{tabularx}
-\normalsize
+\begin{itemize}[itemsep=2pt,topsep=2pt]
+  \item \textbf{Ex.\,1:} Direct payload consumption → Anti-Corruption Layer Coverage drops.
+  \item \textbf{Ex.\,2:} Ad hoc error handling instead of saga → Saga Completeness drops.
+  \item \textbf{Ex.\,3:} Unversioned event contract → API Version Coverage drops.
+\end{itemize}
 
 \subsection*{Conclusion}
 
