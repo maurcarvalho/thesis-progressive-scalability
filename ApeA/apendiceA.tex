@@ -1,105 +1,122 @@
-\section{Metric Formal Definitions}
-\label{app:metrics}
+This appendix provides definitions for key technologies, frameworks, and architectural patterns referenced throughout this thesis.
 
-This appendix provides the formal definitions for all individual metrics introduced in the guideline chapters. The composite scores $b_m$ (G1) and $\varepsilon_m$ (G3) remain inline in their respective guidelines.
+\section{Infrastructure and Data}
 
-\subsection{G1: Boundary Enforcement Metrics}
-\label{app:metrics-g1}
+\begin{longtable}{>{\bfseries}p{0.20\linewidth} p{0.72\linewidth}}
+\toprule
+Term & Definition \\
+\midrule
+\endfirsthead
+\toprule
+Term & Definition \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
 
-The four count metrics ($C_{\mathrm{undecl}}$, $C_{\mathrm{forbid}}$, $C_{\mathrm{leak}}$, $C_{\mathrm{event}}$) tally cross-module references violating their respective boundary condition. Let $M$ be the set of modules, $D \subseteq M \times M$ the declared dependencies, $F \subseteq M \times M$ the forbidden dependencies, and $\operatorname{pub}(B)$ the public API of module $B$.
+Apache Kafka &
+A distributed event-streaming platform that provides high-throughput, fault-tolerant publish-subscribe messaging. In this work, Kafka serves as the event bus for inter-module communication, with per-module topics and consumer groups. \\
 
-\begin{itemize}[itemsep=6pt]
-  \item $C_{\mathrm{undecl}}$: references where $(A, B) \notin D$. Target: 0~\cite{deLauretis2019from}.
-  \item $C_{\mathrm{forbid}}$: references where $(A, B) \in F$. Target: 0~\cite{martin2012clean}.
-  \item $C_{\mathrm{leak}}$: references targeting references outside $\operatorname{pub}(B)$. Target: 0~\cite{parnas1972informationhiding}.
-  \item $C_{\mathrm{event}}$: event subscriptions where the $(subscriber, publisher)$ pair has no declared dependency. Target: 0~\cite{richardson2018microservices}.
-\end{itemize}
+PostgreSQL &
+An open-source object-relational database system. In the proposed architecture, each module owns an isolated schema within a shared PostgreSQL instance, enforced through Drizzle ORM's declarative \texttt{pgSchema()} per module. \\
 
-\noindent
-The isolation pass rate captures hidden runtime dependencies:
-\[
-  P_{\mathrm{iso}} = \frac{|T_{\mathrm{pass}}|}{|T_{\mathrm{iso}}|}
-\]
-where $T_{\mathrm{iso}}$ is the total number of module-scoped isolation tests and $T_{\mathrm{pass}}$ the number that pass. Target: $P_{\mathrm{iso}} = 100\%$~\cite{fairbanks2010justenough}.
+Redis &
+An in-memory key-value data store used for caching and request deduplication. Cache patterns include product catalog (TTL 5 min), order status (write-through, TTL 1 hr), and idempotency keys (TTL 24 hr). \\
 
-\subsection{G2: Maintainability Metrics}
-\label{app:metrics-g2}
+Drizzle ORM &
+A TypeScript ORM with declarative schema definitions. Each module defines its own \texttt{pgSchema()} for schema isolation within a shared PostgreSQL instance, enabling the Isolate level of progressive scalability. \\
 
-Let $M$ be the set of modules and $R$ the multiset of cross-module references.
+\end{longtable}
 
-\begin{itemize}[itemsep=6pt]
-  \item \textbf{API Boundary Ratio ($\rho_{\mathrm{api}}$).}
-  \[
-    \rho_{\mathrm{api}} = \frac{|R_{\mathrm{api}}|}{|R|}
-  \]
-  where $R_{\mathrm{api}} \subseteq R$ = references targeting only the provider module's declared public surface. Boundary bypass mechanisms (reflection, dynamic loading) count as non-API references.\\
-  Target: $\rho_{\mathrm{api}} \geq 0.95$~\cite{parnas1972informationhiding}.
+\section{Orchestration and Observability}
 
-  \item \textbf{Change Coupling Index ($CCI$).}
-  \[
-    CCI = \frac{\sum_{A \neq B} C(A,B)}{\sum_{A} C(A)}
-  \]
-  where $C(A,B)$ = commits where modules $A$ and $B$ both change, $C(A)$ = total commits touching module $A$.\\
-  Target: $CCI \leq 0.2$~\cite{FordParsons2017}.
+\begin{longtable}{>{\bfseries}p{0.20\linewidth} p{0.72\linewidth}}
+\toprule
+Term & Definition \\
+\midrule
+\endfirsthead
+\toprule
+Term & Definition \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
 
-  \item \textbf{Module Complexity Concentration ($\Gamma$).}
-  \[
-    \Gamma = \frac{\max_{m \in M} |API_m|}{\frac{1}{|M|} \sum_{m \in M} |API_m|}
-  \]
-  where $|API_m|$ = number of public exports by module $m$.\\
-  Target: $\Gamma \leq 3.0$~\cite{martin2012clean}.
+Temporal &
+A durable workflow execution engine for orchestrating long-running processes. In this work, Temporal manages the saga pattern via \texttt{orderFulfillmentWorkflow}, coordinating compensating actions (e.g., \texttt{releaseStock}, \texttt{refundPayment}) upon failure. \\
 
-  \item \textbf{Contract Stability Index ($\sigma_m$).}
-  \[
-    \sigma_m = \frac{|\operatorname{API}_m(t) \cap \operatorname{API}_m(t - \Delta t)|}{|\operatorname{API}_m(t - \Delta t)|}
-  \]
-  where $\operatorname{API}_m(t)$ and $\operatorname{API}_m(t - \Delta t)$ = public export sets at current and previous measurement.\\
-  Target: $\sigma_m \geq 0.9$ per release cycle~\cite{FordParsons2017}.
+OpenTelemetry &
+A vendor-neutral observability framework providing APIs and SDKs for collecting distributed traces, metrics, and logs. The proposed architecture scopes telemetry per module using module-specific tracers and metric prefixes, with W3C TraceContext propagation across Kafka headers. \\
 
-  \item \textbf{Dependency Attraction ($\phi_m$).}
-  \[
-    \phi_m = \frac{|\{A \in M \setminus \{m\} : \exists\, r \in \operatorname{refs}(A \to m)\}|}{|M| - 1}
-  \]
-  where $\operatorname{refs}(A \to m)$ = set of references from module $A$ to module $m$.\\
-  Target: $\phi_m \leq 0.5$ for bounded context modules~\cite{yourdon1979structured}.
-\end{itemize}
+Jaeger &
+An open-source distributed tracing backend. Receives spans via the OpenTelemetry OTLP gRPC exporter and provides a web UI for trace visualization. Used in Guideline~6 (Observability Patterns) to inspect cross-module request flows. \\
 
-\subsection{G3: Progressive Scalability Metrics}
-\label{app:metrics-g3}
+Prometheus &
+An open-source monitoring system with a time-series database. Scrapes metrics endpoints exposed by the application and provides PromQL for querying module-scoped metrics such as request rates, error rates, and latencies. \\
 
-\begin{itemize}[itemsep=6pt]
-  \item \textbf{Module Throughput Profile ($\Theta_m$).}
-  \[
-    \Delta\Theta = \max_{m \in M} \Theta_m - \min_{m \in M} \Theta_m
-  \]
-  where $M$ = set of modules, $\Theta_m$ = requests per second handled by module $m$.\\
-  Target: Monitor; trigger Decouple when divergence exceeds 2:1 ratio between connected modules~\cite{richardson2018microservices}.
+Grafana &
+An open-source analytics and visualization platform. Connects to Prometheus as a data source and renders dashboards for module-level health, including per-module throughput divergence and error budgets. \\
 
-  \item \textbf{Module Latency Variance ($\sigma^2_{L,m}$).}
-  \[
-    \sigma^2_{L,m} = \mathbb{E}[(L_m - \mu_{L,m})^2]
-  \]
-  where $L_m$ = observed response time for module $m$, $\mu_{L,m}$ = mean response time.\\
-  Target: Monitor; investigate when variance increases $>2\times$ baseline~\cite{richardson2018microservices}.
+\end{longtable}
 
-  \item \textbf{Cross-Module Synchronous Call Ratio ($\rho_{\mathrm{sync}}$).}
-  \[
-    \rho_{\mathrm{sync}} = \frac{|I_{\mathrm{sync}}|}{|I_{\mathrm{sync}}| + |I_{\mathrm{async}}|}
-  \]
-  where $I_{\mathrm{sync}}$ = synchronous inter-module calls, $I_{\mathrm{async}}$ = asynchronous inter-module calls.\\
-  Target: $\rho_{\mathrm{sync}} \leq 0.3$~\cite{dragoni2017microservices}.
+\section{Build and Deployment}
 
-  \item \textbf{Data Ownership Clarity Index ($\omega$).}
-  \[
-    \omega = \frac{|T_{\mathrm{single\text{-}owner}}|}{|T|}
-  \]
-  where $T$ = set of all database tables, $T_{\mathrm{single\text{-}owner}}$ = tables accessed by exactly one module.\\
-  Target: $\omega = 1.0$~\cite{evans2003ddd}.
+\begin{longtable}{>{\bfseries}p{0.20\linewidth} p{0.72\linewidth}}
+\toprule
+Term & Definition \\
+\midrule
+\endfirsthead
+\toprule
+Term & Definition \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
 
-  \item \textbf{Infrastructure Abstraction Coverage ($\alpha$).}
-  \[
-    \alpha = \frac{|A_{\mathrm{abstracted}}|}{|A|}
-  \]
-  where $A$ = all infrastructure access points, $A_{\mathrm{abstracted}}$ = access points mediated through a port or interface.\\
-  Target: $\alpha = 1.0$~\cite{FordParsons2017}.
-\end{itemize}
+Docker &
+A container platform that packages applications and their dependencies into lightweight, portable images. The deployment strategy relies on Docker for both the monolith and extracted service artifacts. \\
+
+Docker Compose &
+A tool for defining multi-container applications. The reference architecture uses a single \texttt{docker-compose.yml} that provisions PostgreSQL, Kafka, Temporal, Jaeger, and Redis from day one. \\
+
+Nx &
+A monorepo build system that provides module-aware task scheduling~\cite{nx2024}. The \texttt{nx affected} command runs only the tests and builds impacted by a given change, enabling efficient CI pipelines without splitting the repository. \\
+
+Kamal &
+A deployment tool for containerized applications. Provides zero-downtime deployments with SSL termination for both monolith and extracted service configurations. \\
+
+Kubernetes &
+A container orchestration platform for automating deployment, scaling, and management. Referenced as the target runtime when horizontal scaling of extracted modules is required. \\
+
+\end{longtable}
+
+\section{Architectural Patterns}
+
+\begin{longtable}{>{\bfseries}p{0.20\linewidth} p{0.72\linewidth}}
+\toprule
+Term & Definition \\
+\midrule
+\endfirsthead
+\toprule
+Term & Definition \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+
+Anti-Corruption Layer &
+A boundary pattern that translates between two different domain models, preventing one module's internal representation from leaking into another. Used in the Extract level to isolate the extracted service's API from the monolith's internal types. \\
+
+CQRS &
+Command Query Responsibility Segregation separates read and write operations into distinct models, allowing each to be optimized independently. \\
+
+Event Sourcing &
+A persistence pattern where state changes are stored as an immutable sequence of domain events rather than as mutable records. \\
+
+Saga Pattern &
+A distributed transaction pattern that coordinates a series of local transactions across services using compensating actions for rollback. Implemented via Temporal workflows in the reference architecture. \\
+
+Strangler Fig &
+An incremental migration pattern where new functionality is built alongside the existing system, gradually routing traffic to the new implementation until the old system can be retired~\cite{fowler2014}. \\
+
+\end{longtable}
