@@ -15,7 +15,7 @@ This research proposes a set of architectural guidelines for software startups a
   \item \textbf{G6, Introduce Observability Patterns:} establishes module-scoped observability with OpenTelemetry, Prometheus, Grafana, and Jaeger that survives extraction unchanged.
 \end{itemize}
 
-The guidelines are grounded in Tiny Store, a working reference implementation built as an Nx monorepo with four bounded contexts. All code listings in G3 to G6 are drawn from repository source files and verified against the running system, ensuring that each principle is operationalized rather than purely conceptual.
+The guidelines are grounded in Tiny Store, a working reference implementation built as an Nx monorepo with four bounded contexts. All code listings in G1 to G6 are drawn from repository source files and verified against the running system, ensuring that each principle is operationalized rather than purely conceptual.
 
 The systematic literature review revealed that existing studies cover individual techniques such as modular boundary enforcement, maintainability patterns, migration strategies, deployment automation, and observability tooling, yet none of the eighteen reviewed articles integrate these techniques into a cohesive, progressive guideline set. The contribution of this work lies precisely in that integration: the G1 to G6 progression synthesizes individually studied techniques into a deliberate scalability path. Schema isolation, caching, asynchronous queues, event-driven communication, and distributed tracing are positioned as architectural requirements from project inception, not as migration prerequisites added later, so that extraction becomes a deployment-topology change rather than a codebase rewrite.
 
