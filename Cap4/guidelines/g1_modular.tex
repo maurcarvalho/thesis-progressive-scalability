@@ -173,41 +173,44 @@ This enforces a publish-subscribe contract: the producing module defines the eve
 
 Each step introduces a specific boundary enforcement mechanism, building incrementally from a clean baseline to a fully verified modular structure. The steps are reproducible on any monorepo with bounded-context modules managed by a workspace-aware build system such as Nx~\cite{nx2024}.
 
-\begin{itemize}[itemsep=8pt,topsep=4pt]
+\subsubsection*{Step 0: Establish a Clean Baseline}
 
-  \item \emph{Step 0: Establish a Clean Baseline.}
-  Run the three verification gates below. All must pass with zero violations: unit tests confirm module behavior, boundary tests verify that no undeclared or forbidden imports exist, and integration tests confirm that modules load correctly with only their declared dependencies.
+Run the three verification gates below. All must pass with zero violations: unit tests confirm module behavior, boundary tests verify that no undeclared or forbidden imports exist, and integration tests confirm that modules load correctly with only their declared dependencies.
 
-  \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={Baseline checks for G1},label={lst:g1-baseline}]
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={Baseline checks for G1},label={lst:g1-baseline}]
 npm install && npm test
 npm run test:boundary
 npm run test:integration
-  \end{lstlisting}
+\end{lstlisting}
 
-  \item \emph{Step 1: Separate Public Surface from Internal Components.}
-  Cross-module usage occurs only through module entrypoints (\texttt{@tiny-store/modules-*}):
+\subsubsection*{Step 1: Separate Public Surface from Internal Components}
 
-  \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Public vs.\ internal imports},label={lst:g1-imports}]
+Cross-module usage occurs only through module entrypoints (\texttt{@tiny-store/modules-*}):
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Public vs.\ internal imports},label={lst:g1-imports}]
 // DO: import via public entrypoint (handler, not entity)
 import { PlaceOrderHandler } from '@tiny-store/modules-orders';
 // DON'T: entities and repositories are internal to the module
 import { Order } from '@tiny-store/modules-orders';             // blocked
 import { OrderRepository } from '@tiny-store/modules-orders';   // blocked
-  \end{lstlisting}
+\end{lstlisting}
 
-  \item \emph{Step 2: Encode Explicit Declarations.}
-  Express \emph{requires} and \emph{forbids} in a single, executable source of truth. The \texttt{requires} list declares allowed dependencies; the \texttt{forbids} list encodes domain invariants that must never be violated, making the decision to remove a prohibition explicit and reviewable rather than a silent one-line change:
+\subsubsection*{Step 2: Encode Explicit Declarations}
 
-  \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Code-based boundary descriptor},label={lst:g1-descriptor}]
+Express \emph{requires} and \emph{forbids} in a single, executable source of truth. The \texttt{requires} list declares allowed dependencies; the \texttt{forbids} list encodes domain invariants that must never be violated, making the decision to remove a prohibition explicit and reviewable rather than a silent one-line change:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Code-based boundary descriptor},label={lst:g1-descriptor}]
 export const moduleBoundaries = {
   orders:    { requires: ['shared-domain', 'shared-infrastructure'],
                forbids:  ['inventory', 'payments', 'shipments'] },
   inventory: { requires: ['shared-domain', 'shared-infrastructure'],
                forbids:  ['orders', 'payments', 'shipments'] },
 } as const;
-  \end{lstlisting}
+\end{lstlisting}
 
-  \item \emph{Step 3: Centralize Cross-Module Wiring.}
+\subsubsection*{Step 3: Centralize Cross-Module Wiring}
+
+Cross-module wiring is declared in the composition root, where it can be reviewed and audited. Hidden wiring inside a module makes dependencies implicit and bypasses boundary verification:
 
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Composition root wiring (\texttt{register-listeners.ts})},label={lst:g1-do-wiring}]
 // DO: centralized in the composition root (auditable)
@@ -220,8 +223,9 @@ eventBus.subscribe('OrderPlaced', (e) => new OrderPlacedListener().handle(e));
 EventBus.getInstance().subscribe('OrderPlaced', handler);
 \end{lstlisting}
 
-  \item \emph{Step 4: Enforce Boundary Verification as a First-Class Gate.}
-  The gate is binary: pass (no violations) or fail with exact dependency location.
+\subsubsection*{Step 4: Enforce Boundary Verification as a First-Class Gate}
+
+The gate is binary: pass (no violations) or fail with exact dependency location. A failing build points to the specific source-target pair that violated the descriptor:
 
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={Boundary verification gate},label={lst:g1-boundary-gate}]
 npm run test:boundary
@@ -246,18 +250,17 @@ describe('Module Public Surface', () => {
 });
 \end{lstlisting}
 
-  \item \emph{Step 5: Add Module Isolation Checks.}
-  Detect runtime coupling invisible to static analysis:
+\subsubsection*{Step 5: Add Module Isolation Checks}
 
-  \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Module isolation test},label={lst:g1-isolation}]
+Detect runtime coupling invisible to static analysis. Static checks catch import-level violations; isolation tests catch dynamic dependencies that surface only when the module is instantiated:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Module isolation test},label={lst:g1-isolation}]
 it('loads orders with declared dependencies only', async () => {
   const mod = await loadModule('orders',
     { allowed: ['shared-domain', 'shared-infrastructure'] });
   expect(mod).toBeDefined();
 });
-  \end{lstlisting}
-
-\end{itemize}
+\end{lstlisting}
 
 \subsection*{Exercise Walkthrough: Controlled Violations and Signals}
 Each exercise introduces a single, controlled boundary breach and observes the failure signal. All exercises pass G1's boundary gate at baseline; the violation produces a specific, measurable signal.
