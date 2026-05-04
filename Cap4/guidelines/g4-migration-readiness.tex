@@ -57,23 +57,23 @@ G4 inverts this dynamic. Instead of treating migration as a future problem, G4 e
 G1--G3 anti-patterns remain relevant at the G4 level. The five patterns below pass all prior gates but compromise the system's ability to extract modules as independent services.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Deferred Readiness} (extraction cost rises over time)\\
+  \item \emph{Deferred Readiness (extraction cost rises over time):}
   Postponing migration preparation until extraction is imminent. At that point, accumulated coupling (shared tables, implicit transactions, unversioned APIs) makes extraction a multi-month project instead of a configuration change.
   \emph{Approach:} treat readiness as a continuous investment; apply G4 steps incrementally from the first sprint.
 
-  \item \textbf{Shared Database as Hidden Integration} (Data Ownership below 100\%)\\
+  \item \emph{Shared Database as Hidden Integration (Data Ownership below 100\%):}
   Two modules that appear decoupled at the code level share database tables, coupling them at the persistence level. This is the most common and most expensive migration blocker~\cite{fritzsch2019}.
   \emph{Approach:} enforce per-module \texttt{pgSchema()} and expose needed data through domain events.
 
-  \item \textbf{Cross-Module Transactions Masking Failure Modes} (Saga Completeness below 100\%)\\
+  \item \emph{Cross-Module Transactions Masking Failure Modes (Saga Completeness below 100\%):}
   Relying on database transactions across modules hides the failure modes that will surface after extraction. When inventory reservation and order creation share a transaction, partial failure is impossible; after extraction, partial failure is the default~\cite{richardson2018microservices}.
   \emph{Approach:} introduce saga orchestration inside the monolith before extraction.
 
-  \item \textbf{Payload Coupling Without Anti-Corruption Layers} (Anti-Corruption Layer Coverage below 100\%)\\
+  \item \emph{Payload Coupling Without Anti-Corruption Layers (Anti-Corruption Layer Coverage below 100\%):}
   Downstream modules consume event payloads directly without translation. Any change to the upstream module's event schema breaks all consumers simultaneously, creating a coordination bottleneck incompatible with independent deployment~\cite{evans2003ddd}.
   \emph{Approach:} place an Anti-Corruption Layer at each integration point to translate between domain models.
 
-  \item \textbf{Premature Extraction Without Readiness} ($\varepsilon_m = 0$)\\
+  \item \emph{Premature Extraction Without Readiness ($\varepsilon_m = 0$):}
   Extracting a module with shared state, no Anti-Corruption Layers, and no saga creates a distributed monolith: the operational complexity of microservices with the coupling characteristics of a monolith~\cite{gravanis2021dont}.
   \emph{Approach:} require $\varepsilon_m = 1$ and all G4 preparation steps complete before initiating extraction.
 \end{itemize}

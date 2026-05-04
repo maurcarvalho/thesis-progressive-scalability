@@ -47,38 +47,38 @@ G1 applies to systems decomposed into bounded-context modules within a single co
 \subsubsection*{Structural Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Convenience-Driven Imports} (Encapsulation Leakage rises)\\
+  \item \emph{Convenience-Driven Imports (Encapsulation Leakage rises):}
   A developer imports an internal entity class directly from another module because the path is shorter than going through the public API. Over time, dozens of such shortcuts create a web of hidden coupling that locks the provider's internal structure in place~\cite{parnas1972informationhiding}.
 
-  \item \textbf{Shared Utility Creep} (Undeclared Dependencies rise)\\
+  \item \emph{Shared Utility Creep (Undeclared Dependencies rise):}
   A \texttt{shared/utils} package starts with generic helpers (date formatting, string validation) but gradually absorbs domain logic such as \texttt{calculateShippingCost} or \texttt{validatePaymentStatus}. Modules couple through this shared layer rather than through explicit contracts~\cite{martin2012clean}.
 
-  \item \textbf{Implicit Wiring via Framework Magic} (Isolation Pass Rate drops)\\
+  \item \emph{Implicit Wiring via Framework Magic (Isolation Pass Rate drops):}
   DI containers, auto-configuration, or classpath scanning silently wire modules together. A \texttt{@ComponentScan} annotation may inject a bean from one module into another without any declared dependency, creating coupling invisible to static analysis~\cite{rocha2021catalogingDI}.
 
-  \item \textbf{Event Handlers Outside the Composition Root} (Event Violations rise)\\
+  \item \emph{Event Handlers Outside the Composition Root (Event Violations rise):}
   Event subscriptions are scattered across module initializers rather than centralized in a single wiring location. Each hidden subscription is a cross-module dependency that works at runtime but is invisible to architectural review~\cite{richardson2018microservices}.
 
-  \item \textbf{Boundary Enforcement Treated as Optional}: all boundary metrics degrade\\
+  \item \emph{Boundary Enforcement Treated as Optional (all boundary metrics degrade):}
   When boundary verification is not a mandatory CI gate, violations accumulate silently across sprints. Teams discover the erosion only when an extraction attempt reveals that modules are far more coupled than the architecture documentation suggests~\cite{thoughtworks2017fitnessfunction}.
 \end{itemize}
 
 \subsubsection*{Design-Level Anti-Patterns}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Extreme Granularity} (Undeclared Dependencies across many small modules)\\
+  \item \emph{Extreme Granularity (Undeclared Dependencies across many small modules):}
   Teams slice the system into excessively narrow domains such as \texttt{StockCheck}, \texttt{ReservationHold}, \texttt{WarehouseAllocation}, and \texttt{StockReplenishment} instead of grouping them under a cohesive bounded context like \texttt{Inventory}. Each micro-domain cannot fulfill a business workflow independently, forcing constant cross-module calls for routine operations~\cite{dragoni2017microservices,evans2003ddd}.
 
-  \item \textbf{Speculative Generality} (Encapsulation Leakage rises)\\
+  \item \emph{Speculative Generality (Encapsulation Leakage rises):}
   The codebase accumulates abstract factories, strategy patterns, and extension hooks designed for hypothetical requirements that may never materialize. Each speculative abstraction adds exported types that cross module boundaries without serving a current need. The YAGNI principle~\cite{extremeProgramming} applies at the architectural level.
 
-  \item \textbf{Leaky Abstractions in Public Contracts} (Encapsulation Leakage rises)\\
+  \item \emph{Leaky Abstractions in Public Contracts (Encapsulation Leakage rises):}
   A module exposes DTOs or event payloads that mirror its internal database schema (column names like \texttt{payment\_status\_id}, nullable fields reflecting storage trade-offs) rather than domain concepts. When the module refactors its schema, all consumers break even though no business rule changed~\cite{fowler2002,evans2003ddd}.
 
-  \item \textbf{Circular Dependencies} (Forbidden Dependencies rise)\\
+  \item \emph{Circular Dependencies (Forbidden Dependencies rise):}
   Module A depends on B which depends on A, often through indirect paths spanning three or more modules. Cycles make independent testing and extraction impossible because changing any module in the cycle requires understanding all of them~\cite{martin2012clean,yourdon1979structured}. G1 treats any cycle as a blocking violation.
 
-  \item \textbf{Test Coupling Across Boundaries} (Isolation Pass Rate drops)\\
+  \item \emph{Test Coupling Across Boundaries (Isolation Pass Rate drops):}
   Test code in one module directly instantiates domain objects from another module to build fixtures or assert on internal state. A refactoring of the provider's entities breaks the consumer's test suite, even though production code respects the boundary~\cite{fairbanks2010justenough}.
 \end{itemize}
 

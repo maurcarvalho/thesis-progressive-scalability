@@ -57,23 +57,23 @@ Microservices solve this by default because each service has its own metrics end
 G1--G5 anti-patterns remain relevant at the G6 level. The five patterns below pass all prior gates but leave the system blind to the evidence needed for architectural decisions.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Aggregate-Only Monitoring} (Metric Coverage below 100\%)\\
+  \item \emph{Aggregate-Only Monitoring (Metric Coverage below 100\%):}
   Monitoring only application-level metrics without module attribution. When a performance issue arises, the team cannot isolate which module is responsible.
   \emph{Approach:} attach module context to every log, metric, and trace.
 
-  \item \textbf{Instrumentation After Extraction} (Baseline Coverage = 0)\\
+  \item \emph{Instrumentation After Extraction (Baseline Coverage = 0):}
   Adding observability only after a module is extracted, eliminating the pre-extraction baseline and making it impossible to evaluate whether extraction improved or degraded the system.
   \emph{Approach:} instrument from day one inside the monolith, establishing baselines before any extraction decision.
 
-  \item \textbf{Log-Only Observability} (Trace Completeness = 0)\\
+  \item \emph{Log-Only Observability (Trace Completeness = 0):}
   Relying exclusively on log searching without traces or metrics. Logs provide point-in-time information but lack the causal chain that traces provide and the statistical patterns that metrics reveal.
   \emph{Approach:} adopt all three observability pillars (logs, metrics, traces) with module-scoped attribution.
 
-  \item \textbf{Custom Observability Frameworks} (vendor lock-in risk)\\
+  \item \emph{Custom Observability Frameworks (vendor lock-in risk):}
   Building bespoke instrumentation instead of adopting vendor-neutral standards. Custom frameworks increase maintenance burden and are unlikely to integrate with infrastructure-provided observability.
   \emph{Approach:} use vendor-neutral instrumentation SDKs for interoperability across all infrastructure components.
 
-  \item \textbf{Alert Fatigue from Application-Level Thresholds} (Alert Precision drops)\\
+  \item \emph{Alert Fatigue from Application-Level Thresholds (Alert Precision drops):}
   Setting alert thresholds on aggregate metrics rather than per-module metrics. A single module's latency spike may or may not trigger an application-level threshold, depending on traffic distribution~\cite{FordParsons2017}.
   \emph{Approach:} set module-scoped alerts for precise, actionable signals.
 \end{itemize}
