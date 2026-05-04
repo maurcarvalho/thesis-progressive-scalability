@@ -43,11 +43,11 @@ The primary driver of maintainability degradation is not system size but the acc
 G1 anti-patterns (convenience imports, implicit wiring, circular dependencies) remain relevant at the G2 level. However, G2 introduces a subtler class of failure: patterns that respect every boundary rule yet gradually erode the system's ability to change. These degradations are invisible to point-in-time checks because they accumulate across commits, not within a single snapshot. The three patterns below pass all G1 gates but erode maintainability over time:
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Overloaded Module Exports} (Contract Stability drops, Boundary Ratio drops)\\
+  \item \emph{Overloaded Module Exports (Contract Stability drops, Boundary Ratio drops):}
   A module's public entrypoint grows from 7 to 15 exports across three sprints. Each new export is a downstream contractual obligation: once another module depends on it, the export cannot be renamed or removed without coordinated changes~\cite{parnas1972informationhiding}.
   \emph{Approach:} audit each export for cross-module consumers; internalize exports consumed only within the module and expose composite operations instead of granular internals.
 
-  \item \textbf{Exposing Internal Types for Cross-Module Convenience} (Dependency Attraction rises)\\
+  \item \emph{Exposing Internal Types for Cross-Module Convenience (Dependency Attraction rises):}
   A module re-exports an internal type (e.g., an enum or value object) so that another module can use it directly. The import goes through the public entrypoint, so G1 passes. But the dependency graph gains a new module-to-module edge that did not exist at baseline, coupling the consumer to the provider's domain model~\cite{evans2003ddd}.
   \emph{Approach:} carry the needed data in the domain event payload so consumers never import the provider's types.
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Fix: event payload replaces cross-module type import},label={lst:g2-ap-internal-fix}]
@@ -58,7 +58,7 @@ eventBus.subscribe('OrderPaid', async ({ payload }) => {
 });
 \end{lstlisting}
 
-  \item \textbf{Feature-Centric Coupling Across Modules} (Change Coupling Index rises)\\
+  \item \emph{Feature-Centric Coupling Across Modules (Change Coupling Index rises):}
   Adding a cross-cutting feature (e.g., ``gift packaging'') requires simultaneous changes to ordering (option flag), billing (fee calculation), and fulfillment (packaging instructions). The feature, not the module, becomes the unit of change, diluting ownership and increasing coordination cost~\cite{FordParsons2017}.
   \emph{Approach:} assign feature ownership to one module; other modules react to domain events and interpret them through their own logic.
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Fix: one module owns the decision; others react},label={lst:g2-ap-feature-fix}]

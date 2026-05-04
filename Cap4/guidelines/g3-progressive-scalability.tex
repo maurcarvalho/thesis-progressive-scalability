@@ -82,23 +82,23 @@ The spectrum is not strictly linear: a team may apply Isolate to one module whil
 G1 and G2 anti-patterns remain relevant at the G3 level. The five patterns below pass both G1 and G2 gates but compromise the system's ability to scale progressively.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Premature Distribution} ($\varepsilon_m = 0$)\\
+  \item \emph{Premature Distribution ($\varepsilon_m = 0$):}
   A team extracts a module into its own service because ``it handles the most traffic,'' despite low throughput divergence and incomplete schema isolation. Re-embedding the module later requires undoing infrastructure, CI, and data ownership changes~\cite{gravanis2021dont, su2024from}.
   \emph{Approach:} require $\varepsilon_m = 1$ (all G1, G2, and G3 gates pass) before any extraction decision.
 
-  \item \textbf{Uniform Scaling Assumption} (Throughput Divergence not monitored)\\
+  \item \emph{Uniform Scaling Assumption (Throughput Divergence not monitored):}
   All modules are deployed behind identical auto-scaling rules, even though one handles 10$\times$ the traffic of the others. Underloaded modules waste resources while the overloaded one remains constrained.
   \emph{Approach:} monitor throughput divergence per module and scale only the modules that need it.
 
-  \item \textbf{Shared Database as Implicit Coupling} (Data Ownership below 100\%)\\
+  \item \emph{Shared Database as Implicit Coupling (Data Ownership below 100\%):}
   One module runs \texttt{SELECT} queries directly against another module's tables. When the owning module refactors its schema, the dependent module's queries break silently, and neither can be extracted independently.
   \emph{Approach:} enforce per-module \texttt{pgSchema()} and expose needed data through domain events.
 
-  \item \textbf{Synchronous Call Chains Under Load} (Sync Ratio exceeds 30\%)\\
+  \item \emph{Synchronous Call Chains Under Load (Sync Ratio exceeds 30\%):}
   A workflow calls multiple modules synchronously in sequence: validate stock, then charge payment, then create shipment. A latency spike in any downstream module blocks the entire chain, propagating failures upstream.
   \emph{Approach:} replace synchronous calls with event-driven choreography or, when orchestration is needed, a dedicated saga.
 
-  \item \textbf{Infrastructure Lock-In} (Abstraction Coverage below 100\%)\\
+  \item \emph{Infrastructure Lock-In (Abstraction Coverage below 100\%):}
   Domain services call \texttt{redis.get()} and \texttt{kafka.produce()} directly instead of using adapter interfaces. Transitioning from Tune to Decouple requires rewriting business logic to swap the infrastructure provider.
   \emph{Approach:} access all infrastructure through port interfaces; swap implementations via adapter pattern.
 \end{itemize}

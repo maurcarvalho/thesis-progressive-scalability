@@ -75,23 +75,23 @@ Multi-Artifact (D2) & Monorepo produces multiple container images. Each target h
 G1--G4 anti-patterns remain relevant at the G5 level. The five patterns below pass all prior gates but compromise the deployment strategy.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{Repository Splitting During Extraction} (atomic refactoring lost)\\
+  \item \emph{Repository Splitting During Extraction (atomic refactoring lost):}
   Moving an extracted module to a separate repository breaks atomic refactoring, duplicates shared libraries, and disables workspace-wide boundary verification.
   \emph{Approach:} keep the monorepo unified; only deployment targets multiply.
 
-  \item \textbf{Build Everything CI} (CI Scope Efficiency below 1.0)\\
+  \item \emph{Build Everything CI (CI Scope Efficiency below 1.0):}
   Running all tests and builds on every commit regardless of what changed, wasting CI resources and slowing feedback loops.
   \emph{Approach:} use module-aware CI to build and test only affected modules.
 
-  \item \textbf{Infrastructure Bolted On During Extraction} (Infrastructure Parity below 1.0)\\
+  \item \emph{Infrastructure Bolted On During Extraction (Infrastructure Parity below 1.0):}
   Adding event broker, workflow engine, or database provisioning only when a module is extracted, compounding extraction risk with infrastructure risk.
   \emph{Approach:} require infrastructure-as-code from day one (D0).
 
-  \item \textbf{Monolithic Dockerfile for a Modular System} (image size, build time)\\
+  \item \emph{Monolithic Dockerfile for a Modular System (image size, build time):}
   A single Dockerfile that copies the entire repository into the image, including modules the deployment target does not use.
   \emph{Approach:} use per-target Dockerfiles that copy only the required modules and transitive dependencies.
 
-  \item \textbf{Coordinated Deployments After Extraction} (Independent Deployment Rate drops)\\
+  \item \emph{Coordinated Deployments After Extraction (Independent Deployment Rate drops):}
   Requiring all deployment targets to be released simultaneously, negating the independent deployment benefit that motivated extraction~\cite{richardson2018microservices}.
   \emph{Approach:} each target has its own release pipeline triggered by its affected scope.
 \end{itemize}
