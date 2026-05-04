@@ -170,7 +170,7 @@ G3 contributes to the modular monolith literature in four ways:
 \subsection*{G3 Applied: Progressive Scalability in the Tiny Store}
 \label{sec:g3-applied}
 
-G3 is demonstrated in the Tiny Store reference implementation.\footnote{Full source: \url{https://github.com/maurcarvalho/tiny-store}}
+G3 is demonstrated in the Tiny Store reference implementation~\cite{tinystore2026}.
 
 \subsubsection*{Tune: Module-Scoped Caching}
 
@@ -234,7 +234,7 @@ When monitoring signals (connection pool saturation, lock wait times, replicatio
 
 \subsubsection*{Extract: What Extraction Looks Like}
 
-Extract is reached only when Tune, Decouple, and Isolate have been exhausted for a specific module. At this point, the module is already decoupled asynchronously and owns its data exclusively. Extraction is a topology change: the domain logic, repository interfaces, and event handlers remain unchanged. The Tiny Store repository includes a working example (\texttt{docker-compose.l3.yml})\footnote{Full file: \url{https://github.com/maurcarvalho/tiny-store/blob/main/docker-compose.l3.yml}} that deploys Orders as an independent service:
+Extract is reached only when Tune, Decouple, and Isolate have been exhausted for a specific module. At this point, the module is already decoupled asynchronously and owns its data exclusively. Extraction is a topology change: the domain logic, repository interfaces, and event handlers remain unchanged. The Tiny Store repository~\cite{tinystore2026} includes a working example (\texttt{docker-compose.l3.yml}) that deploys Orders as an independent service:
 
 \needspace{4\baselineskip}
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=yaml,caption={Extract-level topology (docker-compose.l3.yml, abbreviated)},label={lst:g3-l3-extraction}]
