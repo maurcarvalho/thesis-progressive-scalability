@@ -278,7 +278,7 @@ export * from './domain/repositories/order-repository';
 Run \texttt{npm run test:boundary}: fails because Encapsulation Leakage rises.\\
 \emph{Resolution:} remove these exports; expose a contract instead (handler/port/event).
 
-\subsubsection*{Exercise 2: Direct Cross-Module Import (Undeclared/Forbidden Dependencies $\uparrow$)}
+\subsubsection*{Exercise 2: Direct Cross-Module Import (Undeclared Dependencies $\uparrow$)}
 A feature file inside Orders imports a handler from Inventory directly, bypassing the boundary descriptor. In an Orders feature file:
 
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: direct cross-module import},label={lst:g1-ex2-import}]
