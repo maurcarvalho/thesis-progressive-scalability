@@ -277,22 +277,56 @@ In the Tiny Store, Orders achieves $\varepsilon_m = 1$ because all G1, G2, and G
 
 \subsection*{Tutorial: Step-by-Step Application}
 
-The tutorial walks through four verification steps (~30 minutes) that build practical fluency with G3's infrastructure and metrics. Each step poses a question answered by a single command.
+The following steps demonstrate how to verify each layer of G3's infrastructure and metrics against the Tiny Store codebase ($\sim$30 minutes end to end). Each step poses a question answered by a single command and produces a baseline value that can be tracked over time to detect drift away from the Progressive Scalability Gap closure described above.
 
-\small
+\subsubsection*{Step 1: Are all infrastructure calls going through abstractions?}
+
+Module code must depend only on the shared infrastructure ports (cache, queue, event bus), never on concrete drivers such as \texttt{ioredis}, \texttt{bullmq}, or \texttt{pg}. A direct driver import would break the adapter pattern that enables progression from L0 to L3 without domain changes:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={Detect direct driver imports inside module code},label={lst:g3-tut-step1}]
+grep -rn "from 'ioredis'\|from 'bullmq'\|from 'pg'" libs/modules/*/src/
+# Expected: no results (Abstraction Coverage = 100%)
+\end{lstlisting}
+
 \noindent
-\begin{tabularx}{\linewidth}{p{0.04\linewidth} X X p{0.18\linewidth}}
-\toprule
-\textbf{\#} & \textbf{Question} & \textbf{Command} & \textbf{Expected} \\
-\midrule
-1 & Are all infrastructure calls going through abstractions? & \texttt{grep -rn "from 'ioredis\textbackslash|from 'bullmq\textbackslash|from 'pg'" libs/modules/*/src/} & No results (100\%) \\
-2 & Does the queue flow use the adapter pattern? & \texttt{grep -rn "QueueAdapter" libs/shared/infrastructure/src/queue/} & Adapter found \\
-3 & Does each module own its own schema? & \texttt{docker exec -it tiny-store-postgres-1 psql -U tinystore -d tinystore -c '\textbackslash dn'} & \texttt{inventory}, \texttt{orders}, \texttt{payments}, \texttt{shipments} \\
-4 & Is the module ready for extraction? & \texttt{npx ts-node tools/metrics/extraction-readiness.ts --module orders} & $\varepsilon_m = 1$, READY \\
-\bottomrule
-\end{tabularx}
-\normalsize
+Any match indicates that a module has bypassed the abstraction and would require code changes during a scalability transition.
 
+\subsubsection*{Step 2: Does the queue flow use the adapter pattern?}
+
+The \texttt{QueueAdapter} interface is the contract that lets the queue implementation switch between in-memory dispatch and a Redis-backed engine without touching domain code. Confirming that the adapter is in place validates the Decouple-level readiness:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={Verify the queue adapter is wired through the shared infrastructure},label={lst:g3-tut-step2}]
+grep -rn "QueueAdapter" libs/shared/infrastructure/src/queue/
+# Expected: adapter interface and at least one implementation are present
+\end{lstlisting}
+
+\noindent
+If the adapter is missing, modules are coupled directly to a queue engine and cannot be transitioned without rewriting their dispatch sites.
+
+\subsubsection*{Step 3: Does each module own its own schema?}
+
+Isolate-level readiness requires that every module declare its own PostgreSQL schema, so that data ownership is unambiguous before any extraction is attempted:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={List PostgreSQL schemas declared by Tiny Store modules},label={lst:g3-tut-step3}]
+docker exec -it tiny-store-postgres-1 \
+  psql -U tinystore -d tinystore -c '\dn'
+# Expected schemas: inventory, orders, payments, shipments
+\end{lstlisting}
+
+\noindent
+A missing schema indicates a module that still shares tables with another bounded context and is not yet ready for the Isolate level.
+
+\subsubsection*{Step 4: Is the module ready for extraction?}
+
+The extraction readiness calculator combines the previous signals into a single per-module score. A score of $\varepsilon_m = 1$ confirms that all G1, G2, and G3 gates pass for the candidate module:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=bash,caption={Run the extraction readiness calculator for the Orders module},label={lst:g3-tut-step4}]
+npx ts-node tools/metrics/extraction-readiness.ts --module orders
+# Expected: epsilon_m = 1, READY
+\end{lstlisting}
+
+\noindent
+In the Tiny Store baseline, Orders reaches $\varepsilon_m = 1$, confirming structural readiness for Extract-level transition. The operational readiness for that transition (sagas, contract versioning, deployment topology) is the responsibility of G4 and G5.
 
 \subsection*{Exercise Walkthrough: Controlled Violations and Signals}
 
