@@ -243,9 +243,9 @@ G1 passes (Encapsulation Leakage = 0, all exports are handlers). But Contract St
 \subsubsection*{Exercise Summary}
 All three exercises pass G1 boundary gates:
 \begin{itemize}[itemsep=2pt,topsep=2pt]
-  \item \textbf{Ex.\,1:} Payments exports enum, Shipments consumes it → new dep edge, API Boundary Ratio $\downarrow$.
-  \item \textbf{Ex.\,2:} Composition root orchestrates 3 modules → blast radius $\times 3$.
-  \item \textbf{Ex.\,3:} Payments exports 5 valid handlers → Contract Stability $\downarrow$ (1.0$\to$0.62).
+  \item \textbf{Ex.\,1:} Payments exports enum, Shipments consumes it → new dep edge, API Boundary Ratio drops.
+  \item \textbf{Ex.\,2:} Composition root orchestrates 3 modules → blast radius triples.
+  \item \textbf{Ex.\,3:} Payments exports 5 valid handlers → Contract Stability drops (1.0 to 0.62).
 \end{itemize}
 
 \subsection*{Conclusion}
