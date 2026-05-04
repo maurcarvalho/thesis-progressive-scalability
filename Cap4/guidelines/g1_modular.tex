@@ -263,55 +263,51 @@ it('loads orders with declared dependencies only', async () => {
 \end{lstlisting}
 
 \subsection*{Exercise Walkthrough: Controlled Violations and Signals}
-Each exercise introduces a single, controlled boundary breach and observes the failure signal. All exercises pass G1's boundary gate at baseline; the violation produces a specific, measurable signal.
+Each exercise introduces a single, controlled boundary breach and observes the failure signal. All exercises pass G1's boundary gate at baseline; the violation produces a specific, measurable signal. Each exercise assumes a clean baseline (Step 0 passes); revert the violation before proceeding to the next.
+
+\subsubsection*{Exercise 1: Encapsulation Leak (Encapsulation Leakage $\uparrow$)}
+A module re-exports its internal domain types from the public entrypoint. The boundary check no longer constrains downstream consumers from depending on entities and repositories that should remain implementation details. In \texttt{libs/modules/orders/src/index.ts}:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: exporting internal types},label={lst:g1-ex1-leak}]
+// VIOLATION: exporting internal domain types leaks encapsulation
+export * from './domain/entities/order';
+export * from './domain/repositories/order-repository';
+\end{lstlisting}
+
+\noindent
+Run \texttt{npm run test:boundary}: fails because Encapsulation Leakage rises.\\
+\emph{Resolution:} remove these exports; expose a contract instead (handler/port/event).
+
+\subsubsection*{Exercise 2: Direct Cross-Module Import (Undeclared/Forbidden Dependencies $\uparrow$)}
+A feature file inside Orders imports a handler from Inventory directly, bypassing the boundary descriptor. In an Orders feature file:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: direct cross-module import},label={lst:g1-ex2-import}]
+// VIOLATION: Orders directly imports Inventory
+import { SomeInventoryHandler } from '@tiny-store/modules-inventory';
+\end{lstlisting}
+
+\noindent
+Run \texttt{npm run test:boundary}: fails because Undeclared or Forbidden Dependencies rise.\\
+\emph{Resolution:} replace with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory).
+
+\subsubsection*{Exercise 3: Hidden Event Wiring (Isolation Pass Rate $\downarrow$)}
+A module subscribes to the global event bus from inside its own listener file rather than from the composition root. The dependency becomes invisible to boundary verification because it is established at runtime through a singleton:
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: hidden event wiring},label={lst:g1-ex3-hidden-wiring}]
+// VIOLATION: hidden event wiring inside a module
+EventBus.getInstance().subscribe('OrderPlaced', (e) => this.handle(e));
+\end{lstlisting}
+
+\noindent
+Run \texttt{npm run test:boundary \&\& npm run test:integration}: Isolation Pass Rate drops.\\
+\emph{Resolution:} move the subscription to \texttt{register-listeners.ts}.
 
 \subsubsection*{Exercise Summary}
-Each exercise assumes a clean baseline (Step 0 passes). After each exercise, revert the violation before proceeding to the next.
+Each exercise assumes a clean baseline. After each exercise, revert the violation before proceeding to the next.
 \begin{itemize}[itemsep=2pt,topsep=2pt]
   \item \textbf{Ex.\,1:} Export internal types → Encapsulation Leakage rises.
   \item \textbf{Ex.\,2:} Direct cross-module import → Undeclared/Forbidden Dependencies rise.
   \item \textbf{Ex.\,3:} Subscribe inside module → Isolation Pass Rate drops.
-\end{itemize}
-
-\subsubsection*{Exercises}
-\begin{itemize}[itemsep=10pt,topsep=4pt]
-
-  \item \emph{Exercise 1: Encapsulation Leak (export internal types).}
-  In \texttt{libs/modules/orders/src/index.ts}:
-
-  \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: exporting internal types},label={lst:g1-ex1-leak}]
-// VIOLATION: exporting internal domain types leaks encapsulation
-export * from './domain/entities/order';
-export * from './domain/repositories/order-repository';
-  \end{lstlisting}
-
-  \noindent
-  Run \texttt{npm run test:boundary}: fails because Encapsulation Leakage rises.\\
-  \emph{Resolution:} remove these exports; expose a contract instead (handler/port/event).
-
-  \item \emph{Exercise 2: Direct Cross-Module Import (undeclared dependency).}
-  In an Orders feature file:
-
-  \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: direct cross-module import},label={lst:g1-ex2-import}]
-// VIOLATION: Orders directly imports Inventory
-import { SomeInventoryHandler } from '@tiny-store/modules-inventory';
-  \end{lstlisting}
-
-  \noindent
-  Run \texttt{npm run test:boundary}: fails because Undeclared or Forbidden Dependencies rise.\\
-  \emph{Resolution:} replace with event-driven collaboration (publish \texttt{OrderPlaced}, react in Inventory).
-
-  \item \emph{Exercise 3: Hidden Event Wiring (implicit dependency).}
-  Inside a module's \texttt{listeners/} file:
-
-  \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: hidden event wiring},label={lst:g1-ex3-hidden-wiring}]
-// VIOLATION: hidden event wiring inside a module
-EventBus.getInstance().subscribe('OrderPlaced', (e) => this.handle(e));
-  \end{lstlisting}
-
-  \noindent
-  Run \texttt{npm run test:boundary \&\& npm run test:integration}: Isolation Pass Rate drops.\\
-  \emph{Resolution:} move the subscription to \texttt{register-listeners.ts}.
 \end{itemize}
 
 \subsection*{Conclusion}
