@@ -2,7 +2,7 @@
 
 This chapter presents the core contribution of this research: a set of architectural guidelines for software startups adopting modular monolithic architectures. The guidelines are grounded in the gaps and trade-offs identified through the systematic literature review and reflect the architectural tensions of early-stage teams operating under limited resources, rapid iteration, and evolving requirements. They are framed as decision-making heuristics rather than a rigid prescriptive framework.
 
-The research design identifies twelve guidelines across four analytical dimensions introduced in Chapter~\ref{sec:relatedwork}: Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation. This dissertation fully develops G1--G6 (Architectural Design and Operational Fit), covering module boundaries, maintainability, progressive scalability, migration readiness, deployment strategy, and observability. The remaining guidelines G7--G12 are scoped but deferred to future research (Section~\ref{sec:future-guidelines}).
+The research design builds on the twelve evaluation criteria identified through the systematic literature review, organized across four analytical dimensions introduced in Chapter~\ref{sec:relatedwork}: Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation. This dissertation proposes six guidelines (G1--G6) that operationalize the first two dimensions, covering module boundaries, maintainability, progressive scalability, migration readiness, deployment strategy, and observability. The remaining two dimensions, Organizational Alignment and Guideline Orientation, are framed as future research (Section~\ref{sec:future-guidelines}).
 
 
 \begin{figure}[htb]
@@ -20,9 +20,9 @@ Figure~\ref{fig:guideline-dimensions} shows the four guideline dimensions used i
 
   \item \textbf{Operational Fit.} Addresses the operational requirements needed to support production environments. Guideline G4 checks migration readiness (for example, transitioning toward microservices), G5 focuses on deployment strategy and automation, and G6 considers observability levels (logging, metrics, monitoring).
 
-  \item \textbf{Organizational Alignment.} Focuses on aligning the software architecture with the organization's structure. Guideline G7 examines team organization according to Conway's Law, G8 evaluates DevOps maturity, and G9 assesses how easily new team members can be onboarded without technical friction.
+  \item \textbf{Organizational Alignment.} A future research direction concerned with how module structure interacts with team organization, ownership models following Conway's Law, DevOps maturity, and developer onboarding.
 
-  \item \textbf{Guideline Orientation.} Refers to high-level recommendations that steer design decisions without imposing rigid rules. Guideline G10 emphasizes practical, actionable patterns, G11 highlights the need to adapt recommendations to the specific business context, and G12 points out that trade-offs and dilemmas exist rather than unbreakable dogma.
+  \item \textbf{Guideline Orientation.} A future research direction concerned with how guidance itself should be packaged, including actionable patterns, context-sensitive recommendations, and explicit dilemmas rather than rigid rules.
 \end{itemize}
 
 \noindent
@@ -83,32 +83,24 @@ The deployment pipeline provides the delivery mechanism, but informed scaling de
 \input{Cap4/guidelines/g6-observability}
 
 \pagebreak
-\section{Guidelines Deferred to Future Research}
+\section{Future Research}
 \label{sec:future-guidelines}
 
-The original research design identifies twelve guidelines across four dimensions. This dissertation fully develops the first six guidelines (G1--G6), covering Architectural Design and Operational Fit. The remaining six guidelines address Organizational Alignment (G7--G9) and Guideline Orientation (G10--G12). These guidelines are scoped below but deferred to future research, as they require empirical validation methods (e.g., organizational case studies, practitioner surveys) that fall outside the current scope.
+This dissertation proposes six guidelines (G1--G6) that operationalize the Architectural Design and Operational Fit dimensions. The remaining two dimensions, Organizational Alignment and Guideline Orientation, are framed as future research because they require empirical methods beyond code-level analysis, including organizational case studies, practitioner surveys, and longitudinal team observations. The open questions in each dimension are summarized below as a research agenda rather than as pre-committed guidelines.
 
-\subsection*{Organizational Alignment (G7--G9)}
+\subsection*{Organizational Alignment}
 
-\begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{G7: Team Ownership Alignment.} Examines how module boundaries should map to team boundaries following Conway's Law. Explores code ownership policies, module stewardship, and the organizational cost of cross-module changes.
-  \item \textbf{G8: DevOps Maturity.} Evaluates the DevOps practices required to sustain a modular monolith in production, including deployment frequency, mean time to recovery, and infrastructure-as-code adoption.
-  \item \textbf{G9: Developer Onboarding.} Assesses how architectural decisions affect the time and effort required for new team members to become productive, including documentation quality, local development setup, and module discoverability.
-\end{itemize}
+Open questions in this dimension include how module boundaries should map to team boundaries following Conway's Law, including code ownership policies, module stewardship, and the organizational cost of cross-module changes; what DevOps practices are required to sustain a modular monolith in production, including deployment frequency, mean time to recovery, and infrastructure-as-code adoption; and how architectural decisions affect the time and effort required for new team members to become productive, including documentation quality, local development setup, and module discoverability.
 
-\subsection*{Guideline Orientation (G10--G12)}
+\subsection*{Guideline Orientation}
 
-\begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \textbf{G10: Actionable Patterns.} Provides reusable templates and code references that reduce ambiguity when applying the architectural guidelines in practice.
-  \item \textbf{G11: Context Sensitivity.} Highlights the need to adapt recommendations to the specific business context, team size, and growth stage of the organization.
-  \item \textbf{G12: Design Dilemmas.} Acknowledges that architectural decisions involve trade-offs and that guidelines should help teams navigate dilemmas rather than prescribe dogmatic rules.
-\end{itemize}
+Open questions in this dimension include how to package architectural guidance as reusable templates and code references that reduce ambiguity when applying the guidelines in practice; how to adapt recommendations to the specific business context, team size, and growth stage of the organization; and how to frame guidance around the trade-offs and dilemmas inherent in architectural decisions rather than as prescriptive rules.
 
 \pagebreak
 \section{Verification Plan}
 \label{sec:verification-plan}
 
-To strengthen the practical and academic relevance of the architectural guidelines proposed in this chapter, a two-phase verification is planned. The first phase targets the six active guidelines (G1--G6) through semi-structured interviews with industry practitioners. The second phase, covering G7--G12 once developed, will follow the same methodology.
+To strengthen the practical and academic relevance of the architectural guidelines proposed in this chapter, a two-phase verification is planned. The first phase targets the six guidelines (G1--G6) through semi-structured interviews with industry practitioners. Future phases addressing the open research directions identified in Section~\ref{sec:future-guidelines} will adopt the same interview-based methodology, complemented by organizational case studies as appropriate to the dimension under study.
 
 Participants will include software engineering practitioners from industry and researchers from academia, providing both practice and research perspectives. All participants will sign an informed-consent form covering the study's purpose, data use, and right to withdraw. Recordings will be stored securely with restricted access, and transcripts will be anonymized before analysis, following standard research ethics practice.
 
