@@ -1,0 +1,78 @@
+<svg viewBox="0 0 1100 1000" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#3a4654"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <rect x="40" y="20" width="680" height="52" rx="26" fill="#2c3845"/>
+  <text x="380" y="55" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">The Extraction Decision: Six-Question Checklist</text>
+
+  <!-- Section 1: Structural -->
+  <rect x="40" y="100" width="1020" height="220" rx="14" fill="#e8f1fb" stroke="#2f6db0" stroke-width="2"/>
+  <text x="60" y="136" font-size="20" font-weight="700" fill="#1f2933">Structural signals from Khononov coupling model</text>
+
+  <!-- Q1 -->
+  <rect x="60" y="155" width="980" height="70" rx="9" fill="#ffffff" stroke="#2f6db0" stroke-width="1.5"/>
+  <circle cx="92" cy="190" r="20" fill="#2f6db0"/>
+  <text x="92" y="198" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+  <text x="130" y="185" font-size="18" font-weight="700" fill="#1f2933">Is the Integration Strength low and stable?</text>
+  <text x="130" y="210" font-size="15" fill="#5b6770">Metric: ISI from G2 at or above 0.8. Most cross-module integrations are mediated by explicit contracts.</text>
+
+  <!-- Q2 -->
+  <rect x="60" y="240" width="980" height="70" rx="9" fill="#ffffff" stroke="#2f6db0" stroke-width="1.5"/>
+  <circle cx="92" cy="275" r="20" fill="#2f6db0"/>
+  <text x="92" y="283" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+  <text x="130" y="270" font-size="18" font-weight="700" fill="#1f2933">Is the Strength-Distance gap balanced by Volatility?</text>
+  <text x="130" y="295" font-size="15" fill="#5b6770">Low strength and low volatility leave Distance free to grow without triggering coordination overhead.</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="328" x2="550" y2="356" stroke="#3a4654" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Section 2: Strategic -->
+  <rect x="40" y="368" width="1020" height="300" rx="14" fill="#e6f3ec" stroke="#3f8f5f" stroke-width="2"/>
+  <text x="60" y="404" font-size="20" font-weight="700" fill="#1f2933">Strategic signals from Newman Three Key Questions</text>
+
+  <!-- Q3 -->
+  <rect x="60" y="423" width="980" height="70" rx="9" fill="#ffffff" stroke="#3f8f5f" stroke-width="1.5"/>
+  <circle cx="92" cy="458" r="20" fill="#3f8f5f"/>
+  <text x="92" y="466" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+  <text x="130" y="453" font-size="18" font-weight="700" fill="#1f2933">What outcome does extraction enable that the monolith cannot deliver?</text>
+  <text x="130" y="478" font-size="15" fill="#5b6770">Independent scaling, independent release cadence, compliance scope, or fault isolation an in-process module cannot give.</text>
+
+  <!-- Q4 -->
+  <rect x="60" y="508" width="980" height="70" rx="9" fill="#ffffff" stroke="#3f8f5f" stroke-width="1.5"/>
+  <circle cx="92" cy="543" r="20" fill="#3f8f5f"/>
+  <text x="92" y="551" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+  <text x="130" y="538" font-size="18" font-weight="700" fill="#1f2933">Have alternatives to extraction been considered and ruled out?</text>
+  <text x="130" y="563" font-size="15" fill="#5b6770">Vertical scaling, caching, read replicas, the G3 L1 Decouple tier, and the G3 L2 Isolate tier are cheaper options.</text>
+
+  <!-- Q5 -->
+  <rect x="60" y="593" width="980" height="70" rx="9" fill="#ffffff" stroke="#3f8f5f" stroke-width="1.5"/>
+  <circle cx="92" cy="628" r="20" fill="#3f8f5f"/>
+  <text x="92" y="636" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">5</text>
+  <text x="130" y="623" font-size="18" font-weight="700" fill="#1f2933">Does the team have the capability to operate a distributed system?</text>
+  <text x="130" y="648" font-size="15" fill="#5b6770">Distributed tracing (G6), durable event delivery (G4), prior saga experience, on-call cross-service incident response.</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="676" x2="550" y2="704" stroke="#3a4654" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Section 3: Organizational -->
+  <rect x="40" y="716" width="1020" height="140" rx="14" fill="#efe9f6" stroke="#7a5ba6" stroke-width="2"/>
+  <text x="60" y="752" font-size="20" font-weight="700" fill="#1f2933">Organizational signal from Newman saga-style guidance</text>
+
+  <!-- Q6 -->
+  <rect x="60" y="771" width="980" height="70" rx="9" fill="#ffffff" stroke="#7a5ba6" stroke-width="1.5"/>
+  <circle cx="92" cy="806" r="20" fill="#7a5ba6"/>
+  <text x="92" y="814" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">6</text>
+  <text x="130" y="801" font-size="18" font-weight="700" fill="#1f2933">Which saga coordination style fits the team topology?</text>
+  <text x="130" y="826" font-size="15" fill="#5b6770">Orchestrated when one team owns the workflow; choreographed when multiple teams own participants independently.</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="864" x2="550" y2="892" stroke="#3a4654" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- Verdict -->
+  <rect x="200" y="900" width="700" height="62" rx="31" fill="#2c3845"/>
+  <text x="550" y="940" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">All six answered yes &#8594; extraction is justified</text>
+</svg>

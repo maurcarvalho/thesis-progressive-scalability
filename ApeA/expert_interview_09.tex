@@ -1,0 +1,94 @@
+%% Appendix section: Expert Interview 09 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_09}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 9: Software Engineer}
+\label{sec:interview09}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Political barriers as the dominant obstacle, regardless of architecture.} The participant described internal organizational politics, rather than tooling or technical capacity, as the binding constraint on whether developers can act on code outside their immediate team's perimeter. This framing applies equally to microservices and modular monolith environments and is the first articulation in the verification series of organizational politics as a first-order obstacle.
+  \item \emph{Frameworks like Rails violate boundary isolation by default.} The participant identified autoloaders and automatic imports as features that make module boundaries invisible at development time, requiring robust external tooling or framework-level modifications to enforce G1. This is the first voice in the verification series to name the application framework itself as a structural obstacle to boundary enforcement.
+  \item \emph{AI coding assistants change the dynamics of code review and architectural discipline.} The participant named four AI assistants (Claude, Gemini, Code Rabbit, Cubic) in regular use and observed that teams accept their output without deep questioning, making it harder to defend non-standard refactorings. Configuring AI agents to follow organization-specific guidelines is described as an effort that is rarely undertaken in practice.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``Esse bloqueio, no fim das contas, ele é político. Só que os bloqueios políticos são os mais reais que você tem dentro de uma organização.''} (Interviewee 9, 00:42:20)
+
+\medskip
+
+\emph{[English: ``This block, in the end, is political. But political blocks are the most real ones you find inside an organization.'']}
+\end{quote}
+
+This statement captures the participant's central framing of organizational politics as a first-order obstacle, more binding in practice than tooling or technical capacity, and applicable independently of the architectural style adopted.
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\subsubsection*{Viability enablers}
+
+\paragraph*{E1. G1 is the most defensible architectural guideline.} The participant identified G1 boundary enforcement as the easiest guideline to defend within an engineering team because the concept of decoupling is already understood. The challenge is not conceptual acceptance but the discipline to apply the practice under delivery pressure. Reaffirms the dominant cross-session signal that G1 is the operational entry point of the framework. Dimension: D1. Literature gap: Modularity.
+
+\paragraph*{E2. Observability as a standalone source of operational value.} The participant argued that G6 produces benefits that are real even when other guidelines are weak or partially adopted, and questioned the sequential dependency assumption that places observability at the end of the guideline progression. This converges with the cross-session pattern of observability as a systemic prerequisite, but adds a structural argument: G6 should not be gated by the upstream composite gates. Dimension: D2. Literature gap: Complexity Management, Performance Implications.
+
+\paragraph*{E3. Sagas and process reversibility as the highest immediate-value practice.} The participant ranked the saga pattern and the broader principle of process reversibility as the practice with the clearest immediate operational return on investment, citing the reduction of operational toil and the ability to resume from a specific state as the concrete value. This is the first voice in the verification series to defend G4 sagas as an immediate-value practice and not as a future-state pattern. Dimension: D2. Literature gap: Migration Readiness.
+
+\paragraph*{E4. Code semantics and naming as a maintainability mechanism.} The participant emphasized the importance of precise naming for tables and concepts, citing the cost of conflating distinct domain concepts under generic identifiers. The discipline of renaming for clarity is described as systematically underinvested, often deferred in favor of delivery speed. Reaffirms G2 maintainability framing with a concrete operational pattern grounded in Domain-Driven Design vocabulary. Dimension: D1. Literature gap: Maintainability.
+
+\paragraph*{E5. Schema separation before physical database separation.} The participant accepted the dissertation's progressive sequence (vertical optimization, then logical schema isolation, then physical separation) as the right ordering and described practical cases where teams duplicate tables rather than request internal APIs, illustrating the tension between architectural ideal and operational reality. Dimension: D2. Literature gap: Scalability.
+
+\paragraph*{E6. Operational-first guideline prioritization for new teams.} For a team without prior modularization experience, the participant would prioritize G4 (migration readiness through sagas), G5 (deployment spectrum), and G6 (observability), favoring guidelines that produce clear and immediate operational value. This is a new prioritization pattern in the verification series: prior sessions converged on the G1 plus G6 pairing as the operational entry, while this participant places the operational guidelines together at the top. Dimension: cross-cutting. Literature gap: cross-cutting (framework framing).
+
+\subsubsection*{Viability barriers}
+
+\paragraph*{B1. Political barriers within engineering organizations dominate technical obstacles.} The participant described internal politics as the most binding constraint on the adoption of any modularization strategy, framing it as the principal obstacle independently of whether the architecture is microservices or modular monolith. This is the strongest articulation of the organizational dimension in the verification series so far and reinforces the position that the deferred dimensions (Organizational Alignment in particular) carry consequences that no purely technical guideline can address. Dimension: D3. Literature gap: Team Fit.
+
+\paragraph*{B2. Application frameworks erode boundary isolation by default.} Frameworks like Ruby on Rails make module boundaries invisible at the language level through autoloaders and automatic imports, requiring robust external tooling or deep framework modifications to enforce G1. This is the first articulation in the verification series of the framework itself as a structural obstacle to boundary enforcement, complementing Interview 08's note on language-dependent tooling with a concrete framework-level case. Dimension: D1. Literature gap: Modularity.
+
+\paragraph*{B3. AI coding assistants reduce the room for non-standard architectural discipline.} The participant named four AI coding assistants in active use and observed that the dynamic of code review has shifted: teams accept the AI's output with limited questioning, defaults are reinforced, and non-standard refactorings for architectural clarity become harder to defend. Configuring AI agents to follow organization-specific guidelines is described as an effort that is rarely undertaken. Reframes the AI-agent direction that Interview 06 proposed as future research: the same tooling that could lower the adoption barrier may also raise it. Dimension: D4 with implications for D3. Literature gap: Practicality of Adoption.
+
+\paragraph*{B4. Effort versus immediate return favors the status quo over refactoring.} The participant agreed that Git-based evidence such as co-changing modules is a valid signal of coupling problems but observed that convincing a team to refactor on the basis of such evidence is difficult when the perceived effort outweighs the immediate return. This applies particularly to G2 maintainability investments that produce value over time, not in the short term. Dimension: D1. Literature gap: Practicality of Adoption.
+
+\subsubsection*{Gaps or missing details}
+
+\paragraph*{G1-gap. The sequential dependency of the composite gates is questionable.} The participant questioned the design choice that ties later guidelines to the success of earlier ones, arguing that observability in particular brings value independently of boundary and maintainability health. The paper should acknowledge this concern explicitly and clarify whether the composite gate $\varepsilon_m$ is intended as a strict extraction gate or as a more permissive maturity indicator. Dimension: D2. Literature gap: affects framework framing.
+
+\paragraph*{G2-gap. The 30\% synchronous-ratio target needs a justifying reference.} The participant identified the 30\% sync ratio metric as a number whose origin is not justified in the text. The discussion in the session confirmed that the value is drawn from microservices literature; the paper should add a footnote with the supporting reference to anchor the choice. Dimension: D1. Literature gap: Scalability.
+
+\paragraph*{G3-gap. Conceptual transition between Background sections needs strengthening.} The participant identified an abrupt transition between the discussion of cloud-native applications and the introduction of monolithic and microservices systems in Chapter~\ref{sec:background}, observing that the cloud-native section reads more as an apology for the technology than as an objective technical analysis. The text should be rebalanced to prepare the reader for the architectural discussion that follows. Dimension: meta (presentation). Literature gap: presentation; meta-structural.
+
+\paragraph*{G4-gap. Unsupported claims need explicit grounding.} The claim that ``modularity is foundational'' in Chapter~\ref{sec:relatedwork} was identified as presented without immediate citation or qualifier. The text should either anchor the claim in the literature review or rephrase it as an understood premise and not as an author assertion. Dimension: meta (presentation). Literature gap: Modularity.
+
+\paragraph*{G5-gap. Technical terms need definition at first use.} The term \emph{monorepo} appears in the Key Principles of the Architectural Design block without a prior definition, leaving the reader to infer the meaning from context. The paper should define the term on first use, making explicit the distinction between a single repository and a single deployment unit. Dimension: meta (presentation). Literature gap: presentation; meta-structural.
+
+\paragraph*{G6-gap. AI-assisted development as a new dimension for the deferred research agenda.} The participant's discussion of AI coding assistants as both enabler and obstacle is not covered by any of the current six guidelines or by the deferred dimensions as framed. The Guideline Orientation research agenda could include an explicit research direction on how the guidelines interact with AI-assisted development, both as an enforcement mechanism and as a source of architectural drift. Dimension: D4. Literature gap: affects framework framing.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Possible selection bias.} The participant operates in environments aligned with the dissertation's target architectural pattern. The strongest novel signal in this session, political barriers as the dominant obstacle, may itself be over-represented because the participant's experience spans environments where modularization conflicts with team boundaries.
+
+\paragraph*{L3. Residual influence of the pre-read paper.} The participant read the paper before the session and confirmed reading up to the Future Research Directions section. The structural feedback on the paper's transitions and definitions is therefore informed but inevitably anchored on the paper's vocabulary.
+
+\paragraph*{L4. Compact professional trajectory.} The participant's four years of professional experience span three environments and produce strong comparative breadth across modular monolith and distributed system practice. The shorter trajectory limits longitudinal observation of how guideline adoption evolves over multi-year horizons inside a single organization.
+
+\subsection*{Contributions to the conclusions chapter}
+
+The findings below offer statements that can be incorporated directly into Chapter~\ref{sec:conclusion} to summarize what this verification session contributes to the dissertation.
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Political barriers as the dominant obstacle to modularization.} The first articulation in the verification series of organizational politics as a first-order obstacle, applicable to both microservices and modular monolith environments and reinforcing the case for the Organizational Alignment dimension as a substantive research direction rather than a deferred placeholder (B1).
+  \item \emph{Application frameworks as a structural obstacle to G1.} Autoloaders and automatic imports in Ruby on Rails are named as a concrete framework-level case in which boundary enforcement requires external tooling beyond what the language provides. Complements Interview 08's language-dependent tooling note with a concrete framework example (B2).
+  \item \emph{AI coding assistants as both enabler and obstacle.} The first voice in the verification series to describe AI-assisted development as a source of architectural drift, not only as a candidate for future tooling support. The dissertation's discussion of AI agents as future work should acknowledge this dual nature explicitly (B3 and G6-gap).
+  \item \emph{Sagas defended as immediate-value, contradicting the cross-session pattern.} Five of the prior eight sessions contested the centrality of sagas in G4. This session offers the first explicit defense of sagas as the practice with the highest immediate operational return, framed around process reversibility and toil reduction. The dissertation should report both the cross-session pattern and this contradicting voice without resolving the tension (E3).
+  \item \emph{Composite gate sequential dependency as a design question.} The participant questioned whether the strict sequential dependency between guidelines is the best framing. The paper should acknowledge this design question and clarify whether $\varepsilon_m$ is intended as an extraction gate or as a maturity indicator (G1-gap).
+  \item \emph{Operational-first prioritization for new teams.} A novel prioritization pattern in the verification series: G4, G5, and G6 selected together as the operational entry point, favoring immediate operational value over the foundational architectural guidelines selected by prior sessions (E6).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The ninth session produced two distinctive contributions to the verification series. The articulation of political barriers as the dominant obstacle to modularization is the first first-order organizational finding in the series and reinforces the case for treating the Organizational Alignment dimension as substantive research, not as a deferred placeholder. The defense of sagas as immediate-value, framed around process reversibility and toil reduction, is the first voice to contradict the cross-session pattern that contested the centrality of sagas in G4.

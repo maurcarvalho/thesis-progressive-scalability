@@ -1,0 +1,140 @@
+%% Appendix: Verification Phase Methodology.
+%% Common methodological framework that applies to every expert interview report.
+%% Included from tese.tex via \input{ApeA/appendix_validation_methodology}.
+
+This appendix consolidates the methodological policy that applies to every expert interview conducted during the verification phase of this dissertation. Individual interview reports (consolidated in the Expert Interviews appendix that follows) follow this common framework and contain only the data and findings of each session.
+
+\section*{Verification approach}
+
+The verification phase uses the semi-structured interview method introduced in Chapter~\ref{sec:proposal}, following Kitchenham 2007~\cite{kitchenham2007guidelines}. Each session combines a prepared script with open-ended probes so that the participant evaluates the guidelines against their own architectural experience. The seven-question protocol, including the consent question and the post-interview notes template, is presented in the next section.
+
+Each session is recorded with the participant's explicit verbal consent at the start of the conversation. Recordings are stored with restricted access; the original recording is the source of truth for every quotation reproduced in subsequent reports.
+
+\section*{Semi-structured interview protocol}
+\label{ape:protocol}
+
+This section presents the semi-structured interview protocol used in every expert session of the verification phase. The protocol operationalizes the verification approach described above and is governed by the analysis policy described in the sections that follow.
+
+\subsection*{Design of the protocol}
+
+The protocol consists of seven questions designed to fit a 45 to 60 minute session. Each question carries three annotations that connect it to the analysis framework. The \emph{goal} states what the question aims to elicit. The \emph{category} indicates which of the three coding categories defined below in this appendix the question primarily targets (viability enablers, viability barriers, or gaps or missing details). The \emph{dimension} indicates which of the four evaluation dimensions defined in Chapter~\ref{sec:relatedwork} the question primarily covers (Architectural Design, Operational Fit, Organizational Alignment, or Guideline Orientation). The \emph{time} declares the expected duration of the response.
+
+The protocol grew out of an earlier draft that contained roughly thirty questions, which proved too long for the time budget and led the first session to concentrate on the Architectural Design and Operational Fit dimensions. The current version reduces the question count to seven and reserves one question explicitly for the deferred dimensions (Organizational Alignment and Guideline Orientation), counteracting the concentration observed in the first session.
+
+\subsection*{Opening of the session}
+
+\begin{enumerate}[itemsep=4pt,topsep=2pt]
+  \item The researcher thanks the participant and states the expected duration of 45 to 60 minutes.
+  \item The researcher confirms that the pre-read material has been received and invites the participant to raise any prior questions.
+  \item The researcher starts the recording.
+  \item The researcher reads the consent statement and asks the consent question on record: \emph{do you agree to participate freely in this interview, knowing that it is recorded and transcribed for research purposes?}
+  \item The researcher captures the participant's profile fields used in the attribution scheme described later in this appendix: the highest academic qualification and institution; the current professional role and employer; years of professional experience; and the participant's consent to disclose the employer in the published attribution.
+\end{enumerate}
+
+\subsection*{The seven questions}
+
+The questions are presented in the order in which they appear in the script. Within a session, the researcher may extend the duration of one question and shorten another when a probe is producing strong material, but the overall budget of 45 to 60 minutes is maintained.
+
+\noindent\textbf{Q1.} \emph{Briefly describe the system you spend most of your time on right now: roughly how many modules or services, team size, codebase maturity. Before reading this paper, how did you frame the modular monolith versus microservices choice?}
+
+\noindent\emph{Goal:} establish shared vocabulary, situate the participant in a concrete system, and capture the prior position before the pre-read paper anchors it. \emph{Category:} context (calibration). \emph{Dimension:} not applicable. \emph{Time:} 5 minutes.
+
+\medskip
+\noindent\textbf{Q2.} \emph{Looking at the four analytical dimensions and the six operational guidelines G1 to G6, what resonates with your practice and what feels missing?}
+
+\noindent\emph{Goal:} open the conversation with a broad probe before the deep dives, surfacing both enablers and gaps without leading. \emph{Category:} enablers and gaps. \emph{Dimension:} all four. \emph{Time:} 10 minutes.
+
+\medskip
+\noindent\textbf{Q3.} \emph{Within Architectural Design (G1 boundary enforcement, G2 maintainability metrics, G3 progressive scalability), which guideline is most defensible from your experience, where do real practitioners stumble in adopting them, and what would you add?}
+
+\noindent\emph{Goal:} deep dive on Architectural Design, eliciting all three analysis categories in a single question. \emph{Category:} enablers, barriers, and gaps. \emph{Dimension:} Architectural Design. \emph{Time:} 12 minutes.
+
+\medskip
+\noindent\textbf{Q4.} \emph{Within Operational Fit (G4 migration readiness via ACL and sagas, G5 deployment spectrum, G6 module-scoped observability), which guideline is most defensible from your experience, where do practitioners stumble, and what would you add?}
+
+\noindent\emph{Goal:} deep dive on Operational Fit, mirroring the structure of Q3. \emph{Category:} enablers, barriers, and gaps. \emph{Dimension:} Operational Fit. \emph{Time:} 12 minutes.
+
+\medskip
+\noindent\textbf{Q5.} \emph{The dissertation defers two dimensions as a research agenda. Organizational Alignment covers team-architecture mapping, DevOps maturity, and onboarding. Guideline Orientation covers how guidelines are packaged and adapted to contexts. In your experience, are these the right dimensions to defer? And what would block adoption of G1 to G6 in your organization that the technical dimensions do not address?}
+
+\noindent\emph{Goal:} bring the conversation explicitly into the deferred dimensions, which previous sessions have shown do not surface on their own. The first interview lacked this question and produced no evidence on these dimensions. \emph{Category:} barriers and gaps. \emph{Dimension:} Organizational Alignment and Guideline Orientation. \emph{Time:} 8 minutes.
+
+\medskip
+\noindent\textbf{Q6.} \emph{If you had to keep only three of G1 to G6 to introduce in a team you have never worked with, which three and why?}
+
+\noindent\emph{Goal:} force a prioritization that reveals what the participant values most and produces a rank ordering aggregable across the interview series. \emph{Category:} enablers and barriers, expressed through relative weight. \emph{Dimension:} all four. \emph{Time:} 5 minutes.
+
+\medskip
+\noindent\textbf{Q7.} \emph{If you were reviewing this paper for a journal rather than participating in the interview, what would your single biggest reservation be?}
+
+\noindent\emph{Goal:} extract the densest critique that participants tend to soften when speaking to the author. The reviewer prompt is designed to invite explicit reservation. \emph{Category:} gaps and barriers. \emph{Dimension:} all four. \emph{Time:} 5 minutes.
+
+\subsection*{Closing of the session}
+
+\begin{enumerate}[itemsep=4pt,topsep=2pt]
+  \item The researcher stops the recording with the participant's confirmation.
+  \item The researcher thanks the participant and confirms the next steps: thematic coding of the transcript and the post-interview questionnaire that will arrive within twenty-four hours.
+  \item The researcher confirms that the participant may withdraw at any time and that the channel of contact for follow-up remains open.
+\end{enumerate}
+
+\subsection*{Post-interview notes template}
+
+Within twenty-four hours of the session, the researcher fills the following notes. The fields are aligned with the analysis categories of the methodology and produce the material that is then incorporated into the individual session report.
+
+\begin{itemize}[itemsep=4pt,topsep=2pt]
+  \item \emph{Three themes that surfaced most strongly during the session.}
+  \item \emph{One quotation worth preserving verbatim, with timestamp.}
+  \item \emph{Viability enablers identified}, mapped to G1 to G6 where applicable.
+  \item \emph{Viability barriers identified}, classified as technical, contextual, or organizational.
+  \item \emph{Gaps or missing details identified}, classified as terminology, examples, or prerequisites.
+  \item \emph{Coverage of dimensions in this session} across D1 to D4.
+  \item \emph{Cross-references to literature gaps}: which rows of the literature gap analysis of Chapter~\ref{sec:relatedwork} did the findings of this session reinforce?
+  \item \emph{Thematic convergence with prior interviews}, per axis: did any theme repeat without adding new information compared to the previous session?
+\end{itemize}
+
+\section*{Coding categories}
+
+The analysis of each interview transcript follows the three coding categories defined in Chapter~\ref{sec:proposal}:
+
+\begin{itemize}[itemsep=4pt,topsep=2pt]
+  \item \emph{Viability enablers}: properties or practices observed by the participant that make the guidelines work in real systems. Examples include clear module boundaries, simplicity of implementation, and improved modularity observed in the participant's own work.
+  \item \emph{Viability barriers}: tooling, contextual, or organizational obstacles that constrain the practical adoption of the guidelines. Examples include tooling limitations, organizational culture misalignment, and lack of time or expertise.
+  \item \emph{Gaps or missing details}: terminology, examples, or prerequisites that the guidelines should acknowledge but do not. Examples include unclear terminology, the need for additional examples, and undeclared assumptions about the target context.
+\end{itemize}
+
+\section*{Evaluation dimensions}
+
+Each finding identified in an interview report is also classified against the four evaluation dimensions defined in Chapter~\ref{sec:relatedwork}: Architectural Design, Operational Fit, Organizational Alignment, and Guideline Orientation. This classification supports two analytical purposes. First, it makes the coverage of dimensions explicit per session, exposing imbalances and motivating revisions in subsequent interview scripts. Second, it enables aggregation across sessions, so that the verification phase as a whole produces evidence distributed across the four dimensions rather than concentrated in the technically explicit ones.
+
+\section*{Cross-reference to the literature gaps}
+
+Each interview report cross-references the findings of the session against the literature gaps identified in Chapter~\ref{sec:relatedwork}. This cross-reference satisfies two methodological goals. First, it confirms that the guidelines under verification address gaps already recognized in the systematic review rather than gaps invented by the proposal. Second, when a finding does not map to any pre-existing literature gap, it surfaces a candidate for a new line of investigation.
+
+\section*{Use of artificial intelligence tools}
+\label{sec:ai-use}
+
+The verification phase uses artificial intelligence tools in two well-defined roles, both subject to researcher review and final judgment.
+
+Automated transcription is performed by Gemini, the conversational AI tool integrated with Google Meet, which produces a structured summary with timestamps and a verbatim transcript of each session. The researcher reviews the automated transcript before coding to correct misrecognitions and clarify nuance.
+
+Assisted categorization is performed with Claude Opus 4.7 as the conversational AI assistant. It supports the classification of findings against the predefined coding categories above (viability enablers, viability barriers, gaps or missing details) and against the four evaluation dimensions. The assistant proposes initial categorizations and cross-references against the literature gaps identified in the systematic review; the researcher reviews and confirms each categorization before incorporating it into the analysis.
+
+Three controls mitigate the known risks of AI-assisted analysis. First, the original recording and transcript are preserved as the source of truth for all quotations, with timestamps. Second, verbatim quotations selected for any report are verified word by word against the transcript. Third, AI-proposed categorizations are checked against the original conversation rather than against any AI-generated summary. All interpretive judgments, final categorizations, and critical conclusions remain the responsibility of the researcher.
+
+\section*{Post-interview questionnaire}
+
+Each session is followed by a structured questionnaire that complements the qualitative interview with quantitative ratings. It is sent to the participant within twenty-four hours of the session and remains open for one week. The instrument is a Google Form built deterministically by the Apps Script reproduced in Annex~\ref{ane:appsscript}, organized in seven sections covering general framing, per-guideline ratings, named-gap and anti-pattern recognition, spectrum and gate evaluation, forced prioritization, and two optional paragraph reflections.
+
+The questionnaire serves methodological triangulation between the participant's qualitative narrative and their structured judgment shortly after the session. Convergence between the two reinforces a finding; divergence is itself a finding worth probing. The aggregated ratings also produce descriptive statistics (medians, interquartile ranges, and recognition frequencies) that complement the thematic coding without making inferential claims on a small sample, and they stabilize numerically as more sessions are added, providing a quantitative complement to thematic saturation.
+
+\section*{Anonymization and attribution}
+
+Participants are attributed in published reports through a stable identifier (\emph{Interviewee N}) accompanied by their highest academic qualification and institution, current professional role and employer, years of professional experience, and profile category (industry practitioner or academic researcher). Personal identifiers such as full name and contact details are withheld. The employer is included only when its known reliance on monolithic or microservices systems is directly relevant to the verification and the participant has consented to disclosure.
+
+\section*{Language and transcription policy}
+
+The sessions are conducted in the language preferred by the participant. When the original language is not English, the interview report preserves the original wording of each quoted passage and adds an English translation for the reader. The original transcript, including timestamps, is preserved as the verification source for all reproduced quotations.
+
+\section*{Saturation and convergence}
+
+Saturation is not declared from a single session. The verification phase tracks convergence or divergence across sessions along the axes defined in the post-interview notes of each individual report. The aggregate saturation assessment is reported in Chapter~\ref{sec:conclusion}, after all sessions in the planned series have been completed and incorporated into this dissertation.

@@ -20,7 +20,7 @@ Figure~\ref{fig:guideline-dimensions} shows the four guideline dimensions used i
 
   \item \textbf{Operational Fit.} Addresses the operational requirements needed to support production environments. Guideline G4 checks migration readiness (for example, transitioning toward microservices), G5 focuses on deployment strategy and automation, and G6 considers observability levels (logging, metrics, monitoring).
 
-  \item \textbf{Organizational Alignment.} A future research direction concerned with how module structure interacts with team organization, ownership models following Conway's Law, DevOps maturity, and developer onboarding.
+  \item \textbf{Organizational Alignment.} A future research direction concerned with how module structure interacts with team organization, ownership models following Conway's Law~\cite{fowler2003}, DevOps maturity, and developer onboarding.
 
   \item \textbf{Guideline Orientation.} A future research direction concerned with how guidance itself should be packaged, including actionable patterns, context-sensitive recommendations, and explicit dilemmas rather than rigid rules.
 \end{itemize}
@@ -68,7 +68,12 @@ Embedding infrastructure such as Kafka, Temporal, and OpenTelemetry inside the m
 \input{Cap4/guidelines/g3-progressive-scalability}
 
 \noindent
-Having established the scalability spectrum and progression criteria, the next guideline addresses how individual modules can be prepared for extraction when evidence warrants it.
+Having established the scalability spectrum and progression criteria, the Operational Fit dimension begins with the shared foundations that G4, G5, and G6 build on, with saga coordination styles as the most consequential cross-cutting topic.
+
+\input{Cap4/guidelines/foundations-for-operational-fit-dimension-block-g4-g5-g6}
+
+\noindent
+With the saga coordination foundations in place, G4 addresses how individual modules can be prepared for extraction when evidence warrants it.
 
 \input{Cap4/guidelines/g4-migration-readiness}
 
@@ -82,18 +87,22 @@ The deployment pipeline provides the delivery mechanism, but informed scaling de
 
 \input{Cap4/guidelines/g6-observability}
 
+With the six guidelines in place, the chapter concludes by synthesizing them into a decision framework that answers the prior question: not whether a module is ready to be extracted, but whether it should be extracted now.
+
+\input{Cap4/guidelines/extraction-decision}
+
 \pagebreak
 \section{Future Research}
 \label{sec:future-guidelines}
 
-This dissertation proposes six guidelines (G1--G6) that operationalize the Architectural Design and Operational Fit dimensions. The remaining two dimensions, Organizational Alignment and Guideline Orientation, are framed as future research because they require empirical methods beyond code-level analysis, including organizational case studies, practitioner surveys, and longitudinal team observations. The open questions in each dimension are summarized below as a research agenda rather than as pre-committed guidelines.
+This dissertation proposes six guidelines (G1--G6) that operationalize the Architectural Design and Operational Fit dimensions. The remaining two dimensions, Organizational Alignment and Guideline Orientation, are framed as future research because they require empirical methods beyond code-level analysis, including organizational case studies, practitioner surveys, and longitudinal team observations. The open questions in each dimension are summarized below as a research agenda rather than as pre-committed guidelines. Narrowing the operational set from twelve to six guidelines is a deliberate scope decision: committing all four dimensions inside a single master's research cycle would compromise the depth of the code-level verification that G1 to G6 require, so the deferred dimensions are kept as an explicit research agenda instead of being operationalized prematurely.
 
 \subsection*{Organizational Alignment}
 
 Open questions in this dimension include:
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item How should module boundaries map to team boundaries following Conway's Law, and what code ownership policies, module stewardship models, and accounting of cross-module change cost best support that mapping?
+  \item How should module boundaries map to team boundaries following Conway's Law~\cite{fowler2003}, and what code ownership policies, module stewardship models, and accounting of cross-module change cost best support that mapping?
   \item What DevOps practices are required to sustain a modular monolith in production, including deployment frequency, mean time to recovery, and infrastructure-as-code adoption?
   \item How do architectural decisions affect the time and effort required for new team members to become productive, including documentation quality, local development setup, and module discoverability?
 \end{itemize}
@@ -109,18 +118,18 @@ Open questions in this dimension include:
 \end{itemize}
 
 \pagebreak
-\section{Verification Plan}
+\section{Verification Approach}
 \label{sec:verification-plan}
 
-To strengthen the practical and academic relevance of the architectural guidelines proposed in this chapter, a two-phase verification is planned. The first phase targets the six guidelines (G1--G6) through semi-structured interviews with industry practitioners. Future phases addressing the open research directions identified in Section~\ref{sec:future-guidelines} will adopt the same interview-based methodology, complemented by organizational case studies as appropriate to the dimension under study.
+To strengthen the practical and academic relevance of the architectural guidelines proposed in this chapter, a two-instrument verification was conducted. The verification targets the six guidelines (G1--G6) through semi-structured interviews with industry practitioners and academic researchers, together with a structured post-interview questionnaire. The open research directions identified in Section~\ref{sec:future-guidelines} will be verified through the same interview-based methodology in subsequent work, with organizational case studies added as appropriate to the dimension under study.
 
-Participants will include software engineering practitioners from industry and researchers from academia, providing both practice and research perspectives. All participants will sign an informed-consent form covering the study's purpose, data use, and right to withdraw. Recordings will be stored securely with restricted access, and transcripts will be anonymized before analysis, following standard research ethics practice.
+Participants included software engineering practitioners from industry and researchers from academia, providing both practice and research perspectives. All participants provided verbal informed consent at the start of the recording, covering the study's purpose, data use, and right to withdraw. Recordings were stored securely with restricted access, and transcripts were anonymized before analysis, following standard research ethics practice.
 
 \subsection*{Interview Method}
 
-The primary verification method consists of semi-structured interviews with selected practitioners. Participants will include professionals with relevant expertise in designing or evolving monolithic and microservices systems or leading software architectural decisions in startups. Each interview will explore the perceived usefulness, feasibility and completeness of the guidelines as well as any limitations or omissions experts may identify. Feedback will be used to refine the guidelines.
+The primary verification method was semi-structured interviews with selected practitioners. Participants included professionals with relevant expertise in designing or evolving monolithic and microservices systems or leading software architectural decisions in startups. Each interview explored the perceived usefulness, feasibility, and completeness of the guidelines, as well as any limitations or omissions experts identified. The feedback collected guided subsequent refinements to the guidelines.
 
-Interviews will be conducted remotely and will follow a flexible script structured around four thematic areas:
+Interviews were conducted remotely and followed a flexible script structured around four thematic areas:
 
 \begin{enumerate}[itemsep=8pt,topsep=2pt]
   \item General impressions and relevance of the guideline set
@@ -129,11 +138,11 @@ Interviews will be conducted remotely and will follow a flexible script structur
   \item Suggestions for improving or decomposing guidelines into more actionable steps
 \end{enumerate}
 
-Participants will receive summarized descriptions of the guidelines in advance to facilitate discussion. With participant consent, all interviews will be recorded and transcribed. Transcripts will be stored securely and later coded using thematic analysis.
+Participants received summarized descriptions of the guidelines in advance to facilitate discussion. With participant consent, all interviews were recorded and transcribed. Transcripts were stored securely and coded using thematic analysis.
 
 \subsection*{Analysis Approach}
 
-Interview transcripts will be examined to identify recurring themes. The researcher will verify:
+Interview transcripts were examined to identify recurring themes. The researcher verified three coding categories:
 
 \begin{enumerate}[itemsep=8pt,topsep=2pt]
   \item Viability barriers (e.g., tooling limitations, organizational culture misalignment, lack of time or resources)
@@ -141,4 +150,8 @@ Interview transcripts will be examined to identify recurring themes. The researc
   \item Gaps or missing details (e.g., unclear terminology, need for additional examples or prerequisites)
 \end{enumerate}
 
-Feedback will be categorized according to the four evaluation dimensions defined in Chapter~\ref{sec:relatedwork}. The researcher will cross-reference these comments against the original literature gaps identified in the systematic review to confirm that the guidelines address underexplored needs and to inform any refinements.
+Feedback was categorized according to the four evaluation dimensions defined in Chapter~\ref{sec:relatedwork}. The researcher cross-referenced these comments against the original literature gaps identified in the systematic review to confirm that the guidelines address underexplored needs and to inform any refinements.
+
+Each interview was complemented by a short structured questionnaire that gathered Likert ratings on the same constructs the interview probed. The objective of combining the two instruments was methodological triangulation between the participant's qualitative narrative and their structured judgment shortly after the session, not inferential statistics on a small sample. Convergence between the two reinforced a finding; divergence was itself a finding worth probing.
+
+The complete execution policy of the verification phase, including the interview protocol, the analysis framework, the use of artificial intelligence tools for transcription and assisted categorization, and the controls applied to the AI-assisted analysis, is consolidated in Appendix~\ref{ape:methodology}. The empirical results of the verification are synthesized in Chapter~\ref{sec:conclusion}, with individual session reports provided in Appendix~\ref{ape:interviews}.

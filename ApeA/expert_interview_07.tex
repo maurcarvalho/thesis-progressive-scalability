@@ -1,0 +1,135 @@
+%% Appendix section: Expert Interview 07 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_07}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 7: Engineering Manager}
+\label{sec:interview07}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Technical scale is solved by compute power; human scale is the binding constraint.} The participant argued that current cloud and compute resources solve most technical scale problems. The remaining pain is human scale: team maturity, culture, and leadership. This reframes the verification phase's emphasis on technical guidelines as solving the easier half of the problem.
+  \item \emph{Saga overhead critique with event-driven principle preserved.} Sagas require broker infrastructure (Kafka, RabbitMQ, equivalent) and produce complex overhead. Forcing sagas into monoliths is questionable. The participant defends the event-driven principle as central but distinguishes events-as-coordination from saga-as-orchestration. Reinforces the G4-catalog signal from Interviews 2, 3, and 4.
+  \item \emph{G2 and G5 as the least defensible guidelines in the current presentation.} Two specific critiques: G2's framing of in-memory event persistence is fragile without robust state management; G5's deployment spectrum can be handled at the infrastructure layer (load balancer, service mesh) without rigid code-level separation. The participant is the first in the series to attack G2 head-on.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``A escala técnica hoje a gente resolve com poder computacional. A dor está na escala humana.''} (Interviewee 7, 00:17:10)
+
+\medskip
+
+\emph{[English: ``Technical scale today is solved by compute power. The pain is in the human scale.'']}
+\end{quote}
+
+This statement reframes the dissertation's central problem: the technical-guideline contribution addresses one half of the modular-monolith challenge, while the deferred dimensions (Organizational Alignment, Guideline Orientation) address the half where the actual binding constraint lives. The framing converges with the maturity-axis reframing surfaced in prior sessions.
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\subsubsection*{Viability enablers}
+
+\paragraph*{E1. Multi-startup trajectory at the dissertation's target scale.} Three sequential startups scaling to 300 to 400 employees on monolithic stacks. The trajectory provides cross-organization perspective at the scale window most relevant to the dissertation. Dimension: cross-cutting. Literature gap: cross-cutting (framework framing).
+
+\paragraph*{E2. G3 considered the most coherent guideline.} Modularization of domains applies to both monoliths and microservices; the principle transfers cleanly across architectures. Dimension: D1. Literature gap: Scalability.
+
+\paragraph*{E3. G4, G5, G6 considered solid as operational practices for cloud-native systems.} The participant accepted the operational guidelines as broadly applicable regardless of architectural choice, while reserving specific critiques for the saga prescription and the deployment spectrum framing. Dimension: D2. Literature gap: cross-cutting.
+
+\paragraph*{E4. Schema separation within the same database as practical entry-level isolation.} Suggests that the G4 catalog should include schema separation as the practical starting point for data ownership, before committing to fully separate database instances. Dimension: D2. Literature gap: Scalability.
+
+\paragraph*{E5. Forbidden-package linter rules for boundary enforcement.} A concrete operational pattern for G1 enforcement: explicit rules that prohibit imports from forbidden packages, forcing modules to communicate only through public interfaces. Reinforces the boundary-as-code principle of G1. Dimension: D1. Literature gap: Modularity.
+
+\paragraph*{E6. Event-driven as the priority for teams without modularization experience.} For a new team facing modularization, the participant would prioritize G4 in its event-driven form: events facilitate future migration and database synchronization; more strategic than focusing on sagas or complex orchestration from the start. Reframes G4 around the event principle rather than around any specific orchestration mechanism. Dimension: D2. Literature gap: Migration Readiness.
+
+\subsubsection*{Viability barriers}
+
+\paragraph*{B1. Premature microservices in startups produce new legacy.} Startups starting directly with microservices face complex domain-decomposition decisions; errors create distributed systems that mirror the legacy monoliths they were meant to replace. Reinforces the dissertation's central thesis. Dimension: cross-cutting. Literature gap: cross-cutting.
+
+\paragraph*{B2. Human scale as the binding constraint.} Team maturity, culture, and leadership are the real obstacles. Distributed systems require a level of technical maturity that startups often lack, and the corresponding investment in team development is the harder problem. Dimension: D3. Literature gap: Team Fit.
+
+\paragraph*{B3. Empirical balance between coupling and decoupling.} Without opinionated frameworks that impose patterns, the balance is hard to find. Teams need imposition through tooling, not advisory guidance, to maintain the discipline. Dimension: D1 with implications for D4. Literature gap: Practicality of Adoption.
+
+\subsubsection*{Gaps or missing details}
+
+\paragraph*{G1-gap. G2 maintainability is the least defensible guideline.} In-memory event persistence as proposed is fragile without robust state management. The participant suggested looking at the Flux architecture (immutable stores plus event propagation) for state-managed event-driven patterns and clarifying the practical implementation of G2 metrics with concrete state-management infrastructure. Dimension: D1. Literature gap: Maintainability.
+
+\paragraph*{G2-gap. G5 deployment spectrum is the least defensible as a hard rule.} Cloud-native infrastructure (load balancer, service mesh) handles segregation without rigid code-level separation. The participant suggested presenting D0/D1/D2 as capabilities of the pipeline that can be adopted incrementally, not as required code-level decisions. Dimension: D2. Literature gap: Deployment Strategy.
+
+\paragraph*{G3-gap. G6 observability deserves elevated status.} The participant argued that observability is cross-cutting and serves as the basis for deciding whether other guidelines apply. Suggests elevating G6 to a transversal prerequisite (effectively ``G0'') or framing it explicitly as a precondition for the other guidelines. Reinforces the strongest cross-session signal of the series. Dimension: D2. Literature gap: Complexity Management, Performance Implications.
+
+\paragraph*{G4-gap. DevOps as culture, not as team structure.} A specific textual correction: DevOps should be discussed as a cultural property of the engineering organization, not as a team-structure prescription. Affects how D3 is framed in the Cap4 Future Research subsection on Organizational Alignment. Dimension: D3. Literature gap: affects D3 framing.
+
+\paragraph*{G5-gap. Design Patterns deserve explicit treatment.} Creational patterns specifically (Builder, Singleton) are relevant to coupling avoidance and dependency leakage. The paper could include a brief patterns section grounded in the GoF literature. Dimension: D1. Literature gap: Modularity.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured questionnaire (Appendix~\ref{ape:methodology}) within the agreed one-week window. The ratings below complement the qualitative findings above and are presented as part of the methodological triangulation. The single-change reflection in Section 7 was filled and is reproduced verbatim under triangulation; the optional reflection field was filled with a brief negative response and is omitted as non-substantive.
+
+\subsubsection*{General framing}
+
+The four ratings of Section 1 (analytical dimensions, deliberate destination thesis, G1 to G6 ordering, completeness of the set) were 4, 4, 3, and 5 on a five-point Likert scale. The lower rating on the G1 to G6 ordering is the strongest signal in this section: the participant rated the sequence of guidelines at 3, the lowest single-cell value in Section 1 across the verification series so far. The completeness rating of 5 is consistent with the qualitative position that no operational guideline is missing; the structural issues surfaced in the conversation concern the ordering and the relative weight of the existing six rather than their coverage.
+
+\subsubsection*{Per-guideline ratings}
+
+For each guideline the participant rated five dimensions on the same five-point scale (1 = Very low, 5 = Very high).
+
+\begin{longtable}{p{5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1: Enforce Modular Boundaries  & 5 & 5 & 5 & 5 & 4 \\
+G2: Embed Maintainability       & 5 & 3 & 5 & 4 & 4 \\
+G3: Design for Progressive Scalability & 3 & 4 & 3 & 3 & 3 \\
+G4: Promote Migration Readiness & 5 & 5 & 3 & 2 & 3 \\
+G5: Streamline Deployment Strategy & 5 & 5 & 4 & 5 & 4 \\
+G6: Introduce Observability Patterns & 5 & 5 & 4 & 5 & 4 \\
+\bottomrule
+\end{longtable}
+
+G1 received perfect ratings on four of five dimensions. G3 received the lowest aggregate of the verification series so far: every dimension at 3 or 4, with no rating above 4. G4 produced the single lowest cell value yet recorded across all questionnaire respondents: adoption rated 2 out of 5, paired with importance and completeness at 3. G5 and G6 received strong ratings consistent with the participant's qualitative emphasis on operational guidelines that produce immediate, clear value.
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked all six named failure-mode concepts (the Enforcement Gap, the Incremental Maintainability Degradation, the Progressive Scalability Gap, the Migration Readiness Gap, the Deployment-Architecture Mismatch, and the Observability Deficit) as personally encountered in production systems. The completeness of the named-gap set was rated 3 out of 5, the lowest completeness rating produced by the questionnaire so far. Across the six anti-pattern blocks, the participant selected seventeen of the eighteen listed anti-patterns, omitting one anti-pattern in the G3 block (uniform-scaling assumption and premature distribution).
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum was rated 3 out of 5, the lowest rating the G3 spectrum has received so far. The G5 deployment spectrum was rated 4. The G3 Extraction Readiness gate $\varepsilon_m = 1$ was rated as ``About right'' in calibration. The composite binary gates mechanism was rated 2 out of 5, the lowest rating the gate mechanism has received: the participant signalled reservation about the all-or-nothing gating logic. Both signals converge with the qualitative position that observability brings value independently of the other guidelines and that strict sequential dependency is questionable.
+
+\subsubsection*{Forced prioritization}
+
+The participant produced a near-strict ordering on the operational grid: G1 and G5 tied at position 1; G2, G3, and G6 tied at position 2; and G4 alone at position 5. The pairing of G1 and G5 at the top reflects the qualitative position that boundary enforcement and deployment topology produce the clearest operational value early. The placement of G4 at the bottom converges with the cross-session signal that the saga-based migration readiness is the least defensible operational guideline as currently framed. The research-agenda grid produced an ordering with G10 (Actionable Design Patterns) at position 1, then G9 (Frictionless Onboarding) and G11 (Contextual Adaptation) at position 2, G7 (Team-Architecture Balance) and G8 (SRE and DevOps Maturity) at position 3, and G12 (Trade-offs over Dogma) at position 5.
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire and the interview transcript converge on the main qualitative finding regarding G4. G4 received an adoption rating of 2, an importance and completeness rating of 3, and the bottom position in the forced ranking; this aligns with the qualitative reservation that saga orchestration is overkill for early-stage teams and reaffirms the cross-session pattern of contesting G4 as currently presented. The G6 strong rating across all dimensions converges with the qualitative position that observability brings value independently of other guidelines. The low rating on the composite gate mechanism is the strongest single-respondent signal in this triangulation: the participant's qualitative argument that observability should not be gated by the boundary and maintainability composite gates is reaffirmed here.
+
+The single-change reflection in Section 7 reinforces the qualitative critique of G2 in this report (G1-gap: in-memory event persistence as fragile without state management). Verbatim: \emph{``I would consider using Flux architecture to downstream data about communication between modules.''} The reflection points at the same Flux architecture reference the participant mentioned during the session as a state-managed alternative to the G2 event-handling proposal.
+
+One divergence is worth noting. The participant identified G3 as the most coherent guideline in the qualitative narrative (E2 in this report), yet the form produced the weakest aggregate ratings for G3 across all dimensions. The most plausible reconciliation is that the participant rated the spectrum's practical applicability and clarity for his target environment (small startup teams) below the broader conceptual coherence he affirmed in the conversation; coherence and ease of adoption are distinct constructs, and the form measures the second more directly than the first.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Possible selection bias.} The participant operates in environments aligned with the dissertation's target architectural pattern. Convergence may be over-represented.
+
+\paragraph*{L3. Residual influence of the pre-read paper.} The participant read the paper before the session.
+
+\paragraph*{L4. Multi-startup self-report.} The participant's trajectory spans three sequential startups, providing comparative breadth but no single longitudinal case. Cross-startup patterns identified by the participant are narrative rather than systematically measured.
+
+\subsection*{Contributions to the conclusions chapter}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Technical scale versus human scale reframing.} A practitioner with multi-startup leadership experience identified human scale (team maturity, culture, leadership) as the binding constraint, with technical scale solved by current compute resources. This converges with the maturity-axis reframing surfaced in prior sessions (E1 and B2).
+  \item \emph{First head-on critique of G2.} The participant identified G2's in-memory event persistence as the least defensible element of the framework, recommending state-management grounding (Flux architecture as a reference). The contribution is concrete and actionable for the next paper revision (G1-gap).
+  \item \emph{First explicit critique of G5 as a hard rule.} Cloud-native infrastructure can deliver deployment segregation without code-level commitment. The participant recommends reframing D0/D1/D2 as pipeline capabilities rather than required architectural states (G2-gap).
+  \item \emph{Event-driven principle preserved with sagas marked as overkill.} The participant defends event-driven design as the priority for teams without modularization experience while questioning the saga overhead. Reinforces the G4-catalog signal: now five of seven sessions contest the current saga presentation (E6 and theme 2).
+  \item \emph{Observability as transversal prerequisite.} Recommends elevating G6 to ``G0'' status or framing it explicitly as a precondition for the other guidelines. Sixth consecutive cross-session reinforcement (G3-gap).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The seventh session produced the first head-on critiques of G2 and G5 as specific guidelines (other sessions had questioned G4 saga prescription; this session is the first to attack G2 and G5 as the weakest links). The participant also contributed a practitioner-leadership reframing: technical scale is solved, human scale is the binding constraint. The reframing converges with the maturity-axis signal from Interviews 2, 3, and 5. The new G2 and G5 critiques are candidate sixth and seventh axes to track in future sessions.

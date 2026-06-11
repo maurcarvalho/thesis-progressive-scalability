@@ -1,0 +1,118 @@
+%% Appendix section: Expert Interview 15 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_15}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 15: Systems Analyst}
+\label{sec:interview15}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=8pt,topsep=2pt]
+  \item \emph{Shared-database coupling is the structural failure mode the framework targets.} The participant described an environment of forty small monoliths integrated through a shared database rather than through structured service contracts, naming this pattern as the obstacle to evolution and confirming the dissertation's G1 enforcement narrative as relevant to the public-sector legacy context.
+
+  \item \emph{Project longevity is finite and should be planned accordingly.} The participant articulated a perspective in which software projects have an expected useful life of five to ten years before a rewrite or general refactoring becomes necessary to absorb new technology platforms. This is a new finding in the verification series, framing the dissertation's progressive scalability narrative against a finite-horizon planning lens.
+
+  \item \emph{Resource scarcity, not concept clarity, is the obstacle to G2 adoption.} The participant reported that the G2 maintainability metrics are not difficult to understand but are difficult to operationalize under the time and team constraints of a small public-sector team. The participant joins Interview 12 and Interview 14 in framing the framework's adoption surface as gated by team capacity rather than by concept difficulty.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``Eu acho que essas tr\^es seriam para mim G1, G6 e G3. \ldots\ Porque eu acho que a G1 ele consegue nos dar um norte no desenvolvimento. O G3 ele consegue ali dar um norte j\'a numa aplica\c{c}\~ao de produ\c{c}\~ao, se eu precisasse fazer qualquer altera\c{c}\~ao e em termos de infra, verificar melhorias, talvez uma pode resolver o meu problema l\'a, antes de fazer uma migra\c{c}\~ao. E o G6 eu acho que \'e com ele observando a minha aplica\c{c}\~ao, eu consigo geralmente verificar o que t\'a dando certo e tá dando errado e a\'i ajustar.''} (Interviewee 15, 00:26:24)
+
+\emph{[English: ``I think these three for me would be G1, G6, and G3. \ldots\ Because I think G1 gives us a direction during development. G3 gives us a direction in a production application, if I needed to make any change in terms of infrastructure, to verify improvements, perhaps one can solve my problem before doing a migration. And G6, by observing my application, I can usually verify what is going right and what is going wrong, and then adjust.'']}
+\end{quote}
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\paragraph*{E1. G1 boundary discipline as directional anchor during development.} The participant articulated G1 as the guideline that provides directional discipline during development, anchoring the team's choices on the module ownership and the responsibility boundaries the system imposes. Dimension: D1. Literature gap: modularity definitions.
+
+\paragraph*{E2. G3 progressive scalability as production-side reasoning tool.} The participant articulated G3 as the guideline that provides directional discipline at production time, surfacing the operational questions (what to tune, where to add capacity, when to decouple) before the migration question is posed. Dimension: D2. Literature gap: progressive scalability and structured intermediate states.
+
+\paragraph*{E3. G6 observability as the adjustment loop the framework requires.} The participant articulated G6 as the guideline that provides the feedback signal the rest of the framework depends on: without observability the team cannot know which adjustment to make, regardless of how well the rest of the guidelines are followed. Dimension: D2. Literature gap: deployment automation depth.
+
+\paragraph*{E4. Kubernetes-based deployment automation as the operational form of G5.} The participant reported that deployment is automated through Kubernetes pipelines and that G5 does not surface as a practical obstacle in his daily operations, confirming the dissertation's D0--D2 deployment spectrum framing as appropriate for the participant's context. Dimension: D2. Literature gap: deployment automation depth.
+
+\paragraph*{B1. Shared-database coupling is the structural obstacle to module evolution.} The participant identified the integration pattern of forty small Java monoliths sharing a database as the structural cause of the boundary erosion the dissertation's G1 narrative targets. The pattern is the negative-case empirical evidence the framework needs. Dimension: D1. Literature gap: enforcement gap in modularity tooling.
+
+\paragraph*{B2. Resource scarcity defeats G2 maintainability metrics adoption.} The participant reported that the G2 metrics are not conceptually opaque but are not operationalized because the team capacity (time and headcount) does not support the continuous measurement and refactoring the metrics imply. Dimension: D3. Literature gap: practicality of adoption.
+
+\paragraph*{B3. G4 migration readiness is the most distant guideline from the participant's operational reality.} The participant identified G4 (Migration Readiness) as the guideline most distant from his daily work, since the system's current trajectory does not contemplate immediate extraction. The finding refines the dissertation's framing of G4 as situationally activated rather than as uniformly applicable. Dimension: D2. Literature gap: migration readiness modeling.
+
+\paragraph*{B4. Pipeline-level architectural validations are not yet captured by the current CI/CD.} The participant reported that the current Kubernetes pipeline does not capture the aggressive architectural validations that would be needed to detect boundary leakage at commit time. This converges with prior sessions on the need for commit-time architectural inspection tooling. Dimension: D1. Literature gap: enforcement gap in modularity tooling.
+
+\paragraph*{G1-gap. Concrete worked examples and comparative tables are missing from the paper.} The participant proposed that the paper would benefit from more practical examples and comparative tables to make the guidelines easier to internalize for readers operating in legacy and resource-constrained environments. The dissertation can either address this through additional Chapter~4 examples or record it as a paper-iteration direction. Dimension: D4. Literature gap: practicality of adoption.
+
+\paragraph*{G2-gap. The framework should explicitly address shared-database integration as the failure mode it targets.} The participant proposed that the dissertation would gain practical adoption traction if it explicitly named shared-database coupling as the legacy pattern the G1 boundary discipline replaces. The dissertation already targets this through the G1 enforcement narrative; the gap is in making the legacy-to-G1 migration concrete. Dimension: D1. Literature gap: modularity definitions.
+
+\paragraph*{G3-gap. Project longevity as a planning lens is not currently addressed.} The participant proposed that the framework should acknowledge a five-to-ten-year project useful life as the planning horizon against which the guideline adoption decisions are made. The dissertation can record this as a finding without committing the framework to a longevity calibration. Dimension: cross-cutting. Literature gap: practicality of adoption.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured post-interview questionnaire on the day of the session, allowing the quantitative ratings to be triangulated against the qualitative findings above as part of the methodological triangulation described in Appendix~\ref{ape:methodology}. Both optional reflection fields were returned as no-content entries; the triangulation discussion therefore rests on the numerical pattern.
+
+\subsubsection*{General framing}
+
+The four Section~1 Likert ratings were 4, 3, 3, and 5. The completeness rating of five reinforces the qualitative endorsement of the six-guideline set, while the middle-of-scale ratings on the four-dimension and ordering items reflect the participant's measured engagement with the framework structure beyond the per-guideline content.
+
+\subsubsection*{Per-guideline ratings}
+
+\begin{longtable}{p{2.5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1 Enforce Boundaries & 3 & 2 & 4 & 3 & 3 \\
+G2 Embed Maintainability & 2 & 2 & 3 & 4 & 3 \\
+G3 Progressive Scalability & 2 & 3 & 2 & 3 & 3 \\
+G4 Migration Readiness & 3 & 3 & 2 & 4 & 3 \\
+G5 Deployment Strategy & 4 & 4 & 3 & 4 & 3 \\
+G6 Observability & 4 & 4 & 3 & 4 & 4 \\
+\bottomrule
+\end{longtable}
+
+\noindent
+The per-guideline ratings cluster around the middle of the scale rather than at the maximum, reflecting a participant whose context (forty small monoliths with shared-database coupling) is more constrained than the cloud-native startup setting the framework targets. G5 and G6 received the strongest rows, converging with the qualitative discussion of Kubernetes deployment automation and observability as the operational guidelines closest to the participant's reality. G1 received the lowest clarity rating (two), which contrasts with the qualitative discussion of G1 as the directional anchor and is discussed in the triangulation subsection below. G3 received the lowest importance rating (two), again contrasting with the qualitative pick of G3 as one of the three priority guidelines.
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked all six named gaps as personally encountered in production. The completeness of the named gap set was rated two, the lowest single rating in the questionnaire, suggesting the participant identified additional failure modes that the dissertation's named-gap set does not currently cover. The dissertation records this as a finding without revising the named gap set at this stage.
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum received a rating of four, the G5 deployment spectrum received four, and the composite binary gates received four. The $\varepsilon_m$ calibration question was returned with the option \emph{About right}, converging with the participant's overall measured endorsement of the framework's mechanism choices.
+
+\subsubsection*{Forced prioritization}
+
+The G1--G6 rank ordering returned ties rather than a strict order: G1=1, G2=2, G3=3, G4=5, G5=2, G6=1, with G1 and G6 tied at position one and G2 and G5 tied at position two. The ordering should be read as a Likert-style intensity scale rather than as a strict rank, as noted in the threats-to-validity discussion of Chapter~5. The G6 plus G1 top tie converges directly with the qualitative pick of G1, G6, and G3 as the three priority guidelines. The G7--G12 rank ordering also returned ties (G7=2, G8=2, G9=3, G10=2, G11=3, G12=3), making the deferred-dimension prioritization signal flat in this session.
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire converges with the qualitative narrative on three points and diverges on two. The convergences are clear: G6 received the strongest per-guideline row and tied for the highest position in the G1--G6 ranking, mirroring the qualitative emphasis on observability as the adjustment loop. G5 received a strong row, converging with the qualitative discussion of Kubernetes deployment automation as a non-problem in the participant's daily operations. The completeness rating of two on the named gap set converges with the qualitative critique that the paper would benefit from more practical examples and from explicit treatment of shared-database coupling as the failure mode the framework targets.
+
+The first divergence concerns G1 clarity, which received a rating of two despite the qualitative discussion of G1 as the directional anchor during development. The most plausible reconciliation is that the per-guideline clarity rating reflects the participant's perception of the framework's prescriptive content as not yet specific enough for the legacy public-sector context, while the qualitative discussion endorsed the G1 concept at a higher level of abstraction. The second divergence concerns G3 importance, which received a rating of two despite being picked as one of the three priority guidelines qualitatively. The most plausible reconciliation is that the importance rating was anchored against the participant's current operational reality (where infrastructure scaling absorbs the G3 pressure) while the qualitative pick was anchored against a hypothetical new-team scenario. The dissertation does not over-interpret either divergence and records both as findings.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Third voice from the same public-sector employer.} The participant is the third voice in the verification series from the same state-owned information technology company (after Interview 13 and Interview 14). The three voices operate on distinct systems and in distinct functional roles (manager, engineer, systems analyst) with distinct technology stacks (Java legacy monolith, PHP monoliths, Java small-monolith portfolio), but the shared organizational context introduces sample-overlap bias that the cross-session synthesis acknowledges.
+
+\paragraph*{L3. Stack focus on the small-Java-monolith portfolio with shared-database coupling.} The participant's daily operational experience is concentrated on the forty-small-monoliths pattern with shared-database integration. The findings on shared-database coupling as the structural failure mode are valuable but should be read alongside sessions covering different integration patterns where the failure modes differ.
+
+\paragraph*{L5. Ranking grids returned with ties rather than strict orderings.} The participant returned the G1--G6 and G7--G12 ranking grids using only some of the available rank positions, with multiple guidelines sharing the same rank. The grids should be read as Likert-style intensity scales rather than as strict ordinal ranks, as documented in the threats-to-validity discussion of Chapter~5.
+
+\subsection*{Contributions to the conclusions chapter}
+
+\begin{enumerate}[itemsep=4pt,topsep=2pt]
+  \item \emph{Third voice in the series from the same state-owned information technology context.} The participant joins Interviews 13 and 14 in extending the verification sample beyond the cloud-native startup focus. The three-voice convergence on public-sector budget and resource constraints becomes a stable cross-session signal.
+  \item \emph{Shared-database coupling as the structural failure mode the framework targets.} The participant provides the negative-case empirical evidence the G1 boundary-enforcement narrative needs: a real environment of forty small monoliths integrated through a shared database, with the predicted boundary erosion fully manifested (B1, G2-gap).
+  \item \emph{Project longevity (five to ten years) as a planning lens for guideline adoption.} The participant introduces a finite-horizon perspective on system evolution that the dissertation has not previously addressed (G3-gap).
+  \item \emph{Third voice in the series articulating resource scarcity as the obstacle to G2 maintainability adoption.} The participant joins Interviews 12 and 14 on this theme, consolidating the cross-session signal that the framework's adoption surface is gated by team capacity (B2).
+  \item \emph{G4 migration readiness identified as the most situational guideline.} The participant reinforces the dissertation's framing of G4 as activated by extraction trajectory rather than as uniformly applicable (B3).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The fifteenth session produced two consequential contributions to the verification series. The first is the negative-case empirical evidence for the G1 boundary-enforcement narrative: an environment of forty small Java monoliths integrated through a shared database, with the predicted boundary erosion fully manifested, providing the public-sector legacy reference point the cloud-native startup context did not supply. The second is the project longevity perspective (five to ten years before rewrite or general refactoring) as a planning lens that the framework has not previously addressed.

@@ -2,23 +2,21 @@
 \section{Foundations for the Architectural Design Dimension}
 \label{sec:background-architectural-design}
 
-A modular monolith structures the application as a single deployable unit whose internals consist of well-defined, self-contained modules. By imposing strict boundaries and interfaces, this approach preserves benefits commonly associated with distributed architectures (parallel development, maintainability, scalability) while avoiding a substantial portion of the operational complexity of distributed systems~\cite{abgaz2023decomposition, grzybek2020modular}.
+A modular monolith deploys as a single unit but enforces strict internal boundaries between self-contained modules, preserving key benefits of distributed architectures (parallel development, maintainability, scalability) without proportional operational complexity~\cite{abgaz2023decomposition, grzybek2020modular}.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.90\linewidth]{Cap4/guidelines/modular-deployment-units.png}
-  \caption[Deployment units in modular monoliths and microservices]{Deployment units in modular monoliths and microservices. The left side illustrates a modular monolith, where domain-aligned modules execute within a single runtime and may share a single data store, while enforcing internal boundaries through code-level constraints. The right side illustrates microservices, where each service runs as an independent runtime and typically owns its persistence, enabling independent deployment and scaling at the cost of distributed-system operational overhead. Source: Dr Milan Milanović (adapted for this research).}
+  \includegraphics[width=0.65\linewidth]{Cap4/guidelines/modular-deployment-units.png}
+  \caption[Deployment units in modular monoliths and microservices]{Deployment units in modular monoliths and MSA. Source: Dr Milan Milanović (adapted).}
   \label{fig:modular-deployment-units}
 \end{figure}
 
-Progressive scalability depends first on enforceable modularity: clear boundaries, explicit contracts, and build-time checks that detect boundary corruption early. The guidelines are presented by impact, with G1 as the foundation: without verifiable boundary enforcement, later guidelines cannot assume stable module interfaces.
-
-Architectural design can be framed as an evolutionary progression in separation of concerns, from technical separation (MVC, layered structures) toward dependency discipline and domain-centric organization~\cite{cockburn2005hexagonal,palermo2008onion,martin2012clean}.
+Progressive scalability requires enforceable modularity. The guidelines are ordered by impact: G1 establishes boundary enforcement as the foundation, because later guidelines depend on stable module interfaces. Architecturally, this reflects a progression from technical separation (MVC, layered structures) toward dependency discipline and domain-centric organization~\cite{cockburn2005hexagonal,palermo2008onion,martin2012clean}.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.75\linewidth]{Cap4/guidelines/domain-centric-layered-arch.png}
-  \caption[Layered architecture versus domain-centric architecture]{Layered versus domain-centric architecture. Domain-centric design shifts the primary decomposition axis from technical layers to business capabilities, improving cohesion and reducing cross-cutting coupling.}
+  \includegraphics[width=0.60\linewidth]{Cap4/guidelines/domain-centric-layered-arch.png}
+  \caption[Layered architecture versus domain-centric architecture]{Layered versus domain-centric architecture.}
   \label{fig:layered-vs-domain-architecture}
 \end{figure}
 
@@ -26,25 +24,18 @@ In parallel, packaging strategies evolved from technical layers to feature slice
 
 \subsection*{Cost of Change: Coupling and Cohesion}
 
-Cost of change is often dominated by dependency structure rather than by local code complexity. Interactions are where change propagates, coordination increases, and unintended side effects emerge. Structured design theory provides a rigorous vocabulary for this relationship~\cite{yourdon1979structured}. Three claims are central to G1--G3:
+Cost of change is dominated by dependency structure, not local code complexity~\cite{yourdon1979structured,khononov2024balancing}. Not all coupling is equal: intentional dependencies inside a coherent boundary are stabilizing, while accidental ones create ripple effects across unrelated areas~\cite{khononov2024balancing}. Decoupling itself has a cost, as indirection may increase cognitive load if applied without need. The goal is not to eliminate coupling but to relocate it into cohesive units so that change remains localized: \textbf{strong cohesion, loosely coupled}.
 
-\begin{itemize}
-    \item \textbf{Not all coupling is equal.} Some dependencies are stabilizing and intentional (inside a coherent boundary); others are accidental and create ripple effects across unrelated areas.
-    \item \textbf{Decoupling has its cost.} Indirection and additional interfaces reduce harmful dependency but may increase cognitive load if applied without need.
-    \item \textbf{Cohesion is coupling in the right places.} Coupling is not eliminated but relocated into cohesive units so that change remains localized.
-\end{itemize}
-
-Software design can therefore be treated as the act of modeling units of \textbf{strong cohesion, loosely coupled} to each other. G1--G3 operationalizes this by making coupling explicit, constraining it through boundary rules, and aligning modules with business capabilities. Functional decomposition is preferred over technical decomposition when the goal is to reduce change amplification, because it localizes business evolution inside bounded units. A recurring risk is mistaking organization for encapsulation: directory structure alone does not enforce boundaries unless backed by interface contracts and dependency rules.
+Functional decomposition is preferred over technical decomposition because it localizes business evolution inside bounded units. However, domain-aligned folders alone do not enforce boundaries unless backed by interface contracts and dependency rules. G1--G3 operationalizes this by making coupling explicit, constraining it through verifiable rules, and providing metrics that detect when organizational structure diverges from actual enforcement.
 
 \subsection*{Modular Decomposition Styles: Horizontal vs Vertical}
 In traditional layered architectures, code is structured by technical responsibility (presentation, services, persistence). While this provides separation of concerns, it disperses domain logic across layers: modifications to a single feature require coordinated changes across all layers~\cite{fowler2002patterns}.
 
-Figure~\ref{fig:change-coupling-ripple} illustrates this propagation: a change at the origin node ripples through the dependency graph, impacting structurally coupled but functionally unrelated components.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.40\linewidth]{Cap4/guidelines/change-coupled-effect.png}
-  \caption[Coupled-change ripple in a dependency graph]{Coupled-change ripple in a dependency graph. Nodes represent components and directed edges represent dependencies. The change originates at the top node and propagates along dependency paths. Darker nodes indicate impacted components; concentric halos emphasize the spread of change through tighter coupling.}
+  \caption[Coupled-change ripple in a dependency graph]{Coupled-change ripple in a dependency graph. A single change propagates along dependency edges; darker nodes indicate impacted components.}
   \label{fig:change-coupling-ripple}
 \end{figure}
 
@@ -52,8 +43,8 @@ Vertical decomposition addresses this by organizing code around domain capabilit
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.6\linewidth]{Cap4/guidelines/layered-vs-modular.png}
-  \caption[Layered and modular architecture]{Layered and modular architecture. The left side shows a traditional layered decomposition by technical responsibility. The right side shows a modular decomposition where domain modules each contain their own UI/API, application logic, and persistence, keeping feature changes localized within module boundaries.}
+  \includegraphics[width=0.5\linewidth]{Cap4/guidelines/layered-vs-modular.png}
+  \caption[Layered and modular architecture]{Layered (by technical responsibility) versus modular (by domain capability) decomposition. Modular decomposition localizes feature changes within module boundaries.}
   \label{fig:layered-vs-modular}
 \end{figure}
 
@@ -67,12 +58,11 @@ This connects to the \emph{model--code gap}: the divergence between documented a
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.70\linewidth]{Cap4/guidelines/explicit-modular-boundary.png}
+  \includegraphics[width=0.60\linewidth]{Cap4/guidelines/explicit-modular-boundary.png}
   \caption[Explicit modular boundary with enforced imports]{Explicit modular boundary with enforced imports.}
   \label{fig:explicit-modular-boundary}
 \end{figure}
 
-\pagebreak
 The following directory structure illustrates this principle:
 
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,frame=single,framerule=0.3pt,xleftmargin=0.5cm,xrightmargin=0.5cm]
@@ -101,33 +91,21 @@ Hexagonal, Onion, and Clean Architecture formalize a stricter rule: business log
 
 Dependency inversion reduces coupling to volatile infrastructure: replacements, testing strategies, and delivery mechanisms can evolve without rewriting core domain logic. However, dependency discipline alone does not guarantee domain-centric modularity. A codebase can follow inward dependencies and still be a single, tightly coupled domain blob if boundaries between business capabilities are not explicit.
 
-\subsection*{Packaging and Slicing Strategy}
-Packaging strategy determines what coupling is easy and what is discouraged. G1--G3 depends on understanding what each strategy optimizes for and where it fails.
+\subsection*{Packaging Strategy}
 
-\emph{Package by layer} organizes code by technical responsibility (controllers, services, repositories). Business changes span multiple packages, amplifying cost of change. Delivery pressure reinforces this: short-term convenience encourages cross-layer shortcuts until the system reflects technical decomposition rather than business capability.
+Packaging strategy determines the default coupling direction in a codebase: it makes certain dependencies convenient and others costly. Three strategies represent a progression toward domain-centric modularity, each addressing a limitation of the previous one.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.75\linewidth]{Cap4/guidelines/package-by-layer-dir.png}
-\end{figure}
+\emph{Package by layer} groups code by technical responsibility: controllers, services, and repositories each occupy a separate package~\cite{fowler2002patterns}. This provides separation of concerns at the infrastructure level but disperses domain logic across layers. A single business change (e.g., adding a field to an order) requires coordinated modifications in the presentation, service, and persistence layers. Under delivery pressure, cross-layer shortcuts accumulate until the system's structure reflects its technology stack rather than its business capabilities.
 
-\emph{Package by feature} organizes code around domain capabilities, localizing behavior rather than scattering it across layers~\cite{shaw2018vertical}. The failure mode is features becoming folders without stable interfaces, reintroducing hidden coupling through shared utilities and unrestricted imports.
+\emph{Package by feature} addresses this dispersion by grouping all elements of a business capability (API, logic, persistence) into a single package~\cite{shaw2018vertical}. This increases cohesion and reduces cross-feature coupling. However, without enforced interfaces, features become folders rather than boundaries: shared utilities and unrestricted imports reintroduce the coupling that the reorganization was meant to eliminate.
 
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.75\linewidth]{Cap4/guidelines/package-by-feature-dir.png}
-\end{figure}
+\emph{Package by component} adds the enforcement layer that package by feature lacks. Components expose a public interface and hide internal implementation, with explicit rules governing which dependencies are permitted~\cite{evans2003ddd}. This is the closest packaging analogue to modules in a modular monolith. The strategy fails when component granularity does not match bounded contexts: overly coarse components accumulate unrelated responsibilities, while overly fine-grained components fragment aggregates and force excessive cross-component communication.
 
-\emph{Package by component} organizes code around cohesive components accessed through well-defined interfaces~\cite{evans2003ddd}. Component boundaries become enforceable when they define what is exposed publicly, what is hidden internally, and which dependency directions are permitted. This is the closest analogue to modules in a modular monolith. The failure mode arises when components are not aligned with bounded contexts: overly coarse components accumulate unrelated responsibilities, while overly fine-grained components fragment aggregates.
-
-\begin{figure}[H]
-  \centering
-  \includegraphics[width=0.75\linewidth]{Cap4/guidelines/package-by-component.png}
-\end{figure}
+The progression from layer to feature to component mirrors the architectural evolution described earlier: from technical separation to domain alignment to enforceable boundaries. G1--G3 assumes package-by-component as the baseline and provides the metrics to verify that component boundaries remain effective under sustained development.
 
 \subsection*{Modularity as an Enforceable Principle}
 
-This research treats modularity as an enforceable property, not a folder convention. Encapsulation and information hiding minimize potential dependencies by reducing what other modules can see and use~\cite{parnas1972criteria}. This implies several principles that G1--G3 operationalizes:
+This research treats modularity as an enforceable property, not a folder convention. Encapsulation and information hiding minimize potential dependencies by reducing what other modules can see and use~\cite{parnas1972informationhiding}. This implies several principles that G1--G3 operationalizes:
 
 \begin{itemize}
     \item Separating interface from implementation: modules expose a small public API and keep internals private.
@@ -138,7 +116,7 @@ This research treats modularity as an enforceable property, not a folder convent
 
 \textbf{Encapsulation over organization}: directory structure matters only when backed by dependency rules, stable interfaces, and verification mechanisms. Without enforcement, modularity claims collapse under delivery pressure.
 
-Tiny Store~\cite{tinystore2026} serves as the reference implementation, providing an auditable codebase where packaging strategies and boundary enforcement can be inspected directly.
+Tiny Store\footnote{\url{https://github.com/maurcarvalho/tiny-store}} serves as the reference implementation, providing an auditable codebase where packaging strategies and boundary enforcement can be inspected directly.
 
 \subsection*{Definition of Module Quality}
 

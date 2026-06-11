@@ -1,0 +1,126 @@
+%% Appendix section: Expert Interview 03 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_03}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 3: Startup CTO}
+\label{sec:interview03}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Rewrite-versus-extract decision rule.} When a module is decoupled, extraction works. When coupling is high, rewriting is ``faster, cheaper, and easier'' than maintaining cross-module references during extraction. This is a real-world data point that expands the catalog of valid responses currently presented in G4.
+  \item \emph{In-memory events first.} The most under-appreciated concept according to the participant: teams confuse event-driven design with the need for a broker (Kafka or similar). The pragmatic starting point is firing in-memory events using framework signals; the broker comes only when load demands it. Directly aligns with the G3 Decouple-level port abstraction at an earlier point in the progression.
+  \item \emph{Two-wave maturity framework.} The participant proposed that G1 to G6 (technical) and G7 to G12 (organizational and orientation) represent two waves of team maturity. The paper would be ``more complete with both waves'' but presented as a maturity progression, not as parallel dimensions. This converges with Interview 02's structural critique of the four-dimension framework, though with a different framing.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``Eu vejo em duas ondas realmente. (...) Elas separadas do ponto de vista de maturidade, mas escritas de forma completa junto ali na entrega.''} (Interviewee 3, 00:42:21)
+
+\medskip
+
+\emph{[English: ``I see it really as two waves. (...) Separated from a maturity standpoint, but written as a complete delivery.'']}
+\end{quote}
+
+This statement captures the second independent participant proposing that the deferred dimensions be reframed as a maturity progression rather than as parallel axes. Combined with Interview 02's critique, this is the strongest cross-session structural signal produced by the verification series.
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\subsubsection*{Viability enablers}
+
+\paragraph*{E1. First verification session matching the dissertation's target context.} The participant's 15 to 20 module monolith built over 5 years with teams up to 12 people maps directly to the early-stage cloud-native startup context the dissertation declares as its scope; the team extracted 2 to 3 satellite services to address performance bottlenecks. Dimension: cross-cutting. Literature gap: cross-cutting (framework framing).
+
+\paragraph*{E2. Independent reaffirmation of modularization and isolation.} The participant identified modular boundaries and isolation as the most fundamental and most defensible concept of the proposed framework, converging with the prior two sessions. Dimension: D1. Literature gap: Modularity.
+
+\paragraph*{E3. Observability and APM from project start.} Logs and application performance monitoring are framed as the foundation that mitigates migration risk and prevents loss of data during transitions. Reaffirms the observability-first signal from prior sessions. Dimension: D2. Literature gap: Complexity Management, Performance Implications.
+
+\paragraph*{E4. Practical rewrite-versus-extract heuristic.} The participant applied a clear decision rule in production: extract when decoupled, rewrite when coupled. This aligns with the G4 spirit but expands the catalog of valid responses at extraction time, presenting rewrite as a defensible alternative to coordinated extraction. Dimension: D2. Literature gap: Migration Readiness.
+
+\paragraph*{E5. In-memory events as entry-level event-driven pattern.} The participant advocated firing in-memory events through framework signals as the first step toward event-driven architecture, before introducing a broker. Aligns with G3 Decouple-level port abstraction and reinforces the principle that progressive scalability can start without dedicated infrastructure. Dimension: D1/D2. Literature gap: Scalability.
+
+\subsubsection*{Viability barriers}
+
+\paragraph*{B1. ``Fix when it hurts'' mentality.} Teams ignore architectural best practices until operational pain forces adoption. The participant attributed this to lack of technical experience or absence of engineering prioritization from the start. This is a cross-cutting organizational barrier that the dissertation could address explicitly. Dimension: cross-cutting. Literature gap: Practicality of Adoption.
+
+\paragraph*{B2. Event-driven misconception.} Many teams equate ``event-driven'' with ``requires Kafka'', introducing complex infrastructure when in-memory signals would suffice. The conceptual gap blocks adoption of G3 at the entry level. Dimension: D1. Literature gap: Modularity.
+
+\subsubsection*{Gaps or missing details}
+
+\paragraph*{G1-gap. Two-wave maturity framework.} The participant independently proposed reframing G1 to G6 and G7 to G12 as two maturity waves rather than as parallel dimensions. This converges with Interview 02's critique that D4 is methodologically weak. Two independent participants now propose restructuring the four-dimension framework. Dimension: D3/D4. Literature gap: affects the four-dimension framing.
+
+\paragraph*{G2-gap. Lack of concrete examples and case studies.} The participant's reviewer-perspective critique was that the work would benefit from more tangible examples, especially for deployment strategy and observability. Dimension: meta (presentation). Literature gap: presentation; meta-structural.
+
+\paragraph*{G3-gap. Catalog of cross-domain consistency patterns is too narrow.} G4 currently emphasizes sagas. The verification series so far shows that practitioners use sagas (Interview 01), state machines (Interview 02), or rewrite-instead-of-coordinate (this session). The catalog should include the alternatives with guidance on when each applies. Dimension: D2. Literature gap: Migration Readiness.
+
+\paragraph*{G4-gap. Curiosity about the deferred dimensions.} The participant expressed explicit interest in seeing G7 to G12, suggesting that the paper feels incomplete by presenting only half the framework. Dimension: meta. Literature gap: suggests presenting the full framework.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured questionnaire (Appendix~\ref{ape:methodology}) within the agreed one-week window. The ratings below complement the qualitative findings above and are presented as part of the methodological triangulation. Both optional reflections in Section 7 were filled and are reproduced verbatim under triangulation.
+
+\subsubsection*{General framing}
+
+The four ratings of Section 1 (analytical dimensions, deliberate destination thesis, G1 to G6 ordering, completeness of the set) were 5, 4, 5, and 4 on a five-point Likert scale. The 4 on the deliberate-destination thesis and on completeness reflects the qualitative position that the framework is strong but would benefit from concrete examples and from presenting the deferred half (G7 to G12) alongside the operational set.
+
+\subsubsection*{Per-guideline ratings}
+
+For each guideline the participant rated five dimensions on the same five-point scale (1 = Very low, 5 = Very high).
+
+\begin{longtable}{p{5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1: Enforce Modular Boundaries  & 5 & 4 & 5 & 4 & 5 \\
+G2: Embed Maintainability       & 5 & 4 & 5 & 5 & 4 \\
+G3: Design for Progressive Scalability & 5 & 5 & 5 & 5 & 4 \\
+G4: Promote Migration Readiness & 4 & 4 & 5 & 5 & 5 \\
+G5: Streamline Deployment Strategy & 5 & 5 & 5 & 5 & 4 \\
+G6: Introduce Observability Patterns & 5 & 5 & 5 & 4 & 5 \\
+\bottomrule
+\end{longtable}
+
+No guideline received a rating below 4 on any dimension. Importance is rated 5 across all six guidelines. G3 and G5 received the strongest aggregate (one 4 on completeness, the rest 5). G4 was the only guideline rated 4 on practical applicability, the lowest applicability rating in the participant's responses.
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked all six named failure-mode concepts (the Enforcement Gap, the Incremental Maintainability Degradation, the Progressive Scalability Gap, the Migration Readiness Gap, the Deployment-Architecture Mismatch, and the Observability Deficit) as personally encountered in production systems. The completeness of the named-gap set was rated 4 out of 5. Across the six anti-pattern blocks, the participant selected every listed anti-pattern (eighteen of eighteen), indicating that no anti-pattern in the catalog was unfamiliar.
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum was rated 5 out of 5. The G5 deployment spectrum was rated 5 out of 5. The composite binary gates mechanism was rated 4 out of 5. The G3 Extraction Readiness gate $\varepsilon_m = 1$ was rated as ``About right'' in calibration, the central option of a four-point calibration scale. These ratings confirm the structural design choices.
+
+\subsubsection*{Forced prioritization}
+
+The participant produced a near-strict ordering on both grids. For G1 to G6 he assigned position 1 to G1, position 2 to G2, G3, and G4 (a three-way tie at the second position), and position 3 to G5 and G6. For G7 to G12 he placed G9, G10, G11, and G12 at position 2 and G7 and G8 at position 3. The strongest signal in the operational grid is the unambiguous priority of G1, consistent with the qualitative finding that modular boundaries and isolation are the most fundamental concept of the proposed framework (E2 in this report).
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire and the interview transcript converge on the central operational priority. G1 received the highest position in the forced ranking and a perfect importance rating; this aligns with the qualitative emphasis on modular boundaries as foundational (E2). G3 received perfect ratings on all dimensions except completeness, converging with the qualitative finding that in-memory events as an entry-level G3 pattern are an under-documented but powerful idea (E5). G6 received perfect ratings on every dimension except adoption, converging with the qualitative position that observability should start from project beginning (E3). Both Section 7 reflections directly reinforce qualitative themes. Verbatim: \emph{``After the interview, one point I reflected on is that the guidelines are very strong from an architectural and operational perspective. I especially agree with the idea of progressive scalability because it avoids premature microservices adoption and encourages teams to scale based on evidence.''} And on the single change: \emph{``If I were the author, I would add more concrete implementation examples for each guideline and phase, such as code structure, CI checks, deployment setup, and observability patterns.''} The second reflection reaffirms G2-gap in this report (lack of concrete examples) as the strongest framing critique from this participant.
+
+One divergence merits attention. In the conversation the participant did not select G4 in the forced prioritization exercise, indicating that the migration-readiness guideline was not a priority for his target context. In the form, however, G4 was placed at position 2 in the ranking and received an importance rating of 5. The most plausible reconciliation is that the participant interpreted the form question (``most value first if introduced into a typical early-stage cloud-native startup'') as a general value assessment rather than as a contextual priority for his own current stage, so G4 reads as important in principle but not the first move in practice.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Possible selection bias.} The three sessions to date all operate in environments aligned with the dissertation's target architectural pattern. The convergence is not coincidence; it reflects deliberate informant recommendation.
+
+\paragraph*{L3. Residual influence of the pre-read paper.} The participant read the paper before the session, which can shape responses toward its categories. The substance of the framework was endorsed without prompting, but term-level recognition is suggestive rather than conclusive.
+
+\paragraph*{L4. Single-startup self-report.} The findings come from a single CTO's narrative across multiple startups he led. They corroborate the qualitative direction the dissertation argues but do not establish that the same mechanisms transfer across CTOs with different cultural or technical contexts.
+
+\subsection*{Contributions to the conclusions chapter}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{First target-context verification.} The session showed that the dissertation's declared scope (early-stage cloud-native startups) maps to a real CTO's lived experience across a series of startups, reinforcing the central thesis at the intended target scale (E1).
+  \item \emph{Second independent participant proposing structural reframing.} The maturity-wave framing converges with Interview 02's critique of the four-dimension framework. Two independent signals now point to restructuring D3 and D4 (G1-gap).
+  \item \emph{Expansion of the G4 catalog.} The rewrite-versus-extract heuristic and the in-memory events first principle add concrete alternatives to the saga-centric G4 chapter (E4 and E5).
+  \item \emph{New organizational anti-pattern.} ``Fix when it hurts'' as a recognizable adoption barrier (B1).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The third session produced strong reaffirmation of G1, observability, and isolation as the most fundamental and most defensible concepts of the proposed framework, with a pragmatic startup-CTO perspective that introduced two practical heuristics (rewrite-versus-extract and in-memory events first) and an independent reframing of the four-dimension structure as a two-wave maturity progression.

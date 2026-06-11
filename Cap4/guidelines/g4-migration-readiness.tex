@@ -6,7 +6,7 @@ G4 embeds migration readiness as a proactive design property so that extracting 
 
 \subsection*{Intent and Rationale}
 
-Migration from a monolith to microservices is one of the most expensive architectural transitions a team can undertake. Studies consistently report that migration efforts are dominated not by the extraction itself, but by the discovery and resolution of hidden coupling: shared database tables, implicit co-location assumptions, synchronous call chains that mask network-boundary failures, and domain logic scattered across modules~\cite{fritzsch2019, abgaz2023decomposition, wolfart2021modernizing}.
+Migration from a monolith to microservices is one of the most expensive architectural transitions a team can undertake. Studies consistently report that migration efforts are dominated not by the extraction itself, but by the discovery and resolution of hidden coupling: shared database tables, implicit co-location assumptions, synchronous call chains that mask network-boundary failures, and domain logic scattered across modules~\cite{fritzsch2019, abgaz2023decomposition, wolfart2021modernizing, newman2019monolith}.
 
 The root cause is that most monoliths are not designed with extraction in mind. Dependencies accumulate implicitly, persistence is shared by convention, and inter-module communication relies on in-process guarantees (transactions, shared memory, synchronous calls) that do not survive a network boundary. When migration pressure arrives, teams discover that the actual cost of extraction is proportional to the amount of implicit coupling that must be made explicit.
 
@@ -33,7 +33,7 @@ G4 inverts this dynamic. Instead of treating migration as a future problem, G4 e
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Anti-Corruption Layers prevent model leakage:} Each module has its own domain model and vocabulary. When module $A$ consumes data from module $B$, it should not depend on $B$'s internal representation. An Anti-Corruption Layer translates between domain models, decoupling their evolution so that extraction requires only a transport change, not an interface redesign~\cite{evans2003ddd}.
 
-  \item \emph{Eventual consistency is the default for cross-module workflows:} Monoliths often rely on database transactions to maintain consistency across modules. This works in-process but fails across network boundaries. Saga patterns replace atomic transactions with compensable sequences: each module performs its local operation and publishes an event; failures trigger compensating actions. Introducing sagas before extraction forces the team to confront distributed failure modes while the system is still co-located and easier to debug~\cite{richardson2018microservices}.
+  \item \emph{Eventual consistency is the default for cross-module workflows:} Monoliths often rely on database transactions to maintain consistency across modules. This works in-process but fails across network boundaries. Saga patterns replace atomic transactions with compensable sequences; introducing them before extraction forces the team to confront distributed failure modes while the system is still co-located and easier to debug~\cite{richardson2018microservices,newman2019monolith}. The coordination mechanism is developed in Section~\ref{sec:g4-saga-styles}.
 
   \item \emph{Infrastructure wiring is the extraction knob:} When a module is ready for extraction, the change should be localized to the composition root: swap the in-process event bus for a distributed broker, replace the shared database connection with a dedicated one, and route API calls through a network client. If extraction requires changes to domain logic, the module is not yet migration-ready~\cite{ghemawat2023towards}.
 
@@ -43,18 +43,18 @@ G4 inverts this dynamic. Instead of treating migration as a future problem, G4 e
 \subsection*{Implementation Mechanisms}
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Anti-Corruption Layer gateways:} Each cross-module integration point is mediated by a gateway interface with an in-process adapter. After extraction, only the adapter implementation changes (in-process call to HTTP/gRPC client); the gateway contract and all consuming code remain unchanged.
+  \item \emph{Anti-Corruption Layer gateways:} Each cross-module integration point is mediated by a gateway interface with an in-process adapter. After extraction, only the adapter implementation changes: the in-process call becomes a remote invocation through the chosen transport, which in the Tiny Store is a Kafka publish for cross-module events or a Temporal activity invocation for saga steps; the gateway contract and all consuming code remain unchanged.
 
-  \item \emph{Saga orchestration inside the monolith:} Cross-module workflows are orchestrated through a durable execution engine (e.g., Temporal) that provides retry policies, timeout handling, and compensating actions. The workflow runs inside the monolith from day one; after extraction, the same workflow code executes unchanged with activities routed over the network.
+  \item \emph{Saga infrastructure inside the monolith:} Cross-module workflows that have a sequence and require compensation on failure are implemented as \emph{sagas}, coordinated through a durable mechanism that runs inside the monolith from day one. Section~\ref{sec:g4-saga-styles} develops the two coordination styles (orchestrated and choreographed) and their trade-offs; the situational decision rule is then applied to the Tiny Store as Exercise 4 of G4 Applied. After extraction, the saga code runs unchanged with activities routed over the network~\cite{newman2019monolith}.
 
-  \item \emph{Event streaming with durable delivery:} Domain events are published to durable, partitioned topics (e.g., Kafka) with per-module topic naming. Consumer groups support horizontal scaling of listeners. This infrastructure operates inside the monolith and survives extraction without reconfiguration.
+  \item \emph{Cross-module event distribution beyond sagas:} Not every cross-module event participates in a saga. Domain events that feed audit logs, update derived read models, notify multiple subscribing modules, or reach future cross-service consumers are published to a durable broker (e.g., Apache Kafka) with per-module topic naming. Consumer groups support horizontal scaling of listeners. This infrastructure operates inside the monolith and survives extraction without reconfiguration.
 
   \item \emph{Versioned event contracts:} Each event type carries an explicit schema version. A factory function enforces the current version; consumers include version-aware deserialization so that schema evolution does not break downstream modules.
 \end{itemize}
 
 \subsection*{Common Failure Modes and Anti-Patterns}
 
-G1--G3 anti-patterns remain relevant at the G4 level. The five patterns below pass all prior gates but compromise the system's ability to extract modules as independent services.
+G1--G3 anti-patterns remain relevant at the G4 level. The five patterns below pass all prior gates but compromise the system's ability to extract modules as independent services. The catalog below intersects with the broader literature on microservice anti-patterns and architectural smells~\cite{cerny2023tertiary, taibi2018smells}, focused here on the patterns that survive G1 to G3 verification.
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Deferred Readiness (extraction cost rises over time):}
@@ -74,7 +74,7 @@ G1--G3 anti-patterns remain relevant at the G4 level. The five patterns below pa
   \emph{Approach:} place an Anti-Corruption Layer at each integration point to translate between domain models.
 
   \item \emph{Premature Extraction Without Readiness ($\varepsilon_m = 0$):}
-  Extracting a module with shared state, no Anti-Corruption Layers, and no saga creates a distributed monolith: the operational complexity of microservices with the coupling characteristics of a monolith~\cite{gravanis2021dont}.
+  Extracting a module with shared state, no Anti-Corruption Layers, and no saga creates a distributed monolith: the operational complexity of microservices with the coupling characteristics of a monolith~\cite{gravanis2021dont,newman2019monolith}.
   \emph{Approach:} require $\varepsilon_m = 1$ and all G4 preparation steps complete before initiating extraction.
 \end{itemize}
 
@@ -83,7 +83,7 @@ G1--G3 anti-patterns remain relevant at the G4 level. The five patterns below pa
 
 The Migration Readiness Gap is the distance between scalability readiness (G3) and operational readiness for extraction. A module can achieve $\varepsilon_m = 1$ on G3's structural metrics while lacking the operational infrastructure that makes extraction survivable: no Anti-Corruption Layers to absorb schema changes, no saga orchestration to handle distributed failures, and no versioned contracts to support independent deployment.
 
-G3 cannot detect this because it validates structural preparation (async boundaries, schema isolation, infrastructure abstraction), not operational preparation (failure handling, contract evolution, cross-service coordination). The Migration Readiness Gap widens when teams treat G3 compliance as sufficient for extraction, skipping the Anti-Corruption Layers and saga patterns that distinguish a configuration change from a rewrite.
+G3 cannot detect this because it verifies structural preparation (async boundaries, schema isolation, infrastructure abstraction), not operational preparation (failure handling, contract evolution, cross-service coordination). The Migration Readiness Gap widens when teams treat G3 compliance as sufficient for extraction, skipping the Anti-Corruption Layers and saga patterns that distinguish a configuration change from a rewrite.
 
 G4 closes this gap by making operational readiness visible and measurable before extraction is attempted.
 
@@ -125,9 +125,9 @@ G4 contributes to the modular monolith literature in three ways:
 
 \subsection*{Literature Support Commentary}
 
-Migration from monoliths to microservices is extensively studied. Reviews of decomposition techniques show that most approaches focus on identifying service candidates rather than on preparing the monolith for extraction~\cite{abgaz2023decomposition}. Modernization roadmaps acknowledge that proactive readiness remains underexplored~\cite{wolfart2021modernizing}, and surveys confirm that hidden coupling and shared state are the dominant cost drivers~\cite{fritzsch2019, salii2023migrating}. Incremental transition strategies emphasize planning the migration path from the outset~\cite{bozan2020transition}.
+Migration from monoliths to microservices is extensively studied. Reviews of decomposition techniques show that most approaches focus on identifying service candidates rather than on preparing the monolith for extraction~\cite{abgaz2023decomposition}. Modernization roadmaps acknowledge that proactive readiness remains underexplored~\cite{wolfart2021modernizing}, and surveys confirm that hidden coupling and shared state are the dominant cost drivers~\cite{fritzsch2019, salii2023migrating}. Multivocal reviews of design principles, smells, and refactorings for microservices reach a comparable conclusion: the bulk of guidance addresses what to do after distribution, not how to prepare the monolith for it~\cite{neri2020multivocal}. Incremental transition strategies emphasize planning the migration path from the outset~\cite{bozan2020transition}.
 
-The Anti-Corruption Layer concept originates in Domain-Driven Design~\cite{evans2003ddd} as a boundary mechanism between bounded contexts. Its application to modular monoliths as a proactive migration preparation technique, rather than a reactive integration fix, is novel in this context. The saga pattern~\cite{richardson2018microservices} is similarly recontextualized: G4 introduces it inside the monolith before extraction, leveraging durable execution engines that persist workflow state and provide the same guarantees whether activities are in-process or networked.
+The Anti-Corruption Layer concept originates in Domain-Driven Design~\cite{evans2003ddd} as a boundary mechanism between bounded contexts; G4 applies it as a proactive migration preparation technique rather than as a reactive integration fix. The saga pattern~\cite{richardson2018microservices,newman2019monolith} is similarly applied at monolith time, relying on durable execution engines that persist workflow state and provide the same guarantees whether activities are in-process or networked.
 
 Service Weaver~\cite{ghemawat2023towards} treats distribution as a deployment concern rather than a development concern. G4 adopts this philosophy: modules are designed with clean boundaries (G1--G3), but their deployment topology is determined by configuration. When extraction is warranted, infrastructure wiring changes; domain logic does not.
 
@@ -135,7 +135,7 @@ Service Weaver~\cite{ghemawat2023towards} treats distribution as a deployment co
 %% ============================================================
 %% G4 APPLIED
 %% ============================================================
-\section{G4 Applied: Migration Readiness in the Tiny Store}
+\section*{G4 Applied: Migration Readiness in the Tiny Store}
 \label{sec:g4-applied}
 
 G4 is demonstrated through the Orders module of the Tiny Store reference implementation~\cite{tinystore2026}, the highest-traffic path and the most probable extraction candidate. The case study examines what Orders already does well and the preparation steps needed for production-grade extraction readiness.
@@ -150,7 +150,7 @@ Despite strong boundary enforcement, the baseline state reflects a common patter
 
 \begin{enumerate}[itemsep=8pt,topsep=2pt]
   \item \emph{No Anti-Corruption Layers:} Downstream modules consume event payloads directly. Schema changes in Orders break all consumers simultaneously.
-  \item \emph{No saga orchestration:} The event choreography (OrderPlaced $\to$ InventoryReserved $\to$ PaymentProcessed $\to$ ShipmentCreated) distributes saga logic implicitly across listeners. Failure visibility is poor, retry policies are ad hoc, and compensating actions are scattered.
+  \item \emph{No explicit saga:} The event flow (OrderPlaced $\to$ InventoryReserved $\to$ PaymentProcessed $\to$ ShipmentCreated) distributes implicit consistency expectations across listeners without explicit saga semantics. Failure visibility is poor, retry policies are ad hoc, and compensating actions are scattered. The G4 prescription is to make this explicit, choosing the saga style per Section~\ref{sec:g4-saga-styles}.
   \item \emph{No API versioning:} Event contracts and handler interfaces carry no version metadata, preventing independent evolution after extraction.
 \end{enumerate}
 
@@ -167,13 +167,13 @@ export interface InventoryGateway {
   reserveItems(orderId: string, items: OrderItem[]): Promise<Result>;
   releaseItems(orderId: string): Promise<void>;
 }
-// In-process adapter today; HTTP/gRPC adapter after extraction.
+// In-process adapter today; remote adapter after extraction (Kafka publish or Temporal activity).
 // Gateway contract and consuming code remain unchanged.
 \end{lstlisting}
 
 \subsubsection*{Step 2: How do we handle cross-module failures explicitly?}
 
-Replace implicit event choreography with an explicit saga workflow. The workflow makes the full compensation path visible in a single file:
+Replace the implicit event flow with an explicit saga. The Tiny Store uses the orchestrated style (the choice is developed as Exercise 4 below); the workflow makes the full compensation path visible in a single file:
 
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Order fulfillment saga with compensating actions},label={lst:g4-temporal-workflow}]
 export async function orderFulfillmentWorkflow(input: OrderInput) {
@@ -196,7 +196,7 @@ export async function orderFulfillmentWorkflow(input: OrderInput) {
 \end{lstlisting}
 
 \noindent
-Activities call module handlers through Anti-Corruption Layer gateways. After extraction, the same workflow runs unchanged; only the activity implementations switch from in-process calls to network calls.\footnote{Full workflow and activities: \texttt{libs/modules/orders/src/workflows/}}
+Activities call module handlers through Anti-Corruption Layer gateways. After extraction, the same workflow runs unchanged; only the activity implementations switch from in-process calls to network calls.
 
 \subsubsection*{Step 3: How do we enable independent contract evolution?}
 
@@ -295,12 +295,21 @@ await eventBus.publish({
 G1--G3 pass: the event uses the public bus and the payload structure is valid. G4 fails: API Version Coverage drops because the contract cannot be evolved independently.\\
 \emph{Resolution:} use a factory function that enforces version metadata (see Step~3 listing).
 
+\subsubsection*{Exercise 4: Choosing the saga coordination style for the Tiny Store}
+
+Exercises 1 to 3 inject controlled violations to demonstrate that a specific G4 metric drops. Exercise 4 is a design exercise rather than a violation exercise: it applies the saga-style decision rule from Newman~\cite{newman2019monolith} and Khononov~\cite{khononov2024balancing}, grounded in the trade-offs of Section~\ref{sec:g4-saga-styles}, to the Tiny Store and reports the result.
+
+Newman~\cite{newman2019monolith} gives the canonical rule: orchestrated sagas when few services participate or when a single team owns the workflow; choreographed sagas when multiple teams own participants independently. Khononov's coupling model~\cite{khononov2024balancing} reinforces the same conclusion through two structural factors. Organizational \emph{Distance} is the first: with single-team ownership the orchestrator coupling stays within team boundaries; with multi-team ownership distributing the coupling through event schemas reduces cross-team coordination. Contract \emph{Volatility} is the second: high volatility amplifies the cost of choreography because every change propagates across all subscribers, whereas orchestrated sagas absorb the blast radius inside the orchestrator. For the dissertation's target profile (cloud-native startups, single team, modular monolith from inception) the orchestrated style is the recommended starting point.
+
+\noindent\emph{Result:} the Tiny Store implements an orchestrated saga for the order fulfillment workflow. The orchestrator is implemented as a Temporal SDK workflow, with Anti-Corruption Layer activities for inventory reservation, payment processing, and shipment creation, and compensating actions defined for each failure path. Apache Kafka is carried by the Tiny Store in a separate role through a dedicated event publisher, which publishes cross-module events that have no workflow semantics (audit logs, derived read-model updates, multi-subscriber notifications, and future consumption by extracted services). The three transports are explicit: Temporal carries sagas; Kafka carries non-saga event distribution; the in-process EventBus carries local pub/sub for handlers that do not need durability across deployments.
+
 \subsubsection*{Exercise Summary}
 Each exercise assumes a clean baseline. After each exercise, revert the violation before proceeding to the next.
 \begin{itemize}[itemsep=2pt,topsep=2pt]
   \item \textbf{Ex.\,1:} Direct payload consumption → Anti-Corruption Layer Coverage drops.
   \item \textbf{Ex.\,2:} Ad hoc error handling instead of saga → Saga Completeness drops.
   \item \textbf{Ex.\,3:} Unversioned event contract → API Version Coverage drops.
+  \item \textbf{Ex.\,4:} Saga style choice applied to the Tiny Store (design exercise, not a violation) → orchestrated saga via Temporal selected; Kafka assigned a separate non-saga role.
 \end{itemize}
 
 \subsection*{Conclusion}

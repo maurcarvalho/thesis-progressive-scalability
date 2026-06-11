@@ -13,7 +13,7 @@ G1 applies to systems decomposed into bounded-context modules within a single co
 
 \emph{Research contributions:}
 \begin{itemize}[itemsep=8pt,topsep=2pt]
-  \item \emph{Make modularity measurable and enforceable:} Define boundary enforcement as a measurable, automated constraint rather than an informal convention.
+  \item \emph{Make modularity measurable and enforceable:} Define boundary enforcement as a measurable, automated constraint, not an informal convention.
   \item \emph{Formalize the enforcement gap:} Demonstrate that conceptual knowledge of anti-patterns is insufficient without executable checks in the CI pipeline.
   \item \emph{Provide a composite boundary health gate:} Combine five boundary checks into a per-module binary gate ($b_m$) that feeds G2 maintainability and G3 extraction readiness.
 \end{itemize}
@@ -29,7 +29,7 @@ G1 applies to systems decomposed into bounded-context modules within a single co
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Explicit dependency declarations:} All dependencies on other modules must be declared in a central descriptor (annotation, configuration file, or build rule) so that boundary compliance is automatically verifiable. Component boundaries enforced at the programming model level make modularity a build-time property rather than a convention~\cite{ghemawat2023towards}.
 
-  \item \emph{Contract-mediated communication:} Cross-module interaction occurs through public interfaces (synchronous calls) or domain events (asynchronous channels), never through direct references to another module's internals. This keeps each module's internal model free to evolve without coordinating with consumers~\cite{richardson2018microservices}.
+  \item \emph{Contract-mediated communication:} Cross-module interaction occurs through public interfaces (synchronous calls) or domain events (asynchronous channels), never through direct references to another module's internals. This keeps each module's internal model free to evolve without coordinating with consumers~\cite{richardson2018microservices,khononov2024balancing}.
 
   \item \emph{Boundary over feature convenience:} Package-by-feature improves cohesion within a bounded context, but a feature slice must not become a cross-module dependency path. When internal feature code is imported across boundaries, the module's encapsulation is violated regardless of how well-organized the internals are~\cite{parnas1972informationhiding}.
 \end{itemize}
@@ -48,7 +48,7 @@ G1 applies to systems decomposed into bounded-context modules within a single co
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Convenience-Driven Imports (Encapsulation Leakage rises):}
-  A developer imports an internal entity class directly from another module because the path is shorter than going through the public API. Over time, dozens of such shortcuts create a web of hidden coupling that locks the provider's internal structure in place~\cite{parnas1972informationhiding}.
+  A developer imports an internal entity class directly from another module because the path is shorter than going through the public API. Over time, dozens of such shortcuts create a web of hidden coupling that locks the provider's internal structure in place~\cite{parnas1972informationhiding,khononov2024balancing}.
 
   \item \emph{Shared Utility Creep (Undeclared Dependencies rise):}
   A \texttt{shared/utils} package starts with generic helpers (date formatting, string validation) but gradually absorbs domain logic such as \texttt{calculateShippingCost} or \texttt{validatePaymentStatus}. Modules couple through this shared layer rather than through explicit contracts~\cite{martin2012clean}.
@@ -73,17 +73,17 @@ G1 applies to systems decomposed into bounded-context modules within a single co
   The codebase accumulates abstract factories, strategy patterns, and extension hooks designed for hypothetical requirements that may never materialize. Each speculative abstraction adds exported types that cross module boundaries without serving a current need. The YAGNI principle~\cite{extremeProgramming} applies at the architectural level.
 
   \item \emph{Leaky Abstractions in Public Contracts (Encapsulation Leakage rises):}
-  A module exposes DTOs or event payloads that mirror its internal database schema (column names like \texttt{payment\_status\_id}, nullable fields reflecting storage trade-offs) rather than domain concepts. When the module refactors its schema, all consumers break even though no business rule changed~\cite{fowler2002,evans2003ddd}.
+  A module exposes DTOs or event payloads that mirror its internal database schema (column names like \texttt{payment\_status\_id}, nullable fields reflecting storage trade-offs) rather than domain concepts. When the module refactors its schema, all consumers break even though no business rule changed~\cite{fowler2002patterns,evans2003ddd}.
 
   \item \emph{Circular Dependencies (Forbidden Dependencies rise):}
-  Module A depends on B which depends on A, often through indirect paths spanning three or more modules. Cycles make independent testing and extraction impossible because changing any module in the cycle requires understanding all of them~\cite{martin2012clean,yourdon1979structured}. G1 treats any cycle as a blocking violation.
+  Module A depends on B which depends on A, often through indirect paths spanning three or more modules. Cycles make independent testing and extraction impossible because changing any module in the cycle requires understanding all of them~\cite{martin2012clean,yourdon1979structured,khononov2024balancing}. G1 treats any cycle as a blocking violation.
 
   \item \emph{Test Coupling Across Boundaries (Isolation Pass Rate drops):}
   Test code in one module directly instantiates domain objects from another module to build fixtures or assert on internal state. A refactoring of the provider's entities breaks the consumer's test suite, even though production code respects the boundary~\cite{fairbanks2010justenough}.
 \end{itemize}
 
 \noindent
-The SOLID principles, properly applied, address many of these failure modes: Single Responsibility prevents god modules, Open-Closed means extension through published contracts rather than speculative abstractions, and Dependency Inversion ensures modules depend on stable interfaces~\cite{martin2012clean}. In a modular monolith, SOLID serves boundary discipline, not architectural ornamentation.
+The SOLID principles, properly applied, address many of these failure modes: Single Responsibility prevents god modules, Open-Closed means extension through published contracts and not through speculative abstractions, and Dependency Inversion ensures modules depend on stable interfaces~\cite{martin2012clean}. In a modular monolith, SOLID serves boundary discipline, not architectural ornamentation.
 
 \subsubsection*{The Enforcement Gap}
 
@@ -134,11 +134,11 @@ The contribution is not the individual practices (encapsulation, dependency decl
 
 The principle that modules should encapsulate implementation details behind stable interfaces is well established~\cite{parnas1972informationhiding}, and boundary identification techniques are mature: a systematic review of 63 decomposition studies covers static analysis, dynamic analysis, and domain-driven approaches~\cite{abgaz2023decomposition}. However, the same review reveals that most approaches stop at \emph{identification}, proposing how to find boundaries but not how to enforce them once found. In practice, correct boundaries erode over time when no automated mechanism prevents violations~\cite{wolfart2021modernizing, deLauretis2019from}. In a microservices architecture, the network boundary enforces separation by default: a broken contract produces a runtime failure. In a monolith, a broken boundary produces a successful compilation, and the violation becomes visible only when extraction pressure arrives.
 
-Two lines of recent work converge on G1's approach. First, the \textit{sliceable monolith} concept demonstrates that clean boundaries enable progressive decomposition without rewrites~\cite{montesi2021sliceable}, and component boundaries enforced at the programming model level make modularity a build-time property rather than a convention~\cite{ghemawat2023towards}. Second, industry experience validates that the modular monolith is a deliberate architectural choice rather than a transitional compromise~\cite{su2024modular, gravanis2021dont}, with boundary definition identified as a top decision driver for modulith adoption~\cite{prakash2024systematic} and automated enforcement as the decisive factor in controlling complexity at scale~\cite{shopify2020monolith, jovanovic2024rewriting}.
+Two lines of recent work converge on G1's approach. First, the \textit{sliceable monolith} concept demonstrates that clean boundaries enable progressive decomposition without rewrites~\cite{montesi2021sliceable}, with component-level boundary enforcement at the programming model level~\cite{ghemawat2023towards}. Second, industry experience confirms that the modular monolith is a deliberate architectural choice and not a transitional compromise~\cite{su2024modular, gravanis2021dont}, with boundary definition identified as a top decision driver for modulith adoption~\cite{prakash2024systematic} and automated enforcement as the decisive factor in controlling complexity at scale~\cite{shopify2020monolith, jovanovic2024rewriting}.
 
 G1 addresses the gap between boundary identification and boundary enforcement. Where existing decomposition research tells teams \emph{where} to draw boundaries, G1 prescribes \emph{how} to make those boundaries automatically verifiable, ensuring that the architectural intent survives the pressure of daily development.
 
-\section{G1 Applied: The Modular Tiny Store Example}
+\section*{G1 Applied: The Modular Tiny Store Example}
 \label{sec:g1-demo-tiny-store}
 
 The following sections operationalize G1 using Tiny Store~\cite{tinystore2026}, a small modular monolith maintained as an executable reference for this dissertation. Two complementary feedback loops are used throughout: \texttt{npm run test:boundary} (structural rules) and \texttt{npm run test:integration} (cross-module behavior). The tutorial takes approximately 20--30 minutes.
@@ -197,7 +197,7 @@ import { OrderRepository } from '@tiny-store/modules-orders';   // blocked
 
 \subsubsection*{Step 2: Encode Explicit Declarations}
 
-Express \emph{requires} and \emph{forbids} in a single, executable source of truth. The \texttt{requires} list declares allowed dependencies; the \texttt{forbids} list encodes domain invariants that must never be violated, making the decision to remove a prohibition explicit and reviewable rather than a silent one-line change:
+Express \emph{requires} and \emph{forbids} in a single, executable source of truth. The \texttt{requires} list declares allowed dependencies; the \texttt{forbids} list encodes domain invariants that must never be violated, making the decision to remove a prohibition explicit and reviewable instead of a silent one-line change:
 
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Code-based boundary descriptor},label={lst:g1-descriptor}]
 export const moduleBoundaries = {
@@ -266,7 +266,7 @@ it('loads orders with declared dependencies only', async () => {
 Each exercise introduces a single, controlled boundary breach and observes the failure signal. All exercises pass G1's boundary gate at baseline; the violation produces a specific, measurable signal. Each exercise assumes a clean baseline (Step 0 passes); revert the violation before proceeding to the next.
 
 \subsubsection*{Exercise 1: Encapsulation Leak (Encapsulation Leakage $\uparrow$)}
-A module re-exports its internal domain types from the public entrypoint. The boundary check no longer constrains downstream consumers from depending on entities and repositories that should remain implementation details. In \texttt{libs/modules/orders/src/index.ts}:
+A module re-exports its internal domain types from the public entrypoint. The boundary check no longer constrains downstream consumers from depending on entities and repositories that should remain implementation details. In the orders module public entrypoint:
 
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Violation: exporting internal types},label={lst:g1-ex1-leak}]
 // VIOLATION: exporting internal domain types leaks encapsulation
@@ -314,6 +314,6 @@ Each exercise assumes a clean baseline. After each exercise, revert the violatio
 
 The exercises revealed an important asymmetry: every violation that G1 catches is architecturally harmful, but not every architecturally harmful change triggers a G1 violation. A module can pass all five boundary checks while quietly accumulating the kind of coupling that makes future changes expensive: a growing public surface that every consumer must track, a concentration of inbound dependencies on a single module, or a contract that changes with every release. These are not boundary problems; they are \emph{evolution} problems, and they require a different class of metric.
 
-This asymmetry is what connects the Architectural Design guidelines into a progression rather than a checklist. G1's binary gate ($b_m$) answers a structural question: \emph{can} modules operate independently? But a passing gate says nothing about \emph{whether} that independence is being preserved as the codebase evolves. G2 picks up exactly where this blind spot begins, shifting from static boundary verification to tracking how module interfaces change over time: coupling direction, surface stability, and the rate at which cross-module dependencies accumulate. G3 then extends the same logic to infrastructure: even with clean boundaries and stable interfaces, a module that shares its database schema or communicates exclusively through synchronous calls cannot be extracted without rewriting its data access layer.
+This asymmetry is what connects the Architectural Design guidelines into a progression and not a checklist. G1's binary gate ($b_m$) answers a structural question: \emph{can} modules operate independently? But a passing gate says nothing about \emph{whether} that independence is being preserved as the codebase evolves. G2 picks up exactly where this blind spot begins, shifting from static boundary verification to tracking how module interfaces change over time: coupling direction, surface stability, and the rate at which cross-module dependencies accumulate. G3 then extends the same logic to infrastructure: even with clean boundaries and stable interfaces, a module that shares its database schema or communicates exclusively through synchronous calls cannot be extracted without rewriting its data access layer.
 
 Each guideline, in other words, protects against a category of degradation that the previous one is structurally unable to detect. The result is a layered verification model where $b_m$ feeds into G2's maintainability assessment, which in turn feeds into G3's extraction readiness score ($\varepsilon_m$). A team that enforces only G1 will have clean boundaries that silently calcify; a team that enforces G1 and G2 will have maintainable modules that cannot be extracted; only the complete chain produces a system where extraction, when warranted, is a configuration change rather than a rewrite.

@@ -1,0 +1,138 @@
+<svg viewBox="0 0 1100 1200" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="cmd" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#3a4654"/>
+    </marker>
+    <marker id="cmdStart" markerWidth="10" markerHeight="10" refX="1" refY="3.5" orient="auto">
+      <path d="M8,0 L0,3.5 L8,7 Z" fill="#8a96a3"/>
+    </marker>
+    <marker id="seq" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#3a4654"/>
+    </marker>
+  </defs>
+
+  <!-- Frame -->
+  <rect x="20" y="20" width="1060" height="1160" rx="14" fill="#ffffff" stroke="#d4dae0" stroke-width="1.5"/>
+
+  <!-- Header pill -->
+  <rect x="40" y="36" width="600" height="44" rx="22" fill="#2c3845"/>
+  <text x="340" y="65" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">B. Choreography based saga (didactic contrast)</text>
+
+  <!-- 4 module boxes: x positions calculated for width 1060 -->
+  <!-- Available: 40 to 1060 (1020 wide). 4 boxes of 220 with gap 24 = 880+72 = 952. Start at x=70 -->
+  <rect x="70" y="130" width="220" height="100" rx="10" fill="#e8f1fb" stroke="#2f6db0" stroke-width="1.8"/>
+  <text x="180" y="172" font-size="22" font-weight="700" fill="#1f2933" text-anchor="middle">Orders</text>
+  <text x="180" y="202" font-size="17" fill="#5b6770" text-anchor="middle">state machine</text>
+
+  <rect x="314" y="130" width="220" height="100" rx="10" fill="#faf1dd" stroke="#c08a2d" stroke-width="1.8"/>
+  <text x="424" y="172" font-size="22" font-weight="700" fill="#1f2933" text-anchor="middle">Inventory</text>
+  <text x="424" y="202" font-size="17" fill="#5b6770" text-anchor="middle">stock</text>
+
+  <rect x="558" y="130" width="220" height="100" rx="10" fill="#e6f3ec" stroke="#3f8f5f" stroke-width="1.8"/>
+  <text x="668" y="172" font-size="22" font-weight="700" fill="#1f2933" text-anchor="middle">Payments</text>
+  <text x="668" y="202" font-size="17" fill="#5b6770" text-anchor="middle">processing</text>
+
+  <rect x="802" y="130" width="220" height="100" rx="10" fill="#efe9f6" stroke="#7a5ba6" stroke-width="1.8"/>
+  <text x="912" y="172" font-size="22" font-weight="700" fill="#1f2933" text-anchor="middle">Shipments</text>
+  <text x="912" y="202" font-size="17" fill="#5b6770" text-anchor="middle">tracking</text>
+
+  <!-- Pub/sub double-arrows -->
+  <line x1="180" y1="230" x2="180" y2="288" stroke="#8a96a3" stroke-width="1.8" marker-end="url(#cmd)" marker-start="url(#cmdStart)"/>
+  <line x1="424" y1="230" x2="424" y2="288" stroke="#8a96a3" stroke-width="1.8" marker-end="url(#cmd)" marker-start="url(#cmdStart)"/>
+  <line x1="668" y1="230" x2="668" y2="288" stroke="#8a96a3" stroke-width="1.8" marker-end="url(#cmd)" marker-start="url(#cmdStart)"/>
+  <line x1="912" y1="230" x2="912" y2="288" stroke="#8a96a3" stroke-width="1.8" marker-end="url(#cmd)" marker-start="url(#cmdStart)"/>
+
+  <!-- Event bus -->
+  <rect x="70" y="290" width="952" height="68" rx="12" fill="#2c3845"/>
+  <text x="546" y="332" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">In memory event bus &#160;&#183;&#160; publish / subscribe &#160;&#183;&#160; append only event store</text>
+
+  <!-- Event cascade label -->
+  <text x="40" y="420" font-size="22" font-weight="700" fill="#2c3845">Event cascade (happy path)</text>
+  <text x="40" y="450" font-size="18" fill="#5b6770">each module reacts to an event and emits the next; no coordinator</text>
+
+  <!-- 6 chips: chip_w=156, gap=14, start at x=40 -->
+  <!-- 6*156 + 5*14 = 936+70 = 1006. Start 40 -> end 1046. Frame at 1060. OK with 14 margin -->
+  <!-- positions: 40, 210, 380, 550, 720, 890 -->
+  <!-- ends: 196, 366, 536, 706, 876, 1046 -->
+
+  <!-- Chip 1: OrderPlaced -->
+  <rect x="40" y="490" width="156" height="92" rx="10" fill="#e8f1fb" stroke="#2f6db0" stroke-width="1.5"/>
+  <text x="118" y="528" font-size="17" font-weight="700" fill="#1f2933" text-anchor="middle">OrderPlaced</text>
+  <text x="118" y="558" font-size="15" fill="#5b6770" text-anchor="middle">emit: Orders</text>
+  <circle cx="55" cy="490" r="14" fill="#2f6db0"/>
+  <text x="55" y="496" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+
+  <!-- Chip 2: InventoryReserved -->
+  <rect x="210" y="490" width="156" height="92" rx="10" fill="#faf1dd" stroke="#c08a2d" stroke-width="1.5"/>
+  <text x="288" y="528" font-size="15" font-weight="700" fill="#1f2933" text-anchor="middle">InventoryReserved</text>
+  <text x="288" y="558" font-size="15" fill="#5b6770" text-anchor="middle">emit: Inventory</text>
+  <circle cx="225" cy="490" r="14" fill="#c08a2d"/>
+  <text x="225" y="496" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+
+  <!-- Chip 3: OrderConfirmed -->
+  <rect x="380" y="490" width="156" height="92" rx="10" fill="#e8f1fb" stroke="#2f6db0" stroke-width="1.5"/>
+  <text x="458" y="528" font-size="16" font-weight="700" fill="#1f2933" text-anchor="middle">OrderConfirmed</text>
+  <text x="458" y="558" font-size="15" fill="#5b6770" text-anchor="middle">emit: Orders</text>
+  <circle cx="395" cy="490" r="14" fill="#2f6db0"/>
+  <text x="395" y="496" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+
+  <!-- Chip 4: PaymentProcessed -->
+  <rect x="550" y="490" width="156" height="92" rx="10" fill="#e6f3ec" stroke="#3f8f5f" stroke-width="1.5"/>
+  <text x="628" y="528" font-size="15" font-weight="700" fill="#1f2933" text-anchor="middle">PaymentProcessed</text>
+  <text x="628" y="558" font-size="15" fill="#5b6770" text-anchor="middle">emit: Payments</text>
+  <circle cx="565" cy="490" r="14" fill="#3f8f5f"/>
+  <text x="565" y="496" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+
+  <!-- Chip 5: OrderPaid -->
+  <rect x="720" y="490" width="156" height="92" rx="10" fill="#e8f1fb" stroke="#2f6db0" stroke-width="1.5"/>
+  <text x="798" y="528" font-size="17" font-weight="700" fill="#1f2933" text-anchor="middle">OrderPaid</text>
+  <text x="798" y="558" font-size="15" fill="#5b6770" text-anchor="middle">emit: Orders</text>
+  <circle cx="735" cy="490" r="14" fill="#2f6db0"/>
+  <text x="735" y="496" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">5</text>
+
+  <!-- Chip 6: ShipmentCreated -->
+  <rect x="890" y="490" width="156" height="92" rx="10" fill="#efe9f6" stroke="#7a5ba6" stroke-width="1.5"/>
+  <text x="968" y="528" font-size="15" font-weight="700" fill="#1f2933" text-anchor="middle">ShipmentCreated</text>
+  <text x="968" y="558" font-size="15" fill="#5b6770" text-anchor="middle">emit: Shipments</text>
+  <circle cx="905" cy="490" r="14" fill="#7a5ba6"/>
+  <text x="905" y="496" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">6</text>
+
+  <!-- Cascade arrows between chips at y=536 (chip mid) -->
+  <line x1="196" y1="536" x2="208" y2="536" stroke="#3a4654" stroke-width="2.2" marker-end="url(#seq)"/>
+  <line x1="366" y1="536" x2="378" y2="536" stroke="#3a4654" stroke-width="2.2" marker-end="url(#seq)"/>
+  <line x1="536" y1="536" x2="548" y2="536" stroke="#3a4654" stroke-width="2.2" marker-end="url(#seq)"/>
+  <line x1="706" y1="536" x2="718" y2="536" stroke="#3a4654" stroke-width="2.2" marker-end="url(#seq)"/>
+  <line x1="876" y1="536" x2="888" y2="536" stroke="#3a4654" stroke-width="2.2" marker-end="url(#seq)"/>
+
+  <!-- Final state arrow from chip 6 down -->
+  <line x1="968" y1="582" x2="968" y2="640" stroke="#3a4654" stroke-width="2" marker-end="url(#seq)"/>
+
+  <!-- Final state box (centered under chip 6 center x=968) -->
+  <rect x="870" y="644" width="196" height="60" rx="10" fill="#2f6db0"/>
+  <text x="968" y="682" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">Order &#8594; SHIPPED</text>
+
+  <!-- Annotation to the left of final state box -->
+  <text x="850" y="668" font-size="16" fill="#5b6770" text-anchor="end">Orders consumes</text>
+  <text x="850" y="690" font-size="16" fill="#5b6770" text-anchor="end">ShipmentCreated</text>
+
+  <!-- Divider -->
+  <line x1="40" y1="760" x2="1060" y2="760" stroke="#e2e7ec" stroke-width="1"/>
+
+  <!-- Advantages (vertical) -->
+  <text x="40" y="798" font-size="22" font-weight="700" fill="#3f8f5f">Advantages</text>
+  <text x="40" y="829" font-size="20" fill="#37424d">&#8226; &#160;No central coordinator; modules react only to domain events</text>
+  <text x="40" y="859" font-size="20" fill="#37424d">&#8226; &#160;Loose coupling: publishers never know their subscribers</text>
+  <text x="40" y="889" font-size="20" fill="#37424d">&#8226; &#160;New behavior added by subscribing to existing events</text>
+  <text x="40" y="919" font-size="20" fill="#37424d">&#8226; &#160;Fits autonomous bounded contexts in a modular monolith</text>
+
+  <!-- Limitations (vertical, below) -->
+  <text x="40" y="958" font-size="22" font-weight="700" fill="#b04a4a">Limitations</text>
+  <text x="40" y="989" font-size="20" fill="#37424d">&#8226; &#160;End to end flow is implicit and harder to follow across modules</text>
+  <text x="40" y="1019" font-size="20" fill="#37424d">&#8226; &#160;Risk of cyclic event dependencies between modules</text>
+  <text x="40" y="1049" font-size="20" fill="#37424d">&#8226; &#160;Error handling and compensation are distributed across the system</text>
+  <text x="40" y="1079" font-size="20" fill="#37424d">&#8226; &#160;Eventual consistency must be reasoned about explicitly</text>
+
+  <!-- Footnote on 2 lines -->
+  <text x="40" y="1128" font-size="16" font-style="italic" fill="#8a96a3">Panel B is a didactic contrast: the Tiny Store implements the orchestrated style of Panel A for its order saga.</text>
+  <text x="40" y="1151" font-size="16" font-style="italic" fill="#8a96a3">Choreography becomes the preferred style when ownership of the participating modules splits across teams.</text>
+</svg>

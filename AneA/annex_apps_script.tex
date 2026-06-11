@@ -1,0 +1,39 @@
+%% Annex: Google Apps Script that builds the post-interview questionnaire.
+%% Included from tese.tex via \input{AneA/annex_apps_script}.
+%% The source file lives at AneA/Create_Form.gs and is rendered below using
+%% \lstinputlisting so the executable artifact and the dissertation copy
+%% stay synchronized.
+
+\section*{Purpose of this annex}
+
+This annex reproduces the Google Apps Script that constructs the post-interview questionnaire described in Appendix~\ref{ape:methodology}. The script is included as an annex rather than as an appendix because it is a verbatim technical artifact rather than analytical content. Its purpose is to make the questionnaire instrument fully reproducible: any researcher who wishes to replicate the verification phase or to adapt the instrument can recreate the form by copying the script into a Google Apps Script project and running the \texttt{createInterviewForm} function.
+
+The script creates the form deterministically, with every section, every question, every option, every rating scale, and every form-level setting (e-mail collection, one response per user, progress bar, custom confirmation message) defined in source. Re-running the script produces an identical form; modifying the script and re-running produces a controlled variation, with the original form preserved in the researcher's Drive.
+
+The execution log produced by the script in the original run is recorded in this dissertation's research notes; it contains the editor and published URLs of the form that was distributed to interview participants.
+
+\section*{How to deploy}
+
+\begin{enumerate}[itemsep=4pt,topsep=2pt]
+  \item Open \url{https://script.google.com} and create a new project.
+  \item Replace the default \texttt{Code.gs} contents with the source listed below.
+  \item Save the project under any name.
+  \item Run the function \texttt{createInterviewForm}. Google requests permission the first time and grants the Forms and Drive scopes once.
+  \item Open the execution log to retrieve the editor and published URLs of the newly created form.
+\end{enumerate}
+
+\section*{Source listing}
+
+The source is reproduced verbatim below. The full file is also preserved at \path{AneA/Create_Form.gs} in this dissertation's source repository.
+
+\lstinputlisting[
+  basicstyle=\scriptsize\ttfamily,
+  breaklines=true,
+  breakatwhitespace=true,
+  columns=fullflexible,
+  showstringspaces=false,
+  frame=tb,
+  keywordstyle=\color{blue!50!black},
+  commentstyle=\color{green!40!black}\itshape,
+  stringstyle=\color{red!60!black}
+]{AneA/Create_Form.gs}

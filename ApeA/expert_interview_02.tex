@@ -1,0 +1,131 @@
+%% Appendix section: Expert Interview 02 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_02}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 2: Senior Engineering Manager}
+\label{sec:interview02}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{G1 as foundational prerequisite.} The interviewee identified G1 as both the easiest guideline to defend and the most essential, framing it as a precondition for G2 and G3 to operate. He tied this to the practitioner judgment that distinguishes senior from junior engineering perspectives on what a modular application requires.
+  \item \emph{Observability first.} Spontaneously prioritized G6 as the first guideline to introduce in any new team, invoking the ``observability first'' framing common in production engineering practice.
+  \item \emph{Guideline Orientation is not a dimension; it is a premise.} The interviewee proposed restructuring the framework so that the current D4 dimension (Guideline Orientation) is dissolved into cross-cutting premises applied across all technical guidelines, while Organizational Alignment (D3) is preserved as a legitimate parallel dimension reframed as a maturity gate.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``Talvez o G10 ao G12 não sejam dimensões, sejam de fato orientações, premissas para fazer todas essas guidelines.''} (Interviewee 2, 00:55:12)
+
+\medskip
+
+\emph{[English: ``Maybe G10 through G12 are not dimensions, but actually orientations, premises for applying all these guidelines.'']}
+\end{quote}
+
+This statement captures the strongest methodological signal produced by the verification series so far: the proposal to restructure the four-dimension framing of the framework.
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\subsubsection*{Viability enablers}
+
+\paragraph*{E1. Modular monolith at large engineering scale.} The interviewee operates a Rails monolith with approximately 320 developers across more than 45 teams and over 1{,}000 commits per day, currently undergoing active modularization. Direct empirical evidence that the modular monolith paradigm scales to engineering populations at least one order of magnitude larger than the early-stage startups that motivate the dissertation. Dimension: cross-cutting. Literature gap: cross-cutting (framework framing).
+
+\paragraph*{E2. G1 as foundational prerequisite.} The interviewee articulated G1 as the prerequisite for G2 and G3 to function, framing clear boundaries (contracts and APIs) as the differentiator between senior and junior engineering judgment. Independent confirmation of the central role G1 plays in the dissertation's structural dependency chain. Dimension: D1. Literature gap: Modularity.
+
+\paragraph*{E3. Logical-then-physical database isolation per domain.} The team is actively separating databases by domain, motivated by ``blast radius'' concerns when a centralized database serves all domains. The transition begins with logical boundaries (enforced at the application layer) and progresses to physical separation. This matches the Isolate level of the G3 progressive scalability spectrum and the \emph{Data Ownership} metric (target $= 100\%$). Dimension: D2. Literature gap: Scalability.
+
+\paragraph*{E4. Event-driven decoupling between in-process domains.} The team uses Kafka and Redis for cross-domain communication even within the same Rails process, so that domains remain decoupled and can theoretically be extracted to microservices later. Mirrors the G3 Decouple-level port abstraction and reinforces the principle that asynchronous boundaries can exist inside a monolith. Dimension: D1 and D2. Literature gap: Scalability, Maintainability.
+
+\paragraph*{E5. Separation of code build from deployment strategy.} The Rails artifact remains single, but the team is migrating to Kubernetes pods so that specific domains can scale independently in infrastructure without restructuring the code. Independently reinforces E7 of the previous session (deployment as runtime topology, not code rewrite) and confirms that the framing is recognized at large scale. Dimension: D2. Literature gap: Deployment Strategy.
+
+\paragraph*{E6. Observability as a long-term sustainability prerequisite.} The interviewee invoked the ``observability first'' framing and prioritized G6 as the first guideline he would introduce in a team, citing long-term system health as non-negotiable. Reaffirms E6 of the previous session and converges on the structural position chosen by G6. Dimension: D2. Literature gap: Complexity Management, Performance Implications.
+
+\subsubsection*{Viability barriers}
+
+\paragraph*{B1. G2 maintainability is recognized as systematically neglected.} The interviewee identified G2 as the guideline most often missed by teams in practice, noting that maintainability metrics are harder to communicate and defend than the boundary-enforcement primitives of G1. The cost of operationalizing G2 is not technical but organizational. Dimension: D1 with implications for D3. Literature gap: Maintainability.
+
+\paragraph*{B2. Saga pattern is not adopted; state machines preferred.} The interviewee reported that his team does not use sagas for cross-domain consistency. They use Rails state machines instead. This contradicts the central practical evidence point of Interview 01, where sagas under Temporal were described as production practice. The divergence indicates that the G4 catalog of mechanisms is incomplete: sagas are one of several patterns, not the recommended mechanism, and the choice depends on the technological stack and organizational preference. Dimension: D2. Literature gap: Migration Readiness; suggests catalog widening.
+
+\subsubsection*{Gaps or missing details}
+
+\paragraph*{G1-gap. Guideline Orientation as a dimension is methodologically weak.} The interviewee explicitly criticized D4 (Guideline Orientation) as redundant relative to the other three dimensions. He proposed that G10 through G12 (Actionable Design Patterns, Contextual Adaptation, Trade-offs over Dogma) are not parallel guidelines but cross-cutting premises that apply to every technical guideline. The structural implication is significant: the four-dimension framing may need to collapse to three dimensions plus an orthogonal layer of cross-cutting premises. This is the highest-impact gap identified in the verification series so far. Dimension: D4. Literature gap: affects the four-dimension framing of Chapter~\ref{sec:relatedwork}.
+
+\paragraph*{G2-gap. Saga is presented as the pattern; should be presented as one pattern.} G4 currently presents the saga as the migration-readiness mechanism for cross-domain consistency. The interviewee's practice (Rails state machines) and the absence of Temporal in his stack indicate that the catalog needs widening. Concrete suggestion: present saga as one option alongside state machines and other consistency patterns, with explicit guidance on when each applies. Dimension: D2. Literature gap: Migration Readiness.
+
+\paragraph*{G3-gap. Organizational alignment as a maturity gate.} The interviewee proposed a two-dimensional maturity matrix where the Y axis represents organizational alignment maturity and the X axis represents technical guideline progression from G1 to G9. He argued that low organizational maturity blocks the effective adoption of high-level technical guidelines. This reframes D3 as a maturity layer that gates D1 and D2 adoption, rather than as a parallel evaluation axis. Dimension: D3. Literature gap: Team Fit; reframes how D3 relates to D1 and D2.
+
+\paragraph*{G4-gap. Explicit suggestion to drop G4 from the operational core.} The interviewee suggested excluding G4 from the six-guideline core in favor of strengthening G1, G2, and G6. The recommendation is structural and would alter the dissertation's contribution scope. It is recorded here for the verification series but is not proposed for action before the defense. Dimension: meta. Literature gap: meta-structural; recorded for the verification series.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured questionnaire (Appendix~\ref{ape:methodology}) within the agreed one-week window. The ratings below complement the qualitative findings above and are presented as part of the methodological triangulation. The single-change reflection in Section 7 was filled and is reproduced verbatim under triangulation; the second optional reflection was left blank.
+
+\subsubsection*{General framing}
+
+The four ratings of Section 1 (analytical dimensions, deliberate destination thesis, G1 to G6 ordering, completeness of the set) were 4, 5, 5, and 5 on a five-point Likert scale. The lower rating on the analytical dimensions is consistent with the qualitative critique that D4 Guideline Orientation behaves as a set of premises rather than as a parallel dimension (G1-gap above).
+
+\subsubsection*{Per-guideline ratings}
+
+For each guideline the participant rated five dimensions on the same five-point scale (1 = Very low, 5 = Very high).
+
+\begin{longtable}{p{5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1: Enforce Modular Boundaries  & 5 & 5 & 5 & 5 & 5 \\
+G2: Embed Maintainability       & 4 & 5 & 4 & 4 & 4 \\
+G3: Design for Progressive Scalability & 4 & 4 & 4 & 4 & 4 \\
+G4: Promote Migration Readiness & 4 & 4 & 4 & 4 & 4 \\
+G5: Streamline Deployment Strategy & 5 & 5 & 5 & 5 & 5 \\
+G6: Introduce Observability Patterns & 5 & 5 & 5 & 4 & 5 \\
+\bottomrule
+\end{longtable}
+
+G1 and G5 received perfect ratings across all five dimensions. G6 received perfect ratings on four dimensions and the second-highest score on adoption. G2 received a perfect clarity rating and 4 on the remaining four dimensions. G3 and G4 received a uniform 4 across all dimensions. No guideline received a rating below 4. The strong G1 rating converges with the qualitative finding that G1 functions as a foundational prerequisite for the operational set.
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked all six named failure-mode concepts (the Enforcement Gap, the Incremental Maintainability Degradation, the Progressive Scalability Gap, the Migration Readiness Gap, the Deployment-Architecture Mismatch, and the Observability Deficit) as personally encountered in production systems. The completeness of the named-gap set was rated 4 out of 5. Across the six anti-pattern blocks, the participant selected fifteen of the eighteen listed anti-patterns, omitting one anti-pattern in each of G1, G4, and G5.
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum was rated 5 out of 5. The G5 deployment spectrum and the composite binary gates mechanism were rated 4 out of 5. The G3 Extraction Readiness gate $\varepsilon_m = 1$ was rated as ``About right'' in calibration, the central option of a four-point calibration scale. These ratings confirm the structural design choices.
+
+\subsubsection*{Forced prioritization}
+
+The participant did not use positions 1, 2, or 3 in the operational ranking grid and did not use any position other than 4 in the research agenda grid. For G1 to G6, he assigned position 4 to G3, G4, and G5, and position 6 to G1, G2, and G6. For G7 to G12 he assigned position 4 to every guideline. The result reads as a flat grouping with two intensity bands in the operational set and a single intensity band in the research agenda, consistent with the qualitative reading that the participant saw the operational set as concentrated on three foundational guidelines (G1, G2, G6) without further internal ordering.
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire and the interview transcript agree on the central qualitative finding. G1 received a perfect 5 across every rating dimension and converges with the strongest enabler identified in the conversation (E2 in this report: G1 as foundational prerequisite). The Guideline Orientation critique that the participant raised in the conversation (G1-gap) was reaffirmed in the single-change reflection of Section 7, which the participant filled verbatim as: \emph{``I'd change Guideline Orientation, I think this is not a dimension the way it is, they are premises from the whole idea.''} This is a direct convergence between qualitative and quantitative signal.
+
+One divergence is worth noting. The participant rated G5 with a perfect 5 across every dimension in the form, but G5 received only limited attention in the conversation; the qualitative finding emphasized G1, G2, G4 (saga catalog), and G6. The most plausible reconciliation is that the participant treated the structured form as an opportunity to register the strength of the G5 deployment thesis that was not contested in the conversation, rather than as a contradiction of the qualitative emphasis. A second mild divergence appears on G4: the conversation produced the strongest reservation of the session (G2-gap: saga as one pattern, not the pattern) but the form rated G4 a uniform 4 rather than a lower number, suggesting that the reservation is about catalog framing rather than about the migration-readiness thesis itself.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Possible selection bias.} Both interviewees to date operate in environments aligned with the dissertation's target architectural pattern (active modularization journey, in-process event-driven decoupling, observability instrumentation). The convergence is not coincidence; it reflects deliberate informant recommendation. The pattern means convergence may be over-represented as evidence for the feasibility of the proposed mechanisms.
+
+\paragraph*{L3. Residual influence of the pre-read paper.} Even with the revised protocol that defers paper-specific nomenclature until after open responses, the participant had read the paper before the session and could shape his responses to match its categories. The fact that the substance of named gaps was articulated without explicit prompting is suggestive but not conclusive.
+
+\paragraph*{L4. Single-organization self-report.} The findings on the in-progress modularization come from a single organization's narrative. They corroborate the qualitative direction the dissertation argues but do not establish that the same mechanisms transfer across organizations with different cultural or technical contexts.
+
+\subsection*{Contributions to the conclusions chapter}
+
+The following sentences are extractable in Chapter~\ref{sec:conclusion} to summarize what this verification session contributes to the dissertation.
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Empirical extension of the central thesis to large engineering scale.} The session showed that the modular monolith paradigm operates at scales of 320 developers and 45 teams, exceeding the early-stage startup context that motivates the dissertation by at least one order of magnitude (E1 in this report).
+  \item \emph{Independent reaffirmation of G1 as the structural prerequisite.} The participant articulated G1 as the precondition for G2 and G3 to function, converging with the dependency framing the dissertation proposes (E2).
+  \item \emph{Identified structural refinement of the four-dimension framework.} The participant proposed that the current D4 dimension (Guideline Orientation) is methodologically weak and should be replaced by cross-cutting premises applied across all technical guidelines, while D3 (Organizational Alignment) should be retained and reframed as a maturity gate (G1-gap and G3-gap). This is the highest-impact structural signal produced by the verification series so far.
+  \item \emph{Contradiction in G4 mechanism choice.} Where the first session described sagas under Temporal as production practice, this session described Rails state machines as the preferred mechanism for cross-domain consistency. The divergence indicates that G4 should present saga as one pattern among several rather than as the recommended mechanism (B2 and G2-gap).
+  \item \emph{Confirmation of the revised interview protocol.} The dimension-balanced protocol produced substantive coverage of D3 and D4 for the first time in the series, confirming the revision applied after Interview 01.
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The second session produced strong reaffirmation of G1 as the foundational guideline and of observability as a long-term sustainability prerequisite, with two important divergences from Interview 01: a contradiction in the choice of cross-domain consistency mechanism (state machines instead of sagas) and a structural critique of the Guideline Orientation dimension.

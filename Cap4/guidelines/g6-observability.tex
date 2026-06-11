@@ -12,6 +12,8 @@ This opacity creates two problems. First, it prevents evidence-based scaling dec
 
 Microservices solve this by default because each service has its own metrics endpoint, log stream, and trace context. G6 achieves the same visibility inside the monolith by scoping instrumentation to module boundaries. The key insight is that the instrumentation is identical: OpenTelemetry spans, structured logs with module context, and metrics with module labels work the same way whether the module runs in-process or as a separate service. The same dashboards and traces survive extraction unchanged.
 
+Module-scoped observability also supplies the differential debugging affordance of a modular monolith: a single session can be followed through correlation identifiers as it traverses multiple modules, surfacing the cross-module interaction that produced an error or a latency spike. Per-module metrics indicate \emph{that} a module is slow; the propagated trace shows \emph{where} the slowness originates and how it ripples across module boundaries. With cross-domain traceability in place, a modular monolith is debuggable at the same level of granularity as a distributed system, without the operational cost of a distributed observability stack.
+
 \subsection*{Objectives}
 
 \emph{Research contributions:}
@@ -33,7 +35,7 @@ Microservices solve this by default because each service has its own metrics end
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Instrument at the module boundary, not inside it:} Observability instrumentation is placed at the module's public surface: handler entry points, event publisher calls, and listener invocations. Internal method calls are not instrumented unless they represent distinct domain operations. This keeps overhead low and ensures metrics remain meaningful after extraction~\cite{FordParsons2017}.
 
-  \item \emph{Correlation IDs are non-negotiable:} Every request receives a correlation ID (trace ID) that is propagated to every module invocation, every message header, and every log entry. Without correlation IDs, cross-module debugging requires manual timestamp alignment, which is impractical in production. Context propagation standards provide this automatically when spans are created at module boundaries~\cite{richardson2018microservices}.
+  \item \emph{Correlation IDs are non-negotiable:} Every request receives a correlation ID (trace ID) that is propagated to every module invocation, every message header, and every log entry. Without correlation IDs, cross-module debugging requires manual timestamp alignment, which is impractical in production. Context propagation standards provide this automatically when spans are created at module boundaries~\cite{richardson2018microservices,newman2019monolith}.
 
   \item \emph{Metrics feed architectural decisions, not just operational alerts:} G6 metrics are the primary input for G3's scalability spectrum (``which module needs scaling?''), G4's readiness assessment, and G5's deployment decisions. Dashboards should be organized by module and by guideline dimension, not only by infrastructure component~\cite{fairbanks2010justenough}.
 
@@ -116,6 +118,8 @@ G6 contributes to the modular monolith literature in three ways:
 
   \item \emph{Module-scoped observability as a monolith practice.} Research on modular monoliths notes that monoliths lack observability practices comparable to microservices, treating the system as a ``single black box''~\cite{montesi2021sliceable}. G6 addresses this by making internal module interactions as observable as inter-service communication, using the same vendor-neutral standards.
 
+  \item \emph{Cross-domain traceability as the differential debugging affordance.} Module-level metrics indicate which module degrades; the trace propagated through correlation identifiers binds together cross-module interactions into a single debugging artifact, surfacing where in the cross-domain path the degradation originated. This affordance distinguishes module-scoped observability from per-module monitoring in isolation and makes the modular monolith a transparent debuggable system, not a federation of metric endpoints.
+
   \item \emph{Observability continuity across extraction.} By instrumenting at the module boundary from day one, G6 ensures that dashboards, traces, and alerts survive extraction unchanged. The only difference after extraction is the addition of network latency between spans, which is precisely the information needed to evaluate performance impact.
 
   \item \emph{The observability feedback loop.} G6 connects monitoring evidence to G3's scaling triggers and G4's readiness assessments, creating a self-reinforcing cycle. Without this loop, the scalability spectrum operates on intuition rather than evidence.
@@ -131,10 +135,10 @@ Research on modular monoliths notes what G6 formalizes as the Observability Defi
 %% ============================================================
 %% G6 APPLIED
 %% ============================================================
-\section{G6 Applied: Observability in the Tiny Store}
+\section*{G6 Applied: Observability in the Tiny Store}
 \label{sec:g6-applied}
 
-G6 is demonstrated through the Tiny Store observability infrastructure~\cite{tinystore2026}, which produces module-scoped logs, metrics, and traces from day one.\footnote{Observability layer at \texttt{libs/shared/infrastructure/src/observability/}.} The tutorial walks through four observability pillars: structured logging, module-scoped metrics, distributed tracing, and alert configuration. Each step is reproducible on any modular monolith with handler-based module boundaries.
+G6 is demonstrated through the Tiny Store observability infrastructure~\cite{tinystore2026}, which produces module-scoped logs, metrics, and traces from day one. The tutorial walks through four observability pillars: structured logging, module-scoped metrics, distributed tracing, and alert configuration. Each step is reproducible on any modular monolith with handler-based module boundaries.
 
 \subsection*{Tutorial: Step-by-Step Application}
 

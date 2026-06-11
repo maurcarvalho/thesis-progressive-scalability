@@ -1,0 +1,130 @@
+%% Appendix section: Expert Interview 08 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_08}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 8: Principal Software Engineer}
+\label{sec:interview08}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Shopify as a first-hand reference for the modular monolith at scale.} The participant described a system with hundreds of deploys per day, per-domain database schemas, Kafka with a central event-schema repository, Packwerk-based CI enforcement of public interfaces, and pod-based deployment isolation. This is the strongest first-hand industry reference produced in the verification series so far.
+  \item \emph{Cross-domain traceability as the missing piece of G6.} The participant identified the observability section of the paper as too focused on per-module metrics and not enough on global traceability across domains. The differential value, in his framing, is the ability to follow a single session through correlation identifiers as it traverses multiple domains during a debugging exercise.
+  \item \emph{Tooling stack required to make modularity adoptable.} The participant proposed a concrete tooling stack as the practical condition for adoption without infrastructure expertise: a dependency graph generator, loggers that auto-inject domain metadata, and metrics that count cross-domain calls. This converts the modularity discipline from a developer-vigilance problem into a tooling problem.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``Eu acho que ainda focou um pouco demais em dentro do módulo. Eu preferiria ver algo mais útil, digamos, do contexto global. Então, como que a quebra e tendo essa observabilidade não me impede de ter um debug fácil, por exemplo, que eu consigo ver a sessão inteira das coisas que aconteceram.''} (Interviewee 8, 00:45:37)
+
+\medskip
+
+\emph{[English: ``I think the paper still focused a bit too much inside the module. I would prefer to see something more useful, let's say, from the global context. How does the decomposition and the observability not prevent me from having an easy debug session, for example, where I can see the entire session of what happened.'']}
+\end{quote}
+
+This statement captures the participant's central refinement to the observability narrative of the paper: shift the emphasis from per-module metrics toward cross-domain traceability as the differential value of G6 in a modular monolith.
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\subsubsection*{Viability enablers}
+
+\paragraph*{E1. First-hand reference to a modular monolith at industrial scale.} The participant worked inside Shopify's modular monolith for the logistics domain. The system had per-domain database schemas, hundreds of deploys per day, Kafka with a central event-schema repository, Packwerk-based CI enforcement of public interfaces, and pod-based deployment isolation. This provides the strongest industry-side anchor produced in the verification series for the dissertation's thesis that a modular monolith can scale to thousands of engineers without distributed-systems decomposition. Dimension: cross-cutting. Literature gap: cross-cutting (framework framing).
+
+\paragraph*{E2. Per-domain database schemas as the default isolation pattern.} The participant described the Shopify pattern: each domain owns its own database schema, cross-domain joins are forbidden, and aggregations go through a dedicated Analytics domain that acts as an internal data lake. This converges with the dissertation's G3 Data Ownership metric and confirms that the practice exists at scale. Dimension: D2. Literature gap: Scalability.
+
+\paragraph*{E3. Central event-schema repository as governance mechanism.} The participant described a separate repository where all Kafka event schemas were declared. Both publishers and consumers were required to register, which produced explicit visibility of inter-domain communication and prevented unregistered consumers from coupling to undocumented schemas. This is a concrete G4 mechanism the dissertation can cite. Dimension: D2. Literature gap: Migration Readiness.
+
+\paragraph*{E4. Packwerk-based CI enforcement and selective test execution.} The participant described custom tooling built on top of Packwerk to enforce public API contracts at CI time and to select only the tests relevant to the public surface that changed. The selective test execution is the operational answer to the build-everything anti-pattern that G5 names. Dimension: D2. Literature gap: Deployment Strategy.
+
+\paragraph*{E5. Pod-based deployment isolation as the operational definition of G5 D2.} The participant described how Shopify groups domains into pods (logistics, admin, and so on), each pod with its own database cluster and Kubernetes routing, deployed independently. Different pods can run different versions of the monolith simultaneously. Customer-tier routing is handled at the infrastructure layer as a black box for application developers. This is the strongest description of the G5 D2 multi-artifact level produced in the verification series. Dimension: D2. Literature gap: Deployment Strategy.
+
+\paragraph*{E6. G1 emerges naturally when modularity pain accumulates.} The participant described G1 adoption as inevitable rather than directive: developers begin grouping related code into folders without conscious decomposition, then a moment arrives where the folders need to be elevated to formal domains. The natural emergence of G1 reinforces the dissertation's framing of G1 as the entry-level guideline. Dimension: D1. Literature gap: Modularity.
+
+\subsubsection*{Viability barriers}
+
+\paragraph*{B1. Cross-domain consistency is the hardest operational concern.} The participant identified compensation across domains, sagas, and the rollback of multi-domain operations as the genuinely hard part of operating a modular monolith. In a non-modular monolith, a database transaction handles rollback automatically. As soon as domains are isolated, compensation logic is required and the team is tempted to bypass the boundary enforcer by adding exceptions to the Packwerk configuration under deadline pressure. This is the operational form of the Enforcement Gap. Dimension: D2. Literature gap: Migration Readiness.
+
+\paragraph*{B2. CI/CD pressure makes the test surface unmanageable without selection tooling.} The participant described how large monoliths cannot run all tests on every pull request; the quality assurance organization pushes back on test selection because it appears to weaken coverage. The technical answer is to select tests by the public API surface that changed, which requires investment in tooling that is not free to build. Dimension: D2. Literature gap: Deployment Strategy.
+
+\paragraph*{B3. Infrastructure layer as opaque black box.} The participant described pod isolation, routing, and customer-tier promotion at Shopify as an opaque infrastructure layer that application developers do not interact with. The pattern works at Shopify because of years of internal investment in tooling. Small teams cannot replicate the pattern without significant infrastructure expertise. This is a barrier to adoption that the dissertation's D5 D2 description should acknowledge. Dimension: D2 with implications for D3. Literature gap: Practicality of Adoption.
+
+\subsubsection*{Gaps or missing details}
+
+\paragraph*{G1-gap. Observability section is too module-internal.} The participant identified the observability discussion in the paper as too focused on per-module metrics and not enough on cross-domain traceability. The differential value of G6 in a modular monolith is the ability to follow a single session through correlation identifiers as it traverses multiple domains during debugging. The paper should make this explicit and provide a concrete example of cross-domain trace propagation. Dimension: D2. Literature gap: Complexity Management, Performance Implications.
+
+\paragraph*{G2-gap. Tooling proposal underspecified.} The participant proposed a concrete tooling stack as the practical condition for adoption: a dependency graph generator analogous to Packwerk's SVG output, loggers that auto-inject domain metadata, and metrics that count cross-domain calls. The paper currently treats tooling abstractly; the participant's stack is a concrete future-work direction for the framework's implementation layer. Dimension: D2 with implications for the future-work section. Literature gap: Practicality of Adoption.
+
+\paragraph*{G3-gap. Open-source reference implementations are scarce.} The participant noted that Shopify, Stripe, GitHub, and similar organizations have solved the modular monolith problem internally but expose limited tooling externally. The dissertation's Tiny Store reference implementation addresses this gap, but the paper would benefit from acknowledging the scarcity of open reference implementations as a meta-barrier to adoption. Dimension: meta. Literature gap: affects framework framing.
+
+\paragraph*{G4-gap. Language and framework dependence of the tooling layer.} The participant noted that the modularity tooling depends on the chosen language. Go, for example, has strong native packaging primitives, while Ruby on Rails is open and permits instantiation of any class from anywhere. The paper should make this language dependence explicit when discussing tooling and CI enforcement. Dimension: D2. Literature gap: Modularity.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured post-interview questionnaire on 9 June 2026, allowing the quantitative ratings to be triangulated against the qualitative findings above as part of the methodological triangulation described in Appendix~\ref{ape:methodology}. Both optional reflection fields were returned as no-content entries; the triangulation discussion therefore rests on the numerical pattern.
+
+\subsubsection*{General framing}
+
+The four Section~1 Likert ratings were 5, 5, 5, and 5. The unanimous maximum endorsement on all four general-framing items reinforces the qualitative narrative in which the participant defended the framework as aligned with the operational reality observed at industrial scale.
+
+\subsubsection*{Per-guideline ratings}
+
+\begin{longtable}{p{2.5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1 Enforce Boundaries & 5 & 5 & 5 & 4 & 4 \\
+G2 Embed Maintainability & 5 & 4 & 4 & 5 & 5 \\
+G3 Progressive Scalability & 5 & 5 & 4 & 4 & 5 \\
+G4 Migration Readiness & 5 & 4 & 5 & 4 & 4 \\
+G5 Deployment Strategy & 5 & 5 & 5 & 5 & 4 \\
+G6 Observability & 5 & 4 & 5 & 5 & 4 \\
+\bottomrule
+\end{longtable}
+
+\noindent
+Every guideline received an applicability rating of five, an unusually flat profile in the verification series and consistent with a participant whose operational reference is an industrial-scale modular monolith that exercises all six guidelines simultaneously. G5 (Deployment Strategy) received the strongest row in the table (five-five-five-five-four), which converges directly with the qualitative discussion of pod-based deployment isolation as the differential operational pattern observed at the participant's industrial-scale reference.
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked all six named gaps as personally encountered in production, rating the completeness of the named gap set at five. The participant marked eleven anti-patterns across the six guidelines: two for G1, two for G2, one for G3, two for G4, one for G5, and three for G6. The G6 anti-pattern count is the highest in the per-guideline distribution and converges with the qualitative emphasis on cross-domain traceability as the differential affordance of observability in a modular monolith.
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum received the maximum rating of five, the G5 deployment spectrum received four, and the composite binary gates received four. The $\varepsilon_m$ calibration question was returned with the option \emph{About right}, which is the strongest single endorsement of the dissertation's $\varepsilon_m$ calibration produced in the verification series and converges with the participant's overall affirmation of the framework.
+
+\subsubsection*{Forced prioritization}
+
+The G1--G6 rank ordering was G1=1, G2=2, G6=3, G3=4, G4=5, G5=6, with G1, G2, and G6 occupying the top three positions. This is a near-perfect match to the qualitative pick of G1 plus G2 plus G6 as the consequential triple and consolidates the participant as the strongest signal in the verification series for that triple. The G7--G12 rank ordering was G10=1, G8=2, G11=3, G7=4, G9=5, G12=6, with G10 (Actionable Design Patterns) ranked highest and G12 (Trade-offs over Dogma) ranked lowest. The G10 top position converges with the qualitative emphasis on Packwerk, the per-domain schema isolation pattern, and the pod-based deployment topology as the concrete design patterns that operationalize the dissertation's principles at industrial scale.
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire converges with the qualitative narrative on every dimension and produces no divergence. G1, G2, and G6 received the strongest per-guideline rows and the top three positions in the forced ranking, mirroring the qualitative pick. G5 received the strongest single row (five-five-five-five-four), reinforcing the qualitative discussion of pod-based deployment isolation as the operational differentiator at industrial scale. The composite binary gates Likert of four and the $\varepsilon_m$ \emph{About right} response reinforce the participant's endorsement of the dissertation's gate-mechanism choice. The G10 top position in the G7--G12 ranking mirrors the qualitative emphasis on concrete design patterns as the operational form the guidelines take at scale. Both optional reflection fields were returned as no-content entries, leaving the numerical pattern as the sole triangulation surface.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Possible selection bias.} The participant operates in an environment aligned with the dissertation's target architectural pattern. The strongest convergence in this session is on G1 plus G6, the same pairing produced by Interview 01 and Interview 05.
+
+\paragraph*{L3. Reference frame skewed by Shopify experience.} The participant's first-hand reference is a system that operates at industrial scale with years of internal investment in tooling. The Shopify pattern is described as the upper bound of feasibility rather than as a typical target. Inferences from this session should account for the gap between the Shopify reference and a typical early-stage cloud-native team.
+
+\paragraph*{L4. Residual influence of the pre-read paper.} The participant read the pre-read paper before the session. The cross-domain traceability refinement to G6 was articulated after the paper's observability discussion was referenced, so the framing of the critique is partially shaped by the paper's vocabulary.
+
+\subsection*{Contributions to the conclusions chapter}
+
+The findings below offer statements that can be incorporated directly into Chapter~\ref{sec:conclusion} to summarize what this verification session contributes to the dissertation.
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Shopify as a working modular monolith at industrial scale.} The session produced first-hand evidence that the modular monolith pattern operates at thousands of engineers and hundreds of deploys per day, with per-domain database schemas, Kafka governance, Packwerk-based CI enforcement, and pod-based deployment isolation. This is the strongest industry anchor in the verification series so far (E1 to E5).
+  \item \emph{Cross-domain traceability as the G6 refinement.} The observability discussion in the paper should be refined to emphasize cross-domain trace propagation by correlation identifier as the differential value of G6 in a modular monolith, rather than per-module metrics alone (G1-gap).
+  \item \emph{Tooling stack as the adoption layer.} A concrete future-work direction emerges: a dependency graph generator, loggers that auto-inject domain metadata, and metrics that count cross-domain calls. The stack converts the modularity discipline from a developer-vigilance problem into a tooling problem (G2-gap).
+  \item \emph{Saga complexity as the operational form of the Enforcement Gap.} Compensation across domains is the moment teams are tempted to bypass the boundary enforcer by adding exceptions to the configuration. This is the operational form of the Enforcement Gap and should be cited as the strongest pressure point on G1 enforcement (B1).
+  \item \emph{Pod-based deployment isolation as a concrete D2 example.} The participant's description of Shopify's pod architecture supplies the operational example the dissertation needs for the D2 multi-artifact level of G5 (E5).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The eighth session produced the strongest first-hand industry anchor in the verification series so far. The participant described a working modular monolith at industrial scale and identified a concrete refinement to the G6 observability narrative (cross-domain traceability) and a concrete tooling stack as the adoption layer for the framework.

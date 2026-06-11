@@ -1,0 +1,125 @@
+%% Appendix section: Expert Interview 05 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_05}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 5: Principal Software Engineer}
+\label{sec:interview05}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Observability as a prerequisite, not a peer.} G6 should be prioritized before any migration step. Without correlation IDs and traces, the team loses visibility during the migration window. This reinforces the same signal from prior sessions and is now the strongest cross-session enabler in the series.
+  \item \emph{Mature teams adopt metrics naturally; immature teams do not.} G2 metrics are picked up by teams with maturity; immature teams ignore them. This frames G2 adoption as an organizational maturity question and converges with the maturity-axis reframing proposed in Interviews 02 and 03.
+  \item \emph{Metric variability across frameworks.} Metric definitions (Migration Readiness, Contract Stability, Complexity Concentration) vary across technologies and frameworks. The paper would benefit from explicit normalization or framework-specific guidance.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``A observabilidade ajuda a dar suporte a todos os outros guidelines. (...) Mesmo num monolito síncrono, conseguir identificar gargalos por tracing ID ou correlation ID já é fundamental.''} (Interviewee 5, 00:28:00 approx.)
+
+\medskip
+
+\emph{[English: ``Observability helps support all the other guidelines. (...) Even in a synchronous monolith, being able to identify bottlenecks by tracing ID or correlation ID is already fundamental.'']}
+\end{quote}
+
+This statement captures the cross-session observability-first signal in its strongest formulation: observability as the cross-cutting prerequisite for the other guidelines, applicable to synchronous monoliths from day one.
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\subsubsection*{Viability enablers}
+
+\paragraph*{E1. Selective extraction driven by computational bottlenecks.} The participant's organization migrated specific functionality to microservices when MySQL aggregation pressure reached 100\% CPU; the solution moved the bottleneck function to Elasticsearch rather than fragmenting the monolith. This reinforces the dissertation's ``scale where it hurts'' principle and the G3 progressive scalability framing. Dimension: D2. Literature gap: Scalability.
+
+\paragraph*{E2. Verification of the 30\% synchronous-ratio metric.} The participant recognized the G3 Sync Ratio (target $\leq 30\%$) as a meaningful threshold in practice, confirming one of the G3 verification metrics by name. Dimension: D2. Literature gap: Scalability.
+
+\paragraph*{E3. Tracing and correlation IDs essential even in synchronous monoliths.} The participant emphasized that observability infrastructure (request and correlation identifiers) is essential from project start, before any migration. Dimension: D2. Literature gap: Complexity Management, Performance Implications.
+
+\paragraph*{E4. Recognition that G2 metrics are adopted by mature teams.} The participant confirmed that experienced teams adopt the kind of metric set G2 proposes; immature teams do not. This converts G2 adoption from a technical decision into an organizational maturity signal. Dimension: D1 with implications for D3. Literature gap: Maintainability with implications for Team Fit.
+
+\subsubsection*{Viability barriers}
+
+\paragraph*{B1. G2 metrics only adopted by mature teams.} Less mature teams ignore the G2 metrics, even when documented. The barrier is organizational maturity, not technical complexity. Dimension: D1 with implications for D3. Literature gap: Maintainability.
+
+\paragraph*{B2. Cost of adoption is not discussed in the paper.} The dissertation should explicitly address the cost of adopting each guideline so that adopters can budget the investment. Dimension: meta. Literature gap: Practicality of Adoption.
+
+\subsubsection*{Gaps or missing details}
+
+\paragraph*{G1-gap. Need for explicit empirical validation.} The participant suggested the paper would benefit from a controlled experiment or case study with metrics measured pre and post application of the guidelines. Pure opinion-based verification, while appropriate at the master's stage, leaves the contribution incomplete for journal-grade publication. Dimension: meta. Literature gap: affects publication-grade framing.
+
+\paragraph*{G2-gap. G2 concept clarification.} The Change Coupling Index in particular is hard to operationalize without examples. The paper should include concrete examples of how each G2 metric is computed in a real codebase. Dimension: D1. Literature gap: Maintainability.
+
+\paragraph*{G3-gap. Tooling automation as a missing layer.} Current guidelines depend on human interpretation and discipline; the paper should address what executable tooling (linters, CI rules, IDE integrations) would close the human-interpretation gap. Dimension: meta. Literature gap: Practicality of Adoption.
+
+\paragraph*{G4-gap. Metric variability across frameworks.} Metric definitions vary across technologies (Rails versus Spring versus Node.js, for example). The paper should provide explicit normalization or framework-specific guidance for the metrics that depend on language idioms. Dimension: D1. Literature gap: Modularity.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured questionnaire (Appendix~\ref{ape:methodology}) within the agreed one-week window. The ratings below complement the qualitative findings above and are presented as part of the methodological triangulation. Both optional reflections in Section 7 were filled and are reproduced verbatim under triangulation.
+
+\subsubsection*{General framing}
+
+The four ratings of Section 1 (analytical dimensions, deliberate destination thesis, G1 to G6 ordering, completeness of the set) were 5, 4, 4, and 4 on a five-point Likert scale. The lower ratings on the deliberate-destination thesis, the G1 to G6 ordering, and the completeness of the set are consistent with the qualitative position that the framework is methodologically incomplete without an empirical case study or framework-specific normalization (G1-gap and G4-gap above).
+
+\subsubsection*{Per-guideline ratings}
+
+For each guideline the participant rated five dimensions on the same five-point scale (1 = Very low, 5 = Very high).
+
+\begin{longtable}{p{5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1: Enforce Modular Boundaries  & 4 & 5 & 5 & 5 & 5 \\
+G2: Embed Maintainability       & 5 & 4 & 5 & 5 & 4 \\
+G3: Design for Progressive Scalability & 5 & 4 & 5 & 4 & 4 \\
+G4: Promote Migration Readiness & 4 & 4 & 5 & 4 & 4 \\
+G5: Streamline Deployment Strategy & 4 & 5 & 5 & 5 & 4 \\
+G6: Introduce Observability Patterns & 5 & 5 & 5 & 5 & 4 \\
+\bottomrule
+\end{longtable}
+
+No guideline received a rating below 4 on any dimension. Importance was rated 5 across every guideline. G6 received perfect ratings on four dimensions and 4 on completeness. G1 received perfect ratings on four dimensions and 4 on practical applicability. The completeness column was rated 4 for every guideline except G1, reflecting the qualitative finding that each guideline would benefit from concrete metric examples and framework-specific guidance.
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked five of the six named failure-mode concepts (the Enforcement Gap, the Incremental Maintainability Degradation, the Progressive Scalability Gap, the Migration Readiness Gap, and the Observability Deficit) as personally encountered in production systems. The Deployment-Architecture Mismatch was not selected. The completeness of the named-gap set was rated 4 out of 5. Across the six anti-pattern blocks, the participant selected every listed anti-pattern (eighteen of eighteen), indicating that no anti-pattern in the catalog was unfamiliar.
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum and the G5 deployment spectrum were rated 5 out of 5. The composite binary gates mechanism was rated 4 out of 5. The G3 Extraction Readiness gate $\varepsilon_m = 1$ was rated as ``About right'' in calibration, the central option of a four-point calibration scale. These ratings confirm the structural design choices.
+
+\subsubsection*{Forced prioritization}
+
+The participant produced a strict ordering on both grids. For G1 to G6 he assigned position 1 to G1, position 2 to G6, position 3 to G2, position 4 to G5, position 5 to G3, and position 6 to G4. For G7 to G12 he placed G10 (Actionable Design Patterns) at position 1, G11 (Contextual Adaptation) at position 2, G12 (Trade-offs over Dogma) at position 3, G8 (SRE and DevOps Maturity) at position 4, G7 (Team-Architecture Balance) at position 5, and G9 (Frictionless Onboarding) at position 6. The G1-G6 pairing at the top of the operational grid is the strongest signal in this questionnaire: it converges with the qualitative finding that observability is the cross-cutting prerequisite of the framework while G1 remains the entry point. G4 at position 6 converges with the cross-session pattern that the saga-based migration readiness is the least defensible operational guideline as currently framed.
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire and the interview transcript converge on the central qualitative finding. G6 received perfect ratings on four of five dimensions and the second position in the forced ranking, aligning with the qualitative emphasis on observability as the cross-cutting prerequisite of the framework. G1 took the top of the ranking and was rated perfect on four dimensions, reaffirming the operational role of boundary enforcement as the entry point of the operational set. G4 at the bottom of the ranking reaffirms the cross-session reservation about saga-based migration readiness. Both Section 7 reflections directly reinforce qualitative findings. Verbatim on the reflection: \emph{``I would only emphasize that contextual adaptation is critical. The same guideline may be very useful in one startup and excessive in another, depending on product maturity, team size, domain complexity, traffic patterns, and operational maturity. Making this contextual decision process more explicit could increase the practical impact of the framework.''} And on the single change: \emph{``G1 through G6 are coherent, but they mix concerns that are slightly different in nature: some guidelines define how to design a healthy modular monolith, while others define when the system is ready to evolve toward scaling, extraction, or deployment changes. I would frame them as a staged model: first establish and preserve modular integrity, then introduce operational visibility, and only then use evidence-based gates to decide whether to decouple, isolate, or extract modules. I think this would make the framework easier for practitioners to adopt because it would clarify which guidelines should be introduced from day one and which ones become more relevant as the product, team, and operational demands mature.''} The second reflection proposes a staged-model reframing of G1 to G6 that converges with the two-wave maturity framework proposed in Interview 03 (G1-gap of that report) and with the Guideline Orientation critique from Interview 02. This is the third independent participant proposing a maturity-axis reframing of the four-dimension structure.
+
+One area to note is that the Deployment-Architecture Mismatch (G5) was the only named gap the participant did not mark as personally encountered. The qualitative conversation focused on selective extraction at the bottleneck rather than on multi-artifact pipelines, so the participant's environment did not produce the specific failure mode the G5 named gap describes.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Possible selection bias.} The participants to date all operate or research in environments aligned with the dissertation's target architectural pattern. Convergence may be over-represented.
+
+\paragraph*{L3. Residual influence of the pre-read paper.} The participant read the paper before the session.
+
+\paragraph*{L4. Mixed-profile reading.} The participant's responses combine academic and industry perspectives. While methodologically valuable, the mixed profile produces signals that are not directly comparable to either pure-industry or pure-academic profiles. The participant's empirical-validation gap recommendation is more characteristic of the academic perspective than the industry perspective.
+
+\subsection*{Contributions to the conclusions chapter}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Observability-first signal solidified across five sessions.} Every participant who addressed the operational dimension has prioritized observability, in different framings but the same direction. This is the strongest cross-session enabler signal in the verification series (E3).
+  \item \emph{G2 adoption as an organizational maturity signal.} Mature teams adopt the kind of metric set G2 proposes; immature teams do not. This converges with the maturity-axis reframing from Interviews 02 and 03 (E4 and B1).
+  \item \emph{Empirical validation gap.} The dissertation would benefit from a controlled experiment or case study at the journal-grade level, beyond the master's-level opinion-based verification already in place (G1-gap).
+  \item \emph{Tooling automation as the missing layer.} The current guidelines depend on human interpretation; executable enforcement (linters, CI rules, IDE integrations) is the natural next layer of work (G3-gap).
+  \item \emph{Metric variability across frameworks.} Calls for explicit normalization or framework-specific guidance on metrics that depend on language idioms (G4-gap).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The fifth session reinforced observability as the cross-cutting prerequisite of the framework and contributed concrete methodological recommendations (empirical validation, tooling automation, metric normalization) consistent with the participant's mixed academic and industry profile.

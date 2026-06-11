@@ -1,0 +1,121 @@
+%% Appendix section: Expert Interview 11 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_11}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 11: Software Engineer}
+\label{sec:interview11}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=8pt,topsep=2pt]
+  \item \emph{G6 Observability should be implemented before G1 Boundary Enforcement, not after it.} The participant proposed an unconventional ordering in which observability is the entry point of the framework: a new team should start by setting up dashboards and metrics so that engineers can develop a sense of system ownership through visibility, and only then move on to boundary enforcement and progressive scalability. This is the strongest empirical signal in the verification series for G6 as primary, surpassing prior sessions that named G6 as systemic prerequisite by also placing it ahead of G1 in the implementation sequence.
+
+  \item \emph{Threshold values across the metric set need bibliographic backing.} The participant identified the numerical thresholds attached to the verification metrics (the coupling index targets, the ratio gates) as \emph{magic numbers} and recommended that each threshold either be justified analytically in the prose or be supported by a reference from the literature. This is the second voice in the verification series to raise the bibliographic-backing concern and the strongest articulation of it.
+
+  \item \emph{Cross-language contract repositories (gRPC plus Protobuf) are the operational form of G2 contract discipline.} The participant reported that gRPC and Protobuf, with a central contract repository in the style adopted by Shopify, were the practical mechanism that enabled cross-language modular boundaries to hold under change pressure in his prior experience. This converges with prior sessions on contract discipline as the dominant adoption pattern, with the central-repository pattern as the differential addition.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``Eu come\c{c}aria como pilar principal observabilidade, porque eu acredito que uma pessoa que j\'a saiba olhar dashboards, olhar as m\'etricas, ela j\'a consegue come\c{c}ar jogando com o sistema e ter aquela sensa\c{c}\~ao de dono. \ldots\ Por quest\~ao de entender que observabilidade para mim \'e mais importante, eu acho que manteria nessa ordem G6, depois G1, por entender essas partes de de entender onde at\'e o mon\'olito vai, do bounded context. \ldots\ G6, G1 e G3 por \'ultimo.''} (Interviewee 11, 00:57:55 and 01:01:57)
+
+\emph{[English: ``I would start with observability as the main pillar, because I believe that someone who already knows how to look at dashboards and metrics can start playing with the system and develop a sense of ownership. \ldots\ Because I understand that observability is more important to me, I think I would keep this ordering: G6, then G1, to understand where the monolith reaches the bounded contexts. \ldots\ G6, G1, and G3 last.'']}
+\end{quote}
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\paragraph*{E1. Observability is the entry point that lets a new team develop system ownership.} The participant articulated that an engineer who can read dashboards and react to metric anomalies on day zero gains the cognitive grip the rest of the framework presupposes, and that this grip should not be deferred to a later phase of adoption. Dimension: D2. Literature gap: practicality of adoption.
+
+\paragraph*{E2. Domain-Driven Design vocabulary remains the practical language of G1.} The participant returned to bounded contexts, ubiquitous language, and anti-corruption layers as the vocabulary that maps cleanly onto the G1 enforcement narrative, reinforcing the alignment of the guideline with the DDD tradition. Dimension: D1. Literature gap: modularity definitions.
+
+\paragraph*{E3. Cross-language contract repositories (gRPC plus Protobuf) operationalize G2 contract discipline.} The participant reported direct experience with central contract repositories that gate destructive schema changes before they reach the consumer modules, with Shopify named as the practitioner reference. The pattern converts contract stability from a social agreement into a tooling-enforced gate. Dimension: D1. Literature gap: enforcement gap in modularity tooling.
+
+\paragraph*{E4. eBPF and the LGTM stack offer a low-cost path to G6.} The participant proposed that teams with budget constraints can assemble an observability stack using eBPF for kernel-level tracing and the LGTM stack (Loki, Grafana, Tempo, Mimir) for log, dashboard, trace, and metric storage, achieving the observability outcomes that proprietary tooling delivers at a fraction of the recurring cost. Dimension: D2. Literature gap: deployment automation depth.
+
+\paragraph*{B1. Threshold values across the metric set read as magic numbers.} The participant identified the numerical targets attached to G2 and G3 (coupling index ceilings, ratio thresholds) as not yet justified in the current paper text, recommending that each be supported by either an analytical derivation or a reference from the literature. The dissertation now records the obligation to add the references on each threshold value. Dimension: D1. Literature gap: maintainability metrics.
+
+\paragraph*{B2. The change coupling index depends on the quality of the underlying Git history.} The participant warned that the practical effectiveness of the change coupling index is bounded by the discipline of the commit history: noisy, rebased, or squashed histories will produce signal artifacts that the metric cannot distinguish from real coupling. The dissertation should record this dependency as a precondition of the metric. Dimension: D1. Literature gap: maintainability metrics.
+
+\paragraph*{B3. Datadog-class observability tooling is expensive for small teams.} The participant reported that proprietary observability platforms, while broad and effective, impose recurring costs that small teams cannot always absorb. The dissertation should treat the tooling cost as a factor in the deployment decision of G6 rather than assume the same tooling baseline across team sizes. Dimension: D2. Literature gap: practicality of adoption.
+
+\paragraph*{B4. JSON-without-schema cross-team communication is a recurring source of failure.} The participant identified ad-hoc cross-team message contracts (JSON payloads transmitted without a schema gate, or contract changes communicated over chat instead of through a contract repository) as the structural cause of integration failures in his prior experience. This refines the G2 contract-stability narrative by naming the specific anti-pattern. Dimension: D1. Literature gap: enforcement gap in modularity tooling.
+
+\paragraph*{G1-gap. Strangler fig pattern is the missing reference for G3 progressive scalability.} The participant proposed that the G3 narrative would benefit from an explicit reference to the strangler fig pattern as the canonical practitioner term for controlled module extraction, both to anchor the guideline in established vocabulary and to facilitate the indexability of the paper. The dissertation should add the reference. Dimension: D1. Literature gap: progressive scalability and structured intermediate states.
+
+\paragraph*{G2-gap. Anomaly detection metric set (throughput, latency, Apdex) should be made explicit in G6.} The participant proposed that the G6 narrative would be sharpened by naming throughput, latency, and Apdex as the minimum metric set for module-scoped anomaly detection, with the trade-off of false positives acknowledged as part of the prescription. The dissertation should record the metric set in the G6 verification table. Dimension: D2. Literature gap: deployment automation depth.
+
+\paragraph*{G3-gap. The technical guidelines and the organizational guidelines cannot be separated in practice.} The participant argued that the framework's separation of G1--G6 from the deferred G7--G12 is methodologically clean but operationally incomplete: as a system distributes, the emergence of platform or SRE teams is structural, not optional, and the technical guidelines presuppose the organizational ones. The dissertation already records this tension in Chapter~5 cross-cutting themes; the finding reinforces the case for treating the organizational dimension as substantive future research. Dimension: D3. Literature gap: Organizational Alignment as research direction.
+
+\paragraph*{G4-gap. The G1--G6 labels read as opaque; a memorable acronymic naming would aid recall.} The participant proposed in the questionnaire reflection field that G1 to G6 could be renamed with acronymic labels in the SOLID tradition (the proposal is reproduced verbatim in the questionnaire findings section below). The dissertation records the proposal without committing to the rename, since the G1--G6 labels are already established in the published position paper and the cost of renaming exceeds the benefit at this stage. Dimension: D4. Literature gap: practicality of adoption.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured post-interview questionnaire on the day of the session, allowing the quantitative ratings to be triangulated against the qualitative findings above as part of the methodological triangulation described in Appendix~\ref{ape:methodology}. The reflection on points not discussed during the interview was returned as a no-content entry; the single-change reflection field was returned with a substantive renaming proposal that this section preserves verbatim.
+
+\subsubsection*{General framing}
+
+The four Section~1 Likert ratings were 4 (four dimensions reflect practice), 5 (modular monolith as deliberate destination), 4 (G1--G6 ordering reflects how a team would approach the concerns), and 5 (the set is complete). The two five ratings reinforce the qualitative endorsement of the deliberate-destination framing and the completeness of the six-guideline set.
+
+\subsubsection*{Per-guideline ratings}
+
+\begin{longtable}{p{2.5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1 Enforce Boundaries & 3 & 3 & 4 & 4 & 4 \\
+G2 Embed Maintainability & 4 & 2 & 3 & 4 & 3 \\
+G3 Progressive Scalability & 5 & 4 & 4 & 4 & 4 \\
+G4 Migration Readiness & 4 & 4 & 4 & 2 & 4 \\
+G5 Deployment Strategy & 4 & 4 & 4 & 5 & 4 \\
+G6 Observability & 5 & 4 & 5 & 5 & 4 \\
+\bottomrule
+\end{longtable}
+
+\noindent
+G6 received the strongest row in the table (five for applicability, four for clarity, five for importance, five for adoption likelihood, four for completeness), converging with the qualitative finding that G6 is the most important guideline of the entire framework and the entry point of adoption. G2 received the lowest single rating in the table (clarity equal to two), converging directly with the qualitative critique that the metric thresholds read as magic numbers without sufficient bibliographic backing (B1). G4 received an adoption-likelihood rating of two, the second lowest single rating, recording a hesitancy that the qualitative narrative did not develop in depth.
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked three of the six named gaps as personally encountered in production: the Enforcement Gap (G1), the Incremental Maintainability Degradation (G2), and the Observability Deficit (G6). The completeness of the named gap set was rated five, the maximum. The participant marked twelve anti-patterns across the six guidelines: two for G1, one for G2, two for G3, one for G4, two for G5, and two for G6. The marked pattern reinforces the qualitative emphasis on G1, G2, and G6 as the guidelines most exposed to the participant's operational experience.
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum received the maximum rating of five, the G5 deployment spectrum received three, and the composite binary gates received three. The $\varepsilon_m$ calibration question was returned with the option \emph{I am not confident enough about the right calibration to answer}, which is recorded as methodological honesty rather than a calibration signal. The lower ratings on G5 spectrum and composite gates are consistent with the lower ratings the same instrument gave to G2 clarity and to the G4 adoption likelihood.
+
+\subsubsection*{Forced prioritization}
+
+The G1--G6 rank ordering was G6=1, G1=2, G3=3, G2=4, G5=5, G4=6, with G6 ranked highest priority and G4 ranked lowest. This is the closest match in the verification series between the qualitative pick (G6, G1, G3 in that order) and the forced ranking (G6, G1, G3 as the top three), making the participant the strongest signal in the series for the G6-first ordering. The G7--G12 rank ordering was G8=1, G7=2, G9=3, G10=4, G11=5, G12=6, with G8 (SRE and DevOps Maturity) ranked highest; this converges with the qualitative finding that the emergence of platform or SRE teams is structural rather than optional once a system distributes (G3-gap).
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire converges with the qualitative narrative on five points and diverges on none. G6 received the strongest per-guideline row and the highest position in the G1--G6 ranking, mirroring the qualitative recommendation to start adoption with observability. G2 received the lowest clarity rating in the per-guideline table, mirroring the magic-numbers critique developed at length in the conversation (B1). G8 SRE and DevOps Maturity received the highest position in the G7--G12 ranking, mirroring the qualitative argument that the technical guidelines and the organizational guidelines cannot be separated in practice (G3-gap). The named-gap recognition of G1, G2, and G6 mirrors the three guidelines the participant returned to most often in the conversation. The completeness rating of five mirrors the qualitative endorsement of the six-guideline set as not missing an essential guideline.
+
+The single-change reflection field was returned with a renaming proposal preserved verbatim as: \emph{``inves de g1, g2, g3, gn\ldots\ poderia ser iniciais das palavras. na linha do acr\^onimo SOLID: \ldots\ B - Boundaries First, R - Resilient Maintainability, I - Incremental Scalability, D - Deployment Evolution, G - Gradual Migration, E - Evidence-based Observability.''} The proposal would convert G1 to G6 into a memorable acronym in the SOLID tradition. The dissertation records the proposal without committing to the rename: the G1--G6 labels are established in the published position paper, and renaming at this stage would invalidate the cross-references that the verification phase and the literature mapping already use. The proposal is recorded as a post-defense iteration candidate in the Chapter~5 reformulation list.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Cross-industry profile complements the cloud-native startup focus.} The participant's experience spans finance, real estate, e-commerce, and applied research, which contrasts with the cloud-native startup focus that dominates the rest of the sample. The convergences with prior sessions on observability priority and contract discipline should be read alongside this profile distinction as a sign that the findings generalize beyond the cloud-native startup setting; the divergences (the G6-before-G1 ordering, the magic-numbers critique) should be read as informed by the broader context.
+
+\paragraph*{L3. Side-project adoption as the source of first-hand signal.} The participant reports having applied the guidelines to a personal modular monolith project before the session, which is the only first-hand adoption signal in the verification series. The signal is informative but not statistical: a single side-project is not a controlled adoption study, and the findings should be treated as field testimony rather than as evaluation evidence.
+
+\paragraph*{L5. Saga coordination not addressed.} The session did not engage with the G4 saga catalog in depth: the participant rated G4 adoption likelihood at two in the questionnaire and ranked G4 last in the forced ordering, but the qualitative discussion did not develop the choice between orchestrated and choreographed sagas. The G4 catalog signal from this session is therefore primarily quantitative.
+
+\subsection*{Contributions to the conclusions chapter}
+
+\begin{enumerate}[itemsep=4pt,topsep=2pt]
+  \item \emph{Strongest empirical signal in the verification series for G6 as the entry point of adoption.} The participant is the first voice in the series to recommend G6 before G1 in the implementation sequence for a new team, reinforcing the dissertation's framing of observability as systemic prerequisite (E1, G6=1 in the forced ranking).
+  \item \emph{Bibliographic backing for the metric thresholds becomes a concrete obligation.} The participant articulated the magic-numbers critique that the dissertation now records as a writing obligation: every numerical threshold attached to G2 and G3 metrics should be either analytically justified or referenced from the literature (B1).
+  \item \emph{Strangler fig pattern is added to the post-defense reference list for G3.} The participant proposed the strangler fig as the canonical practitioner term for controlled module extraction; the dissertation records this as a reference to add in the post-defense iteration (G1-gap).
+  \item \emph{Cross-language contract repositories (gRPC plus Protobuf, Shopify-style) are formalized as the practical mechanism of contract discipline.} The participant provides the differential addition to the contract-stability narrative: a central contract repository that gates destructive schema changes before they reach the consumer modules (E3).
+  \item \emph{The G7--G12 prioritization signal converges on G8 SRE and DevOps Maturity.} The participant ranks G8 first in the deferred dimension, reinforcing the case for the organizational dimension as substantive future research and converging with the qualitative argument that the technical and the organizational guidelines cannot be separated in practice (G3-gap).
+  \item \emph{The acronymic renaming proposal is recorded as a post-defense iteration candidate.} The participant proposes a SOLID-style acronymic renaming of G1 to G6 (BRIDGE: Boundaries First, Resilient Maintainability, Incremental Scalability, Deployment Evolution, Gradual Migration, Evidence-based Observability); the dissertation records the proposal without committing to the rename (G4-gap).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The eleventh session produced three consequential contributions to the verification series. The first is the strongest empirical signal in the series for G6 as the entry point of adoption rather than as a systemic prerequisite layered on top of G1: the participant is the first voice to recommend G6 before G1 in the implementation sequence for a new team, with the forced ranking confirming the qualitative pick. The second is the magic-numbers critique, which the dissertation now records as a concrete writing obligation on every threshold value attached to G2 and G3. The third is the cross-language contract repository pattern (gRPC plus Protobuf with central schema gating) as the differential addition to the contract-stability narrative.

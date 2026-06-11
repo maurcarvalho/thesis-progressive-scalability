@@ -1,0 +1,75 @@
+%% Appendix section: Expert Interview 13 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_13}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 13: Engineering Manager}
+\label{sec:interview13}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=8pt,topsep=2pt]
+  \item \emph{Architectural classifier as the metric that justifies modernization spend.} The participant proposed that the framework would gain practical adoption power if it produced a numeric architectural score (the participant cited an example of 7 out of 10) that a manager can present to a client as the justification for sustenance budget allocation. The proposal converges with the magic-numbers critique surfaced in prior sessions but from the opposite angle: not removing the numbers but making them authoritative and visible as a stakeholder-facing instrument.
+
+  \item \emph{Architectural inspection at commit time as the operational form of G1 enforcement.} The participant described an internal tool (referred to as \emph{vacina}, developed by a corporate architecture function at the same organization) that operates like SonarQube but at the architectural level, gating commits when they introduce architectural deviation. The dissertation's principles are proposed as the business-rule layer such a tool would reference, converging with prior sessions on the need for automated enforcement tooling and adding the commit-time gate as a concrete mechanism.
+
+  \item \emph{Hybrid evolution strategy as a path for legacy modernization without rewrites.} The participant described a working pattern (Java 8 and Java 21 applications coexisting in the same application server with shared session state, mediated by a third-party hybrid-runtime partner) that lets a legacy monolith host modern modules without the rewrite cost. The dissertation records the pattern as a candidate for the legacy modernization methodology that the participant proposes as future research.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``N\~ao se tem uma bala de prata para resolver tudo. A gente tem que avaliar cada problema e trabalhar. \ldots\ \'E G1, G4 e G6, porque s\~ao os que mais me incomodam hoje, que eu preciso dar aten\c{c}\~ao. Por exemplo, o G2 eu acho que n\~ao \'e um problema. O G5, n\'os temos uma esteira que n\~ao d\'a problema. A escalabilidade do G3 se resolve colocando m\'aquina, se resolve de outras formas.''} (Interviewee 13, 00:35:05 to 00:36:36)
+
+\emph{[English: ``There is no silver bullet that solves everything. We have to evaluate each problem and work on it. \ldots\ It is G1, G4, and G6, because they are the ones that bother me most today, the ones that need attention. For example, G2 I do not think is a problem. G5 we have a pipeline that does not cause problems. The scalability of G3 is solved by adding machines, it is solved in other ways.'']}
+\end{quote}
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\paragraph*{E1. Commit-time architectural inspection as the operational form of G1 enforcement.} The participant reported the design and partial implementation of an internal tool (\emph{vacina}) that operates like SonarQube but at the architectural level, gating commits when they introduce deviation from the documented module boundaries. The pattern converts the dissertation's G1 narrative from a developer-vigilance problem into a pipeline-gated rule and reinforces the case for the framework's principles to serve as the business-rule layer such tooling references. Dimension: D1. Literature gap: enforcement gap in modularity tooling.
+
+\paragraph*{E2. Hybrid runtime coexistence as a legacy modernization pattern.} The participant reported a working pattern in which Java 8 and Java 21 applications coexist in the same application server with shared session state, mediated by a third-party hybrid-runtime partnership, enabling gradual replacement of legacy menus with modern modules without the rewrite cost. The pattern is named as a candidate for the legacy modernization methodology future research. Dimension: cross-cutting. Literature gap: practicality of adoption.
+
+\paragraph*{E3. Source extraction patterns that succeeded in production at scale.} The participant cited two operational extractions executed on the long-lived monolith that delivered measurable outcomes: moving binary content out of the Oracle database to an external file server (reducing database size from 120 TB to 58 TB), and isolating phonetic search load on an Elasticsearch cluster (eliminating availability incidents for approximately four years). Both extractions illustrate the dissertation's framing that extraction-readiness is the right concern, not extraction-by-default. Dimension: D2. Literature gap: migration readiness modeling.
+
+\paragraph*{E4. Code conversion from structured to object-oriented as a labor-cost lever.} The participant described a working pattern in which legacy Natural code (a structured language tied to a Mainframe context) is converted to Java code that preserves the structured control flow, allowing maintenance to be performed by Java developers without retaining specialists in the legacy stack. The pattern is named as the cost-control mechanism that enabled the team to release the legacy specialist dependency. Dimension: cross-cutting. Literature gap: practicality of adoption.
+
+\paragraph*{B1. Functional success masks structural degradation in the eyes of the client.} The participant reported that obtaining client investment for architectural modernization is the dominant practical obstacle: when the system works functionally, the structural degradation is invisible to the stakeholder making the budget decision. The architectural classifier proposal (G1-gap below) is the participant's response to this dynamic. Dimension: D3. Literature gap: practicality of adoption.
+
+\paragraph*{B2. Module-to-module coupling is the structural obstacle to G4 readiness.} The participant identified excessive coupling between modules as the practical reason G1 is the most challenging guideline of the architectural dimension: when boundaries leak, extracting a module into an independent service requires not only the extraction work itself but also the refactoring of every dependent path that reused the in-process data-access layer. Dimension: D1. Literature gap: migration readiness modeling.
+
+\paragraph*{B3. Time and budget to operate observability tooling, not the tooling itself, is the obstacle to G6.} The participant reported that the team has access to powerful observability tooling but lacks the time budget to operate it as the framework prescribes. The G6 obstacle is therefore framed as organizational and budgetary rather than as a tooling gap, refining the dissertation's narrative that the cost is in continuous operation rather than in initial setup. Dimension: D2 and D3. Literature gap: deployment automation depth.
+
+\paragraph*{B4. Public-sector procurement constraints shape the tooling adoption surface.} The participant reported that the procurement constraints of a state-owned organization (mandatory tendering, civil-service hiring rules) shape which tooling adoption strategies are feasible: an open-source pattern that a startup can deploy in a sprint becomes a multi-month procurement exercise in a public-sector context. The dissertation records this as a context the practicality narrative should acknowledge. Dimension: D4. Literature gap: practicality of adoption.
+
+\paragraph*{G1-gap. An architectural classifier producing a numeric score for the monolith as a whole is missing from the framework.} The participant proposed that the framework's metric set should aggregate into a single architectural score (the participant cited an example of 7 out of 10) that a manager can present to a non-technical stakeholder as the justification for modernization budget. The dissertation's G2 metric set is per-module and per-property; the proposal asks for a system-level synthesis that the current framework does not provide. Dimension: D1. Literature gap: maintainability metrics.
+
+\paragraph*{G2-gap. A methodology for legacy applications is missing from the future research agenda.} The participant proposed that the dissertation's framework, while well-positioned for greenfield and modern monolith contexts, leaves the legacy-application methodology question unaddressed. Legacy modernization patterns (hybrid runtimes, structured-to-OO code conversion, gradual menu replacement) are the participant's day-to-day problem and would be the natural extension of the framework to the public-sector and large-enterprise contexts. Dimension: cross-cutting. Literature gap: practicality of adoption.
+
+\paragraph*{G3-gap. The framework should serve as the business-rule layer for automated developer-facing tooling.} The participant proposed that the framework's principles, formalized as machine-readable rules, become the contract that an architectural-inspection tool consumes at commit time and that an architectural-score tool consumes at the system level. The dissertation already records the tooling future-work direction; the participant's contribution is to frame the dissertation as the specification layer rather than as one of many possible specifications. Dimension: D4. Literature gap: enforcement gap in modularity tooling.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. First public-sector voice in the series.} The participant is the first voice in the verification series from the Brazilian state-owned information technology sector. The convergences with prior sessions on the enforcement-tooling theme should be read alongside the contextual distinction; the divergences (the architectural-classifier proposal, the legacy modernization framing) should be read as informed by the public-sector context in which functional success and architectural degradation can decouple for years at a time.
+
+\paragraph*{L3. Stack focus on Java and the long-lived monolith.} The participant's most recent operational experience is centered on a Java Web modular monolith first deployed in 2006 and on Mainframe legacy modernization patterns. The critiques of the framework's metric set and the future-research proposals are informed by this stack focus and should be read alongside sessions covering different stacks and shorter-lived systems.
+
+\paragraph*{L4. Questionnaire response pending.} The participant agreed to complete the post-interview questionnaire after the session. The questionnaire findings will be added to this report as a separate subsection when the response is received, following the procedure described in Appendix~\ref{ape:methodology}.
+
+\paragraph*{L5. Saga coordination not addressed.} The session did not engage with the G4 saga catalog in depth: the discussion centered on extraction readiness as a coupling problem rather than as a cross-module workflow problem. The G4 catalog signal from this session is therefore primarily on the structural-readiness side of the guideline.
+
+\subsection*{Contributions to the conclusions chapter}
+
+\begin{enumerate}[itemsep=4pt,topsep=2pt]
+  \item \emph{First public-sector voice in the verification series.} The participant brings a context the rest of the sample does not cover: a long-lived modular monolith in a state-owned information technology organization operating mission-critical systems. The findings remain qualitative but the contextual breadth is recorded.
+  \item \emph{Architectural classifier proposal as a new G2 extension candidate.} The participant proposes that the metric set should aggregate into a single architectural score that translates technical debt into a stakeholder-facing instrument (G1-gap).
+  \item \emph{Commit-time architectural inspection (vacina) as the operational form of G1 enforcement.} The participant describes an internal tool that operates the dissertation's G1 principles as a pipeline gate, converging with prior sessions on the need for automated enforcement and adding the commit-time gate as a concrete mechanism (E1).
+  \item \emph{Hybrid runtime coexistence as a legacy modernization pattern recorded for future research.} The participant describes a working pattern (Java 8 and Java 21 applications coexisting in the same application server) that enables gradual modernization without rewrites; the dissertation records the pattern as a candidate for the legacy modernization methodology direction (E2, G2-gap).
+  \item \emph{Reaffirms the G1+G4+G6 prioritization pattern.} The participant is the third voice in the series to pick G1, G4, and G6 as the most consequential guidelines, converging with Interview 10 and Interview 12 on the same triple from different contexts.
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The thirteenth session produced three consequential contributions to the verification series. The first is the architectural-classifier proposal: a single numeric score that translates the dissertation's per-module metric set into an instrument that a manager can present to a non-technical stakeholder. The proposal converges with the magic-numbers critique surfaced in prior sessions but from the opposite angle, asking for the numbers to be made authoritative rather than removed. The second is the commit-time architectural inspection pattern (the vacina tool) as the concrete mechanism through which G1 enforcement is operationalized at the pipeline level. The third is the hybrid runtime coexistence pattern (Java 8 plus Java 21 in the same application server) as a working answer to the legacy modernization question that the framework has not yet addressed.

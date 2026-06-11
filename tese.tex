@@ -50,7 +50,6 @@
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 \documentclass[msc, eng]{ita}    % ITA.cls based on standard book.cls
 % Quando alterar a classe, por exemplo de [msc] para [msc, eng]) rode mais uma vez o botão BUILD OUTPUT caso haja erro
-\usepackage{lmodern}
 \usepackage{ae}
 \usepackage{graphicx}
 \usepackage{epsfig}
@@ -85,13 +84,12 @@
 \usepackage{tabularx}
 \usepackage{adjustbox}
 \usepackage{enumitem}
-\usepackage{needspace}
 \usepackage{forest}
 \usepackage{caption}
 
 % --- Code listings (TypeScript) ---
 \usepackage{listings}
-% \usepackage{xcolor} % already loaded by ita.cls with [table] option
+\usepackage{xcolor}
 \usepackage{pifont}
 
 
@@ -164,11 +162,6 @@
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 \onehalfspacing
 
-% Allow slightly looser line breaking to prevent overfull hbox from long \texttt paths
-\tolerance=2000
-\emergencystretch=2em
-\hyphenpenalty=50
-
 %singlespacing Para um espaçamento simples
 %onehalfspacing Para um espaçamento de 1,5
 %doublespacing Para um espaçamento duplo
@@ -177,7 +170,7 @@
 % Identificacoes (se o trabalho for em inglês, insira os dados em inglês)
 % Para entradas abreviadas de Professora (Profa.) em português escreva: Prof$^\textnormal{a}$.
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-\course{Mission Critical Computing}  % Programa de PG ou Curso de Graduação
+\course{Computer Engineering}  % Programa de PG ou Curso de Graduação
 \area{Computing Methodology, Information Systems} % Área de concentração na PG (Não utilizado no caso de TG)
 
 % Autor do trabalho: Nome Sobrenome
@@ -217,7 +210,7 @@
 \kwcip{Microservices}
 
 % Data da defesa (mês em maiúsculo, se trabalho em inglês, e minúsculo se trabalho em português)
-\date{28}{MARCH}{2026}
+\date{29}{JUNE}{2026}
 
 % Número CDU - (somente para TG)
 %\cdu{???.??}
@@ -248,22 +241,48 @@
 \chapter{Research Proposal}
 \input{Cap4/cap4}
 
-\chapter{Next Steps}
+\chapter{Conclusion}
 \input{Cap5/cap5}
 
 % REFERENCIAS BIBLIOGRAFICAS
 \renewcommand\bibname{\itareferencesnamebabel} %renomear título do capítulo referências
 \printbibliography
 
-% ----- APPENDICES --------
+% ----- TODO ANEXOS E APENDICES --------
+% Apendices
 \appendix
-\chapter{Glossary of Technologies and Patterns}
-\input{ApeA/apendiceA}
+\chapter{Verification Methodology}
+\label{ape:methodology}
+\input{ApeA/appendix_validation_methodology}
+
+\chapter{Expert Interviews}
+\label{ape:interviews}
+\input{ApeA/expert_interviews_overview}
+\input{ApeA/expert_interview_01}
+\input{ApeA/expert_interview_02}
+\input{ApeA/expert_interview_03}
+\input{ApeA/expert_interview_04}
+\input{ApeA/expert_interview_05}
+\input{ApeA/expert_interview_06}
+\input{ApeA/expert_interview_07}
+\input{ApeA/expert_interview_08}
+\input{ApeA/expert_interview_09}
+\input{ApeA/expert_interview_10}
+\input{ApeA/expert_interview_11}
+\input{ApeA/expert_interview_12}
+\input{ApeA/expert_interview_13}
+\input{ApeA/expert_interview_14}
+\input{ApeA/expert_interview_15}
+
+\chapter{Complementary Quantitative Verification: Form-Only Respondents}
+\label{ape:questionnaire-only}
+\input{ApeA/expert_questionnaire_only_responses}
 
 % Anexos
-%\annex
-%\chapter{Exemplo de um Primeiro Anexo} %opcional
-%\input{AneA/anexoA}
+\annex
+\chapter{Google Apps Script for the Post-Interview Questionnaire}
+\label{ane:appsscript}
+\input{AneA/annex_apps_script}
 
 % Glossario
 %\itaglossary

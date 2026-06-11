@@ -1,0 +1,114 @@
+%% Appendix section: Expert Interview 14 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_14}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 14: Software Engineer}
+\label{sec:interview14}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=8pt,topsep=2pt]
+  \item \emph{Developer seniority is the precondition the framework presupposes.} The participant repeatedly identified seniority as the structural lever that decides whether the framework's principles hold in practice. A junior developer working alone under delivery pressure will violate the guidelines, with the consequence not visible until later phases of the project. This is the second voice in the verification series (after Interview 12) to articulate seniority as a precondition the framework does not address.
+
+  \item \emph{Framework discipline is the operational form of G1 and G2 enforcement in PHP stacks.} The participant proposed that the documented conventions of opinionated frameworks (CakePHP, Laminas) are the adoption lever for G1 and G2 in the PHP ecosystem, with the qualification that the conventions only hold when developers follow them. The Ruby on Rails comparison surfaced in prior sessions extends to PHP through this finding.
+
+  \item \emph{Cost-controlled observability adoption is the realistic shape of G6 in the public-sector context.} The participant reported that Dynatrace is adopted selectively based on application criticality and access load, not uniformly. This is the second voice in the verification series (after Interview 13) to frame G6 as cost-conditioned rather than as uniformly prescribed.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``A principal dor que eu vejo, pelo menos aqui, \'e a senioridade dos dos desenvolvedores. Muitas vezes voc\^e come\c{c}a um projeto sozinho e dependendo de quem come\c{c}a o projeto, ele n\~ao n\~ao consegue seguir. \ldots\ Se \'e um desenvolvedor no in\'icio de carreira, ele n\~ao consegue, ele n\~ao consegue seguir essas pr\'aticas aqui. Ele pode tentar, mas ele vai ferir.''} (Interviewee 14, 00:16:31 and 00:29:31)
+
+\emph{[English: ``The main pain I see, at least here, is the seniority of the developers. Often you start a project alone and depending on who starts the project, they cannot follow through. \ldots\ If it is a developer at the start of their career, they cannot do it, they cannot follow these practices. They can try, but they will breach them.'']}
+\end{quote}
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\paragraph*{E1. Modularization is the operational form of system longevity in the PHP stack.} The participant described modularization as the practice that prevents long-lived PHP systems from devolving into spaghetti code, with module ownership reducing the cost of locating defects and the cost of changing functionality without breaking unrelated paths. Dimension: D1. Literature gap: modularity definitions.
+
+\paragraph*{E2. Horizontal load balancing across twenty virtual machines plus a Redis cluster delivers progressive scalability without distribution.} The participant described an operational pattern in which the monolith deploys to twenty virtual machines behind a load balancer, with a Redis cluster (primary plus backup) centralizing the state that the monolith instances need to share. The pattern operationalizes G3 progressive scalability without extracting any module. Dimension: D2. Literature gap: progressive scalability and structured intermediate states.
+
+\paragraph*{E3. Dynatrace is the observability platform adopted selectively by criticality.} The participant reported that Dynatrace is deployed on applications where the criticality and the access load justify the recurring cost, with less critical systems falling back to lower-cost or built-in instrumentation. This is the operational form G6 takes when budget is the controlling variable. Dimension: D2. Literature gap: deployment automation depth.
+
+\paragraph*{B1. Developer seniority is the precondition the framework presupposes.} The participant identified seniority as the structural lever that decides whether the guideline discipline holds: a junior developer working alone under delivery pressure will violate the guidelines without realizing it, with the consequences manifesting only later in the project life cycle. Dimension: D3. Literature gap: practicality of adoption.
+
+\paragraph*{B2. Delivery pressure consistently defeats the boundary discipline G1 prescribes.} The participant reported that the rigorous implementation of practices such as database decoupling and independent API construction is regularly deferred under delivery pressure, with the result that boundaries that were defensible at design time leak by the time the system is in production. Dimension: D3. Literature gap: practicality of adoption.
+
+\paragraph*{B3. Framework conventions hold only when developers follow them.} The participant observed that even opinionated frameworks fail to prevent architectural drift when developers do not follow the documented conventions: an engineer can build a framework inside a framework, place view logic in a controller, or otherwise route around the convention without the framework noticing. Dimension: D4. Literature gap: enforcement gap in modularity tooling.
+
+\paragraph*{B4. Public-sector budget constraints control the observability adoption surface.} The participant reported that observability tooling adoption is gated by criticality and access load because the recurring cost cannot be absorbed uniformly across the application portfolio. Dimension: D2 and D3. Literature gap: deployment automation depth.
+
+\paragraph*{G1-gap. The framework should explicitly address how to operate with junior-heavy teams.} The participant proposed that the framework as written assumes a level of senior reinforcement on the code-review path that public-sector teams cannot always provide. The dissertation could either narrate this as a precondition in the introduction to Chapter~4 or absorb it into a future-work direction. Dimension: D3. Literature gap: practicality of adoption.
+
+\paragraph*{G2-gap. Packaging the guidelines as a framework is necessary but not sufficient.} The participant argued that packaging the guidelines as a framework would help adoption but would not solve the cultural problem: a development culture that does not value architectural discipline will route around any tooling. The dissertation should record this as a finding that qualifies the future-work direction on Rails-extension or AI-assistant packaging. Dimension: D4. Literature gap: practicality of adoption.
+
+\paragraph*{G3-gap. A worked example illustrating monolith-to-microservices transition value is missing.} The participant proposed that the dissertation would benefit from a concrete narrative example showing a small system growing from monolith to extracted services as the business value justifies the architectural cost. The Mercado Livre analogy the participant used in the conversation captures the framing the example would take. Dimension: D2. Literature gap: progressive scalability and structured intermediate states.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured post-interview questionnaire on 10 June 2026, allowing the quantitative ratings to be triangulated against the qualitative findings above as part of the methodological triangulation described in Appendix~\ref{ape:methodology}. Both optional reflection fields were returned as no-content entries; the triangulation discussion therefore rests on the numerical pattern.
+
+\subsubsection*{General framing}
+
+The four Section~1 Likert ratings were 5, 5, 4, and 5. The two five ratings on \emph{four dimensions reflect practice} and \emph{modular monolith as deliberate destination}, combined with the five rating on completeness, indicate a strong endorsement of the framework's structural choices. The middle-of-scale four on the G1--G6 ordering item is the only sub-maximum response on this block.
+
+\subsubsection*{Per-guideline ratings}
+
+\begin{longtable}{p{2.5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1 Enforce Boundaries & 4 & 5 & 5 & 4 & 4 \\
+G2 Embed Maintainability & 4 & 5 & 5 & 4 & 4 \\
+G3 Progressive Scalability & 4 & 5 & 5 & 4 & 4 \\
+G4 Migration Readiness & 4 & 5 & 5 & 4 & 4 \\
+G5 Deployment Strategy & 4 & 5 & 5 & 4 & 4 \\
+G6 Observability & 3 & 5 & 5 & 3 & 4 \\
+\bottomrule
+\end{longtable}
+
+\noindent
+The participant returned an unusually flat per-guideline rating pattern, with G1 through G5 receiving the identical row of four-five-five-four-four. G6 received the only sub-pattern row, with applicability and adoption likelihood both at three instead of four. The G6 pattern is the only differentiator in the per-guideline ratings and converges with the qualitative finding that G6 adoption is cost-conditioned in the public-sector context (B4).
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked five of the six named gaps as personally encountered in production (the Enforcement Gap, the Incremental Maintainability Degradation, the Progressive Scalability Gap, the Migration Readiness Gap, and the Observability Deficit). The Deployment-Architecture Mismatch was the only gap not marked, converging with the questionnaire's G5 spectrum rating of three (the lowest single spectrum rating). The participant marked ten anti-patterns across the six guidelines: three for G1, two for G2, one for G3, one for G4, one for G5, and two for G6.
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum received the maximum rating of five, the G5 deployment spectrum received three (the lowest single spectrum rating), and the composite binary gates received four. The $\varepsilon_m$ calibration question was returned with the option \emph{Too strict to be practically achievable}, converging directly with the qualitative critique of delivery pressure as the dominant practical obstacle (B2) and adding the participant to the group of voices that reinforces the soft-gates-to-hard-gates reformulation candidate.
+
+\subsubsection*{Forced prioritization}
+
+The G1--G6 rank ordering returned ties: G1=1, G2=2, G3=3, G5=3, G6=4, G4=4. The ordering should be read as a Likert-style intensity scale rather than as a strict rank, as noted in the threats-to-validity discussion of Chapter~5. The G1 top position converges with the qualitative pick of G1 plus G2 as the architectural-dimension priority. The G7--G12 rank ordering also returned ties: G7=2, G8=3, G11=3, G9=4, G10=4, G12=4. The G7 Team-Architecture Balance top position converges with the qualitative emphasis on developer seniority as the structural precondition the framework presupposes (B1, G1-gap).
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire converges with the qualitative narrative on four points and produces no divergence. G6 applicability and adoption ratings dip below the rest of the per-guideline table, mirroring the qualitative finding that G6 adoption is cost-conditioned (B4). The $\varepsilon_m$ calibration of \emph{Too strict to be practically achievable} converges with the qualitative critique of delivery pressure as the dominant practical obstacle (B2) and reinforces the soft-gates reformulation candidate. The G7 Team-Architecture Balance top position in the G7--G12 ranking converges with the qualitative articulation of developer seniority as a structural precondition (B1). The flat per-guideline rating pattern across G1 through G5 is consistent with a participant whose qualitative narrative endorsed the framework as a whole rather than ranking individual guidelines aggressively, reinforcing the qualitative pick of G1 plus G2 as the architectural priority without elevating the other guidelines into a strong differentiated pattern. Both optional reflection fields were returned as no-content entries, leaving the numerical pattern as the sole triangulation surface.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Second voice from the same public-sector employer as Interview 13.} The participant operates within the same state-owned information technology company as Interview 13 but in a distinct functional role (engineer rather than manager) and on a distinct technology stack (PHP rather than Java). The convergences with Interview 13 on the public-sector budget and procurement themes should be read as informed by the shared organizational context.
+
+\paragraph*{L3. PHP stack is the first such voice in the series.} The participant's most recent operational experience is in the CakePHP and Laminas ecosystem. The findings on framework convention discipline are valuable but should be read alongside sessions covering different ecosystems where the framework opinionation is calibrated differently.
+
+\paragraph*{L5. D4 covered through framework-discipline thread rather than structural prompt.} The session covered D1, D2, and D3 with depth and surfaced D4 organically through the framework-documentation thread. The D4 findings are therefore observational rather than prescriptive.
+
+\subsection*{Contributions to the conclusions chapter}
+
+\begin{enumerate}[itemsep=4pt,topsep=2pt]
+  \item \emph{Second voice in the series articulating developer seniority as a structural precondition.} The participant joins Interview 12 in framing junior-heavy team composition as the obstacle that defeats the framework's principles regardless of tooling (B1, G1-gap).
+  \item \emph{First PHP-stack voice in the verification series.} The participant extends the framework's applicability surface to CakePHP and Laminas environments with operational evidence on framework convention discipline (E1, B3).
+  \item \emph{Horizontal load balancing plus Redis as a working G3 operationalization without distribution.} The participant describes an operational pattern that delivers progressive scalability under monolith deployment, reinforcing the dissertation's framing that extraction is not the only response to scaling pressure (E2).
+  \item \emph{Cost-conditioned observability adoption surfaces a second voice on G6 budget constraints.} The participant joins Interview 13 in framing G6 as adopted selectively by criticality and access load, rather than uniformly across the application portfolio (E3, B4).
+  \item \emph{Framework packaging is necessary but not sufficient for adoption.} The participant qualifies the future-work direction on Rails-extension or AI-assistant packaging by observing that cultural discipline must accompany the tooling (G2-gap).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The fourteenth session produced two consequential contributions to the verification series. The first is the consolidation of developer seniority as a structural precondition that the framework presupposes but does not address, with the participant joining Interview 12 as the second voice in the series to articulate this concern. The second is the extension of the framework's applicability surface to the PHP ecosystem, with CakePHP and Laminas providing the practical reference and framework convention discipline providing the adoption mechanism.

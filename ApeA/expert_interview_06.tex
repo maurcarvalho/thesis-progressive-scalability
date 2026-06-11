@@ -1,0 +1,68 @@
+%% Appendix section: Expert Interview 06 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_06}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 6: Academic Researcher}
+\label{sec:interview06}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Component programming as a historical precedent.} The participant's 2016 PhD attempted similar component-decomposition ideas in High-Performance Computing, with challenges in reproducibility and orchestration. The historical precedent provides academic grounding and a cautionary reference for the modular monolith argument.
+  \item \emph{Scope discipline for the master's contribution.} The participant advised limiting the dissertation scope to ensure completion. Verification based on practitioner perception and literature review is sufficient at this stage. The defense should not attempt to demonstrate the full tooling layer.
+  \item \emph{AI agent for one guideline as concrete future work.} As a defense narrative, the participant suggested implementing an AI agent for one specific guideline (boundary enforcement, for example) as a concrete demonstration of technical capability and as a tangible future-work artifact, without committing to building the full system.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``Eu sugiro que você restrinja o escopo da dissertação para garantir a conclusão. A validação baseada na percepção de profissionais e na revisão da literatura é suficiente para esta etapa acadêmica.''} (Interviewee 6, 00:36:24)
+
+\medskip
+
+\emph{[English: ``I suggest you restrict the dissertation's scope to ensure completion. Validation based on practitioner perception and literature review is sufficient for this academic stage.'']}
+\end{quote}
+
+This statement captures the participant's central methodological recommendation: at the master's level, opinion-based verification against the literature is appropriate, and the executable demonstration is correctly framed as future work.
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\subsubsection*{Viability enablers}
+
+\paragraph*{E1. Academic precedent for the component-decomposition argument.} The participant's PhD work on component-based architectures for High-Performance Computing supports the broader claim that decomposing applications into independent units with explicit contracts is an established research direction. The dissertation's modular monolith argument has predecessors in component programming literature that can be cited for foundational grounding. Dimension: D1. Literature gap: Modularity.
+
+\subsubsection*{Viability barriers}
+
+\paragraph*{B1. Historical adoption failure of component programming.} The component programming attempts of 2008 to 2016 struggled with orchestration complexity and required ``optimal temperature and pressure'' environments to function. The dissertation should explicitly address what makes the modular monolith proposal more adoptable than those prior attempts. Dimension: cross-cutting (organizational and technical). Literature gap: Practicality of Adoption.
+
+\subsubsection*{Gaps or missing details}
+
+\paragraph*{G1-gap. Lack of executable demonstration.} The dissertation would be strengthened by an AI agent prototype for one guideline (boundary enforcement, for example) shown at the defense as a concrete future-work artifact. This is a defense-narrative recommendation rather than a paper-content recommendation. Dimension: meta. Literature gap: affects defense narrative.
+
+\paragraph*{G2-gap. Foundational references on component programming.} The dissertation could ground the modular monolith argument in established academic literature on component-based architectures (the cited Eron HPE work; the participant's own thesis lineage). Dimension: meta. Literature gap: Modularity.
+
+\paragraph*{G3-gap. Adoption-barriers reflection.} The dissertation should explicitly address the question of why the modular monolith proposal would succeed where prior decomposition proposals (component programming, service-oriented architecture, microservices for small companies) struggled. Dimension: meta. Literature gap: Practicality of Adoption.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L1. Different character from the prior five sessions.} The participant did not engage with the seven-question protocol directly, contributing instead methodological advisory feedback and a historical analogy. The session enriches the verification series but does not provide direct verification signals on the saturation axes.
+
+\paragraph*{L3. Possible selection bias.} The participant is a senior academic with prior research in adjacent areas, recommended through a peer network. Convergence may reflect academic perspective overlap.
+
+\paragraph*{L4. No production system as a reference.} The participant did not have a current production system to map findings against. Insights are drawn from prior academic research rather than from active practitioner experience.
+
+\subsection*{Contributions to the conclusions chapter}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Academic precedent for the decomposition argument.} Component programming for High-Performance Computing in the 2008 to 2016 period provides historical grounding for the modular monolith proposal and offers a cautionary reference for the adoption-barriers discussion (E1).
+  \item \emph{Scope discipline endorsement.} A senior academic confirmed that opinion-based verification against the literature review is appropriate at the master's level and that the executable tooling demonstration is correctly framed as future work, supporting the dissertation's scope choices (verbatim quote).
+  \item \emph{AI agent demonstration as defense narrative.} A concrete future-work item for the defense: implement an AI agent for one guideline (boundary enforcement) as a tangible demonstration of feasibility without committing to building the full tooling layer (G1-gap).
+  \item \emph{Adoption-barriers reflection.} Calls for explicit treatment of why the modular monolith proposal would succeed where prior decomposition proposals struggled (G3-gap).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The sixth session enriched the verification series with academic methodological feedback and a historical precedent (component-based programming for High-Performance Computing). The participant did not address the seven-question protocol directly; the contributions are advisory and framing-level rather than guideline verification per se. The participant's recommendation to demonstrate an AI agent for one guideline as defense narrative is recorded as a concrete contribution to the Future Research subsection of the paper and as a defense preparation item.

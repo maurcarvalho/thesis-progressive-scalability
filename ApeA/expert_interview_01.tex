@@ -1,0 +1,135 @@
+%% Appendix section: Expert Interview 01 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_01}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 1: Principal Software Engineer}
+\label{sec:interview01}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Boundary contracts are the only rigid edge that matters.} The interviewee returned to this thesis in four distinct contexts (boundaries, deployment, observability, refactoring).
+  \item \emph{Automated enforcement as the only defense against temporal degradation.} The interviewee articulated the substance of the Enforcement Gap before the researcher named it.
+  \item \emph{Sagas and resilient workflows as internal monolith techniques.} Operating Temporal in production daily, the interviewee described exactly the proactive saga pattern that G4 proposes.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``Arquiteturalmente o que só importa são as bordas. Se eu combinar com o time: aqui o input output ele tem que seguir este padrão, o que você faz dentro do módulo é menos interessante. É aí que está o ouro da proposta.''} (Interviewee 1, 01:06:19)
+
+\medskip
+
+\emph{[English: ``Architecturally what only matters is the borders. If I agree with the team that the input/output here must follow this pattern, what you do inside the module is less interesting. That is where the gold of the proposal lies.'']}
+\end{quote}
+
+This statement crystallizes a normative thesis that tensions a redactional choice in the dissertation about the level of internal prescription in code listings.
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\subsubsection*{Viability enablers}
+
+\paragraph*{E1. The central thesis instantiated in practice.} The interviewee described an active reverse migration (microservices to modular monolith) motivated by operational complexity and tracing overhead. Direct empirical evidence for the thesis that modular monoliths can be a deliberate destination, derived from active practice. Dimension: cross-cutting. Literature gap: cross-cutting (framework framing).
+
+\paragraph*{E2. The Enforcement Gap as a recognizable concept.} The interviewee articulated the substance of G1's named gap before the researcher introduced the term. This is the kind of confirmation the work sought: the concept formalizes an existing practitioner intuition rather than inventing one. Dimension: D1. Literature gap: Modularity.
+
+\paragraph*{E3. Shared utilities restricted to observability and logging.} The interviewee defended exactly what G1 anti-patterns describe, that \texttt{shared/utils} containing business logic is the typical mode of boundary erosion. Dimension: D1. Literature gap: Modularity, Maintainability.
+
+\paragraph*{E4. Sagas as a monolith-internal technique.} The practical description of Temporal in production, with workflows invoking modules under SAGA compensation, is the strongest empirical evidence the session produced for G4. The technique is described as practiced, not as theoretical. Dimension: D2. Literature gap: Migration Readiness.
+
+\paragraph*{E5. Physical persistence isolation per module.} The interviewee stated that every module of the modular monolith at his employer has its own physical persistence layer with no cross-domain database sharing, matching the Isolate level of G3 and the \emph{Data Ownership} metric. Dimension: D2. Literature gap: Scalability.
+
+\paragraph*{E6. Observability as a non-negotiable prerequisite.} The interviewee treated observability as prior to scaling decisions, matching the structural position chosen by G6. Dimension: D2. Literature gap: Complexity Management, Performance Implications.
+
+\paragraph*{E7. Fragmented deployment as a runtime characteristic.} The interviewee reframed the move toward multiple deployment artifacts as a runtime topology decision rather than an architectural rewrite: the code remains the same monolith, and only the infrastructure decides how to execute it. This framing extends G5 by positioning deployment fragmentation as a property of the deploy plane rather than of the code plane, and by admitting granular runtime decisions (for example, dedicated workers for a single module's background tasks) that produce partial isolation benefits without promoting the module to an independent artifact. The implication is that the D0 to D2 spectrum represents capabilities of the deployment pipeline rather than mutually exclusive states of the system: a team can run D0 in development and D2 in production, or operate D2 for a single module while the rest remains in D0, all from the same codebase. The reading reinforces the central thesis that a modular monolith can absorb scaling pressure through runtime decisions, without code extraction. Dimension: D2, with implications for D1. Literature gap: Deployment Strategy.
+
+\subsubsection*{Viability barriers}
+
+\paragraph*{B1. Language-dependent feasibility of G1 enforcement.} The interviewee highlighted that different languages offer different native enforcement (Go: compile-time cycle prevention; Ruby: Packwerk; TypeScript: configurable linters; Node.js: none by construction). The practical cost of operationalizing G1 varies substantially with technology choice. This is not addressed in G1 nor elsewhere in Chapter~\ref{sec:proposal}. Dimension: D1, with implications for D4. Literature gap: Modularity; candidate for a new dimension consideration.
+
+\paragraph*{B2. Cost of internal prescription.} When the dissertation specifies internal patterns (Repository, Active Record, Adapter) as if they were modularity requirements, it imposes a cost (familiarity, training, retrofit) without architectural payoff. Adoption suffers because teams reject the listings as prescriptive. Dimension: D1, with implications for D4. Literature gap: Modularity, Maintainability; presentation concern.
+
+\subsubsection*{Gaps or missing details}
+
+\paragraph*{G1-gap. Prescriptive depth of code listings.} The G3 \emph{decouple-port} listing and the G6 \emph{traced-handler} listing mix three levels: the architectural principle, typing and internal-structure decisions, and implementation patterns that are team taste. A reader who does not separate these levels reads the whole as prescription. The fix is mechanical (replace internal decisions with ellipses, preserve only lines that materialize the principle). Dimension: D1 and D2; presentation concern. Literature gap: Modularity, Maintainability.
+
+\paragraph*{G2-gap. Conceptual integrity vs.\ internal freedom is not declared.} The dissertation assumes in various sections of Chapter~\ref{sec:proposal} that internal conceptual integrity is a value to preserve. The interviewee argued it is secondary; imposing it turns taste into architectural prerequisite. The dissertation should declare explicitly which properties are prescription (boundary contracts) and which are recommendation (consistent internal pattern). Dimension: D1. Literature gap: Modularity, Maintainability.
+
+\paragraph*{G3-gap. Progressive Complexity reading of G3 is absent.} The interviewee proposed reading \emph{Progressive Scalability} as \emph{Progressive Complexity}, shifting the trigger from load pressure to maintenance pain. Not a contradiction; a reframing that the G3 Intent could acknowledge in one sentence rather than via renaming. Dimension: D2. Literature gap: Scalability.
+
+\paragraph*{G4-gap. Language-dependency footnote is absent in G1.} Connected to B1: even if G1 remains language-independent at the principle level, the practical variation across Go/Ruby/TypeScript/Node deserves at least one sentence in the discussion or limitations. Dimension: D1. Literature gap: Modularity.
+
+\paragraph*{G5-gap. Verification pending on G2 individual metrics, $\varepsilon_m$ calibration, startup applicability, forced prioritization, and the G7--G12 agenda.} These were not probed in this session and remain open. The revised interview script for subsequent sessions directly addresses each. Dimension: across all four. Literature gap: Team Fit, Practicality of Adoption, Target Context.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured questionnaire (Appendix~\ref{ape:methodology}) on the same day of the session. The ratings below complement the qualitative findings above and are presented as part of the methodological triangulation. The questionnaire was completed in full for the required sections; both optional paragraph reflections were left blank.
+
+\subsubsection*{General framing}
+
+The four ratings of Section 1 (analytical dimensions, deliberate destination thesis, G1 to G6 ordering, completeness of the set) were 5, 5, 5, and 4 on a five-point Likert scale. The first three converge with the qualitative narrative that affirms the framework at large. The completeness rating of 4 is consistent with the gap discussed under G2-gap above, namely the absence of an explicit declaration of conceptual integrity versus internal freedom.
+
+\subsubsection*{Per-guideline ratings}
+
+For each guideline the participant rated five dimensions on the same five-point scale (1 = Very low, 5 = Very high).
+
+\begin{longtable}{p{5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1: Enforce Modular Boundaries  & 5 & 5 & 5 & 4 & 4 \\
+G2: Embed Maintainability       & 5 & 5 & 5 & 4 & 4 \\
+G3: Design for Progressive Scalability & 5 & 5 & 5 & 5 & 5 \\
+G4: Promote Migration Readiness & 4 & 4 & 4 & 4 & 4 \\
+G5: Streamline Deployment Strategy & 4 & 4 & 4 & 4 & 4 \\
+G6: Introduce Observability Patterns & 5 & 5 & 5 & 5 & 5 \\
+\bottomrule
+\end{longtable}
+
+G3 and G6 received perfect ratings across all dimensions. G1 and G2 received perfect ratings on three dimensions and the second-highest score on adoption and completeness. G4 and G5 received a uniform 4 across all dimensions. No guideline received a rating below 4. The Section 1 completeness rating of 4 is the lowest score the participant gave in any aggregated section, marking it as the strongest signal in the questionnaire for further investigation.
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked all six named failure-mode concepts (the Enforcement Gap, the Incremental Maintainability Degradation, the Progressive Scalability Gap, the Migration Readiness Gap, the Deployment-Architecture Mismatch, and the Observability Deficit) as personally encountered in production systems. The completeness of the named-gap set was rated 5 out of 5. Across the six anti-pattern blocks, the participant selected every listed anti-pattern (eighteen of eighteen), indicating that no anti-pattern in the catalog was unfamiliar.
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum, the G5 deployment spectrum, and the composite binary gates mechanism were all rated 4 out of 5. The G3 Extraction Readiness gate $\varepsilon_m = 1$ was rated as ``About right'' in calibration, the central option of a four-point calibration scale. These ratings confirm the structural design choices without reservation.
+
+\subsubsection*{Forced prioritization}
+
+The participant did not use positions 1, 2, or 3 in either ranking grid. For the operational guidelines G1 to G6, he assigned priority 4 to G4, priority 5 to G2, G3, and G5, and priority 6 to G1 and G6. For the research agenda G7 to G12, he assigned priority 5 to G8 (SRE and DevOps Maturity) and G10 (Actionable Design Patterns), and priority 6 to G7, G9, G11, and G12. The result reads as a flat grouping rather than a strict ordering: among the operational set, G4 marginally above the others; among the research agenda, G8 and G10 marginally above the others.
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire and the interview transcript agree on the strong points. G3 progressive scalability, G4 saga-based migration readiness in practice, G5 deployment as a runtime decision, and G6 observability as a systemic prerequisite all received the highest ratings in Section 2 of the form and were independently affirmed in the conversation. The Enforcement Gap (E2) and all anti-patterns (E3 and related) were recognized in the form, reinforcing the qualitative finding that the named concepts capture practitioner intuition.
+
+One divergence merits attention. In the interview, the participant described observability as a non-negotiable prerequisite for scaling and extraction decisions (E6), and gave G6 perfect 5 across all five rating dimensions in Section 2 of the form. Yet in the forced prioritization, he ranked G6 at the lowest position together with G1, which conflicts with the prominence given to observability during the qualitative discussion. The most plausible reconciliation is that the participant interpreted ``introducing first'' as a sequencing question, in which case observability is a follow-on rather than a first move because there must be something to observe. The interview, on the other hand, treated observability as a precondition for evidence-based decisions, not as the first guideline to introduce.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Possible selection bias.} The interviewee operates in a technological environment highly aligned with the proposed mechanisms. The convergence is not coincidence: informant recommendation was guided by expected relevance. This is defensible methodologically but means convergence may be over-represented as evidence for the feasibility of the proposed mechanisms.
+
+\paragraph*{L3. Possibly leading questions.} In some passages the researcher introduced concepts before the interviewee articulated them, notably the term \emph{Enforcement Gap}. Some articulations were spontaneous (E2); others were possibly facilitated by prior exposure to the pre-read material. The revised script for subsequent sessions defers technical nomenclature until after open responses.
+
+\paragraph*{L4. Script drift and dimension imbalance.} The original interview script (30+ questions) was too long for the time budget and produced predominant coverage of D1 and D2 at the expense of D3 and D4. This report declares the coverage imbalance explicitly (see also Figure~\ref{fig:interviews-dimensions}). The script has since been revised to seven questions with explicit dimension annotation and a dedicated bridge to D3/D4.
+
+\subsection*{Contributions to the conclusions chapter}
+
+The findings below offer statements that can be incorporated directly into Chapter~\ref{sec:conclusion} to summarize what this verification session contributes to the dissertation.
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Empirical confirmation of the central thesis.} The first verification session produced direct empirical evidence for the thesis that modular monoliths are a deliberate architectural destination rather than a transitional step. The interviewee is currently leading the reverse migration of a 30-service distributed architecture toward a modular monolith, citing operational complexity and tracing overhead as motivators (E1 in this report).
+  \item \emph{Spontaneous articulation of the Enforcement Gap.} Without prior prompting, the interviewee articulated the named gap that G1 introduces, supporting the claim that the term formalizes an existing practitioner intuition rather than inventing one (E2).
+  \item \emph{Production-grade evidence for G4.} The interviewee operates Temporal-orchestrated sagas in production, using compensation across modules of a colocated monolith, providing the strongest empirical anchor produced by this session (E4).
+  \item \emph{Refinement opportunities identified.} The session surfaced specific content adjustments (refactor the G3 \emph{decouple-port} and G6 \emph{traced-handler} listings to remove internal prescription; complement G5's ``configuration change'' wording with ``runtime characteristic''; acknowledge G3's \emph{Progressive Complexity} reading) that will inform the next iteration of Chapter~\ref{sec:proposal}.
+  \item \emph{Verification gaps directing subsequent sessions.} The session left individual G2 metrics, $\varepsilon_m$ calibration, startup applicability, forced prioritization, and the G7--G12 research agenda uncovered. The revised interview script for subsequent sessions addresses each explicitly, with a dedicated question for the deferred dimensions.
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The first session produced initial evidence in favor of the central thesis and the six operational guidelines. The main reservation is that some of the code listings read as more prescriptive than intended, which justifies a refinement of those listings in a subsequent iteration. The five saturation axes tracked across the series were declared from this session's post-interview notes; their cross-series status is consolidated in Figure~\ref{fig:interviews-axes}.

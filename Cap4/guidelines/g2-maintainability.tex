@@ -5,7 +5,7 @@
 G2 embeds maintainability as an architectural property by treating the cost of change as a design constraint. While G1 enforces explicit modular boundaries, G2 ensures those boundaries remain effective over time through stable contracts and continuous detection of architectural drift~\cite{gravanis2021dont,blinowski2022monolithic}.
 
 \subsection*{Intent and Rationale}
-The primary driver of maintainability degradation is not system size but the accumulation of hidden coupling, ambiguous dependency direction, and architectural drift~\cite{gravanis2021dont,blinowski2022monolithic}. G2 constrains how modules interact and how dependencies are introduced, prioritizing change locality and controlled dependency growth over short-term reuse so that the effort to evolve the system scales sublinearly with its size~\cite{arya2024beyond,berry2024isItWorth}.
+The primary driver of maintainability degradation is not system size but the accumulation of hidden coupling, ambiguous dependency direction, and architectural drift~\cite{gravanis2021dont,blinowski2022monolithic,khononov2024balancing}. G2 constrains how modules interact and how dependencies are introduced, prioritizing change locality and controlled dependency growth over short-term reuse so that the effort to evolve the system scales sublinearly with its size~\cite{arya2024beyond,berry2024isItWorth}.
 
 \subsection*{Objectives}
 
@@ -28,7 +28,7 @@ The primary driver of maintainability degradation is not system size but the acc
   \item \emph{Reuse through contract, not exposure:} G1 enforces that internals are hidden; G2 adds that cross-module reuse of even public code is a maintainability risk unless mediated through a stable, versioned contract~\cite{parnas1972informationhiding}.
   \item \emph{Dependencies flow toward stability:} Dependencies point from volatile modules toward stable ones; a rarely changing module must not depend on a frequently changing one~\cite{martin2012clean}.
   \item \emph{Change locality within bounded contexts:} Each bounded context owns its model and language; cross-context interaction occurs through explicit contracts, not shared internals~\cite{evans2003ddd}. Most changes should be implementable within a single module.
-  \item \emph{Coupling is a spectrum, not a binary:} Data coupling through published events is preferable to content coupling through shared internals~\cite{yourdon1979structured}. G2 metrics quantify where each module sits on this spectrum, making drift visible before it becomes irreversible.
+  \item \emph{Coupling is a spectrum, not a binary:} Data coupling through published events is preferable to content coupling through shared internals~\cite{yourdon1979structured,khononov2024balancing}. G2 metrics quantify where each module sits on this spectrum, making drift visible before it becomes irreversible.
 \end{itemize}
 
 \subsection*{Implementation Mechanisms}
@@ -40,7 +40,7 @@ The primary driver of maintainability degradation is not system size but the acc
 
 \subsection*{Common Failure Modes and Anti-Patterns}
 
-G1 anti-patterns (convenience imports, implicit wiring, circular dependencies) remain relevant at the G2 level. However, G2 introduces a subtler class of failure: patterns that respect every boundary rule yet gradually erode the system's ability to change. These degradations are invisible to point-in-time checks because they accumulate across commits, not within a single snapshot. The three patterns below pass all G1 gates but erode maintainability over time:
+G1 anti-patterns (convenience imports, implicit wiring, circular dependencies) remain relevant at the G2 level. However, G2 introduces a subtler class of failure: patterns that respect every boundary rule yet gradually erode the system's ability to change. These degradations are invisible to point-in-time checks because they accumulate across commits, not within a single snapshot. The catalog below builds on the broader literature on architectural smells and anti-patterns in monolith-to-microservice and distributed systems~\cite{cerny2023tertiary, taibi2018smells}, narrowed here to the patterns that survive a passing G1 audit. The three patterns below pass all G1 gates but erode maintainability over time:
 
 \begin{itemize}[itemsep=8pt,topsep=2pt]
   \item \emph{Overloaded Module Exports (Contract Stability drops, Boundary Ratio drops):}\\
@@ -59,13 +59,13 @@ eventBus.subscribe('OrderPaid', async ({ payload }) => {
 \end{lstlisting}
 
   \item \emph{Feature-Centric Coupling Across Modules (Change Coupling Index rises):}\\
-  Adding a cross-cutting feature (e.g., ``gift packaging'') requires simultaneous changes to ordering (option flag), billing (fee calculation), and fulfillment (packaging instructions). The feature, not the module, becomes the unit of change, diluting ownership and increasing coordination cost~\cite{FordParsons2017}.\\
+  Adding a cross-cutting feature (e.g., ``gift packaging'') requires simultaneous changes to ordering (option flag), billing (fee calculation), and fulfillment (packaging instructions). The feature, not the module, becomes the unit of change, diluting ownership and increasing coordination cost~\cite{FordParsons2017,khononov2024balancing}.\\
   \emph{Approach:} assign feature ownership to one module; other modules react to domain events and interpret them through their own logic.\\
   
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Fix: one module owns the decision; others react},label={lst:g2-ap-feature-fix}]
 // Orders owns the gift-wrap decision
 orderCreated.emit({ ...order, giftWrap: true });
-// Billing reacts independently — no shared types
+// Billing reacts independently. No shared types
 onOrderCreated(e) { if (e.giftWrap) this.addFee(e.orderId, 'GIFT_WRAP', 4.99); }
 \end{lstlisting}
 \end{itemize}
@@ -79,7 +79,7 @@ The pattern is simple. A developer adds an export to solve today's integration n
 
 Lehman's laws of software evolution observe that actively used programs inevitably grow in complexity unless work is specifically directed at reducing it~\cite{lehman1980programs}. The Incremental Maintainability Degradation is this law manifesting not in the code within modules, but in the contractual surface between them.
 
-G1 cannot detect this because it validates structure, not trajectory. A module with 10 valid exports and one with 50 are equally correct to G1. G2 closes this gap by treating trends as first-class signals, tracking whether the architecture is moving toward or away from sustainability before increasing maintainability costs compromise the ability to achieve progressive scalability.
+G1 cannot detect this because it checks structure, not trajectory. A module with 10 valid exports and one with 50 are equally correct to G1. G2 closes this gap by treating trends as first-class signals, tracking whether the architecture is moving toward or away from sustainability before increasing maintainability costs compromise the ability to achieve progressive scalability.
 
 \subsection*{Metrics and Verification}
 
@@ -96,20 +96,23 @@ G2 inherits all G1 boundary gates and tracks them \emph{over time}. Where G1 met
 API Boundary Ratio & Public API refs / total cross-module refs & $\geq 0.95$ & \cite{parnas1972informationhiding} \\
 Change Coupling Index & Commits touching 2+ modules / total commits & $\leq 0.2$ & \cite{FordParsons2017} \\
 Dependency Attraction & Max inbound deps / total modules & $\leq 0.5$ & \cite{yourdon1979structured} \\
+Integration Strength Index (ISI) & Contract-level integrations / total cross-module integrations & $\geq 0.8$ & \cite{khononov2024balancing} \\
 \midrule
 \emph{Surface stability} & & & \\
 Complexity Concentration & Largest module surface / average surface & $\leq 3.0$ & \cite{martin2012clean} \\
-Contract Stability & Exports retained across releases & $\geq 0.9$ & \cite{FordParsons2017} \\
+Contract Stability & Exports retained across releases & $\geq 0.9$ & \cite{FordParsons2017,khononov2024balancing} \\
 \midrule
 \emph{Composite} & & & \\
-Maintainability Gate ($g_m$) & All five targets met for module $m$ & $1$ & This work \\
+Maintainability Gate ($g_m$) & All six targets met for module $m$ & $1$ & This work \\
 \bottomrule
 \end{tabularx}
 \normalsize
 
 \medskip
 \noindent
-The composite $g_m = 1$ when all five metrics meet their targets for module $m$, $0$ otherwise. It feeds into G3's extraction readiness gate ($\varepsilon_m$), ensuring that only modules with sustained maintainability discipline are considered candidates for independent deployment.
+The composite $g_m = 1$ when all six metrics meet their targets for module $m$, $0$ otherwise. It feeds into G3's extraction readiness gate ($\varepsilon_m$), ensuring that only modules with sustained maintainability discipline are considered candidates for independent deployment.
+
+\paragraph*{Integration Strength Index (ISI).} The ISI metric quantifies the structural quality of cross-module integration points by mapping each one to the Integration Strength taxonomy proposed by Khononov~\cite{khononov2024balancing}. The taxonomy ranks four integration levels from weakest to strongest coupling. \emph{Contract} integration occurs through explicit, versioned contracts; for example, a Kafka event schema published by the orders module and consumed by inventory, where the schema version isolates the consumer from internal changes. \emph{Model} integration occurs when modules share a domain model representation; for example, a shared \texttt{OrderDTO} imported by both orders and payments, which forces a coordinated release whenever the model evolves. \emph{Functional} integration occurs when one module invokes another's business operations through a function or service interface; for example, orders calling \texttt{payments.charge()} through a public service, which couples the caller to the callee's behavioral contract. \emph{Intrusive} integration occurs when one module reaches into another's implementation details; for example, inventory reading a private field of orders, importing a file under an \texttt{internal/} directory, or mutating shared mutable state, all of which break encapsulation and bind the consumer to internals that may change without notice. Lower integration strength is better for modularity because it preserves independent evolution. The ISI is computed as the ratio of contract-level integration points to the total number of cross-module integration points in the system. A target of $\geq 0.8$ requires that most cross-module interactions are mediated by explicit contracts, leaving room for a controlled minority of model-level integrations where shared vocabulary is unavoidable. The metric is verifiable through static analysis: each cross-module reference is classified by what it imports (interface or contract type → contract; DTO or entity → model; concrete service class → functional; private member or implementation file → intrusive). The ISI complements the existing coupling indicators by capturing what the dependency \emph{is}, not just how many dependencies exist.
 
 \subsection*{Core Contribution}
 
@@ -187,14 +190,14 @@ In the baseline, only infrastructure commits touch multiple modules; no feature 
 Each exercise introduces a change that passes all G1 boundary tests but degrades a specific G2 metric. Exercises use Payments and Shipments exclusively, with no overlap with G1's Orders--Inventory examples.
 
 \subsubsection*{Exercise 1: Convenience Shortcut That Passes G1 (API Boundary Ratio $\downarrow$)}
-A developer re-exports an internal type for cross-module convenience, creating a hidden dependency edge. In \texttt{libs/modules/payments/src/index.ts}, add:
+A developer re-exports an internal type for cross-module convenience, creating a hidden dependency edge. In the payments module public entrypoint, add:
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Step 1: Payments exports an internal enum},label={lst:g2-ex1-step1}]
 // "Temporary" export added for cross-module convenience
 export * from './domain/enums/payment-status.enum';
 \end{lstlisting}
 
 \noindent
-Then consume it in \texttt{libs/modules/shipments/src/features/create-shipment/service.ts}:
+Then consume it in the shipments create-shipment service:
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Step 2: Shipments depends on Payments' internal type},label={lst:g2-ex1-step2}]
 import { PaymentStatus } from '@tiny-store/modules-payments';
 
@@ -226,7 +229,7 @@ G1 passes, but the handler now orchestrates three modules in sequence. A change 
 \emph{Resolution:} Enrich the \texttt{OrderPaid} event payload with all data Shipments needs. If orchestration is necessary, extract it into a dedicated saga.
 
 \subsubsection*{Exercise 3: Public Surface Bloat (Contract Stability $\downarrow$)}
-Five valid exports are added in a single sprint, inflating the public surface without violating any boundary rule. In \texttt{libs/modules/payments/src/index.ts}, add:
+Five valid exports are added in a single sprint, inflating the public surface without violating any boundary rule. In the payments module public entrypoint, add:
 
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize,language=TypeScript,caption={Surface bloat: valid but excessive exports},label={lst:g2-ex3-violation}]
 // --- NEW: 5 additional query handlers in one sprint ---
@@ -251,6 +254,6 @@ All three exercises pass G1 boundary gates:
 
 \subsection*{Conclusion}
 
-G1 ensures boundaries are \emph{correct} at any point in time; G2 ensures they remain \emph{sustainable in cost of change} over time. The exercises confirmed that each failure mode produces a measurable signal while passing all G1 gates, validating the complementarity of the two guidelines.
+G1 ensures boundaries are \emph{correct} at any point in time; G2 ensures they remain \emph{sustainable in cost of change} over time. The exercises confirmed that each failure mode produces a measurable signal while passing all G1 gates, verifying the complementarity of the two guidelines.
 
 With boundaries enforced (G1) and maintainability preserved (G2), the architecture retains the option to evolve incrementally. G3 addresses the next concern: which scaling steps are proportional to which bottlenecks, and in what order.

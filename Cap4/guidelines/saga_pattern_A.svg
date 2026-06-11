@@ -1,0 +1,111 @@
+<svg viewBox="0 0 1100 940" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="cmd" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#3a4654"/>
+    </marker>
+    <marker id="cmdStart" markerWidth="10" markerHeight="10" refX="1" refY="3.5" orient="auto">
+      <path d="M8,0 L0,3.5 L8,7 Z" fill="#8a96a3"/>
+    </marker>
+  </defs>
+
+  <!-- Frame -->
+  <rect x="20" y="20" width="1060" height="900" rx="14" fill="#ffffff" stroke="#d4dae0" stroke-width="1.5"/>
+
+  <!-- Header pill -->
+  <rect x="40" y="36" width="380" height="44" rx="22" fill="#54677a"/>
+  <text x="230" y="65" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">A. Orchestration based saga</text>
+
+  <!-- Legend (top-right area, above Inventory box) -->
+  <text x="560" y="115" font-size="16" fill="#5b6770">command sent by coordinator</text>
+  <text x="540" y="115" font-size="20" font-weight="700" fill="#3a4654">&#8594;</text>
+  <text x="560" y="138" font-size="16" font-style="italic" fill="#8a96a3">reply returned to coordinator</text>
+  <text x="540" y="138" font-size="20" font-weight="700" fill="#8a96a3">&#8592;</text>
+
+  <!-- Left diagram zone: API + Orchestrator + Order aggregate (x: 60 to 580) -->
+  <!-- API -->
+  <rect x="60" y="310" width="180" height="100" rx="10" fill="#eef1f4" stroke="#54677a" stroke-width="1.8"/>
+  <text x="150" y="354" font-size="22" font-weight="700" fill="#1f2933" text-anchor="middle">API</text>
+  <text x="150" y="383" font-size="17" fill="#5b6770" text-anchor="middle">place order request</text>
+
+  <!-- Orchestrator -->
+  <rect x="290" y="290" width="290" height="140" rx="12" fill="#e9edf1" stroke="#54677a" stroke-width="2"/>
+  <text x="435" y="332" font-size="22" font-weight="700" fill="#2c3845" text-anchor="middle">Order Saga</text>
+  <text x="435" y="362" font-size="22" font-weight="700" fill="#2c3845" text-anchor="middle">Orchestrator</text>
+  <text x="435" y="394" font-size="17" fill="#5b6770" text-anchor="middle">issues commands, awaits replies</text>
+
+  <!-- Order aggregate -->
+  <rect x="335" y="490" width="200" height="100" rx="10" fill="#e8f1fb" stroke="#2f6db0" stroke-width="1.8"/>
+  <text x="435" y="534" font-size="22" font-weight="700" fill="#1f2933" text-anchor="middle">Order aggregate</text>
+  <text x="435" y="565" font-size="17" fill="#5b6770" text-anchor="middle">state persisted</text>
+
+  <!-- Right diagram zone: 3 service boxes (x: 850 to 1060, right margin 20px) -->
+  <!-- Inventory -->
+  <rect x="850" y="190" width="210" height="100" rx="10" fill="#faf1dd" stroke="#c08a2d" stroke-width="1.8"/>
+  <text x="955" y="232" font-size="22" font-weight="700" fill="#1f2933" text-anchor="middle">Inventory</text>
+  <text x="955" y="262" font-size="17" fill="#5b6770" text-anchor="middle">reserve stock</text>
+
+  <!-- Payments -->
+  <rect x="850" y="340" width="210" height="100" rx="10" fill="#e6f3ec" stroke="#3f8f5f" stroke-width="1.8"/>
+  <text x="955" y="382" font-size="22" font-weight="700" fill="#1f2933" text-anchor="middle">Payments</text>
+  <text x="955" y="412" font-size="17" fill="#5b6770" text-anchor="middle">process payment</text>
+
+  <!-- Shipments -->
+  <rect x="850" y="490" width="210" height="100" rx="10" fill="#efe9f6" stroke="#7a5ba6" stroke-width="1.8"/>
+  <text x="955" y="532" font-size="22" font-weight="700" fill="#1f2933" text-anchor="middle">Shipments</text>
+  <text x="955" y="562" font-size="17" fill="#5b6770" text-anchor="middle">create shipment</text>
+
+  <!-- Arrow 1: API to Orchestrator -->
+  <line x1="240" y1="360" x2="286" y2="360" stroke="#3a4654" stroke-width="2" marker-end="url(#cmd)"/>
+  <circle cx="263" cy="338" r="14" fill="#54677a"/>
+  <text x="263" y="344" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+
+  <!-- Comb lead-in from Orchestrator to comb-vertex at x=720 -->
+  <line x1="580" y1="360" x2="720" y2="360" stroke="#3a4654" stroke-width="2"/>
+  <!-- Comb vertical: x=720, y=240 to y=540 -->
+  <line x1="720" y1="240" x2="720" y2="540" stroke="#3a4654" stroke-width="2"/>
+
+  <!-- Branch 2: to Inventory -->
+  <line x1="720" y1="240" x2="846" y2="240" stroke="#3a4654" stroke-width="2" marker-end="url(#cmd)" marker-start="url(#cmdStart)"/>
+  <circle cx="700" cy="222" r="14" fill="#54677a"/>
+  <text x="700" y="228" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+  <text x="783" y="226" font-size="16" fill="#3a4654" text-anchor="middle">reserve</text>
+  <text x="783" y="265" font-size="16" font-style="italic" fill="#8a96a3" text-anchor="middle">reserved</text>
+
+  <!-- Branch 3: to Payments -->
+  <line x1="720" y1="390" x2="846" y2="390" stroke="#3a4654" stroke-width="2" marker-end="url(#cmd)" marker-start="url(#cmdStart)"/>
+  <circle cx="700" cy="372" r="14" fill="#54677a"/>
+  <text x="700" y="378" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+  <text x="783" y="376" font-size="16" fill="#3a4654" text-anchor="middle">charge</text>
+  <text x="783" y="415" font-size="16" font-style="italic" fill="#8a96a3" text-anchor="middle">paid</text>
+
+  <!-- Branch 4: to Shipments -->
+  <line x1="720" y1="540" x2="846" y2="540" stroke="#3a4654" stroke-width="2" marker-end="url(#cmd)" marker-start="url(#cmdStart)"/>
+  <circle cx="700" cy="522" r="14" fill="#54677a"/>
+  <text x="700" y="528" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+  <text x="783" y="526" font-size="16" fill="#3a4654" text-anchor="middle">ship</text>
+  <text x="783" y="565" font-size="16" font-style="italic" fill="#8a96a3" text-anchor="middle">shipped</text>
+
+  <!-- Arrow 5: Orchestrator to Order aggregate -->
+  <line x1="435" y1="430" x2="435" y2="488" stroke="#3a4654" stroke-width="2" marker-end="url(#cmd)"/>
+  <circle cx="412" cy="459" r="14" fill="#54677a"/>
+  <text x="412" y="465" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">5</text>
+  <text x="442" y="465" font-size="16" fill="#3a4654" text-anchor="start">mark SHIPPED</text>
+
+  <!-- Divider -->
+  <line x1="40" y1="630" x2="1060" y2="630" stroke="#e2e7ec" stroke-width="1"/>
+
+  <!-- Advantages -->
+  <text x="40" y="668" font-size="22" font-weight="700" fill="#3f8f5f">Advantages</text>
+  <text x="40" y="699" font-size="20" fill="#37424d">&#8226; &#160;Central coordinator makes the whole flow explicit and easy to trace</text>
+  <text x="40" y="729" font-size="20" fill="#37424d">&#8226; &#160;Compensation and rollback logic live in one place</text>
+  <text x="40" y="759" font-size="20" fill="#37424d">&#8226; &#160;Straightforward to monitor, debug, and version the workflow</text>
+
+  <!-- Limitations -->
+  <text x="40" y="795" font-size="22" font-weight="700" fill="#b04a4a">Limitations</text>
+  <text x="40" y="822" font-size="20" fill="#37424d">&#8226; &#160;Coordinator concentrates business logic and can become a bottleneck</text>
+  <text x="40" y="848" font-size="20" fill="#37424d">&#8226; &#160;Every participant couples to the orchestrator&#39;s contract</text>
+  <text x="40" y="874" font-size="20" fill="#37424d">&#8226; &#160;Needs deliberate resilience or it is a single point of failure</text>
+
+  <!-- Footnote -->
+  <text x="40" y="908" font-size="16" font-style="italic" fill="#8a96a3">Panel A reflects the Tiny Store order saga implemented with Temporal at libs/modules/orders/src/workflows/.</text>
+</svg>

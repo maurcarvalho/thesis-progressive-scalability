@@ -36,7 +36,7 @@ G5 treats deployment as a spectrum that mirrors G3's scalability spectrum. The m
 
   \item \emph{Infrastructure is a deployment dependency, not an afterthought:} G4 introduced durable event streaming and saga orchestration. G5 ensures these are provisioned as part of the deployment configuration from day one. When a module is extracted, the infrastructure remains; only the application topology changes~\cite{ghemawat2023towards}.
 
-  \item \emph{One Dockerfile per deployment target:} Each deployable target packages only its code and transitive dependencies. In the monolith phase, there is one target. When a module is extracted, a second target appears. Modules that are not deployment targets are included as dependencies of whichever target consumes them~\cite{richardson2018microservices}.
+  \item \emph{One Dockerfile per deployment target:} Each deployable target packages only its code and transitive dependencies. In the monolith phase, there is one target. When a module is extracted, a second target appears. Modules that are not deployment targets are included as dependencies of whichever target consumes them~\cite{richardson2018microservices,newman2019monolith}.
 \end{itemize}
 
 \subsection*{Implementation Mechanisms}
@@ -92,7 +92,7 @@ G1--G4 anti-patterns remain relevant at the G5 level. The five patterns below pa
   \emph{Approach:} use per-target Dockerfiles that copy only the required modules and transitive dependencies.
 
   \item \emph{Coordinated Deployments After Extraction (Independent Deployment Rate drops):}
-  Requiring all deployment targets to be released simultaneously, negating the independent deployment benefit that motivated extraction~\cite{richardson2018microservices}.
+  Requiring all deployment targets to be released simultaneously, negating the independent deployment benefit that motivated extraction~\cite{richardson2018microservices,newman2019monolith}.
   \emph{Approach:} each target has its own release pipeline triggered by its affected scope.
 \end{itemize}
 
@@ -151,7 +151,7 @@ The monorepo approach is well-documented in industry practice, but its applicati
 %% ============================================================
 %% G5 APPLIED
 %% ============================================================
-\section{G5 Applied: Deployment Strategy in the Tiny Store}
+\section*{G5 Applied: Deployment Strategy in the Tiny Store}
 \label{sec:g5-applied}
 
 G5 is demonstrated through the Tiny Store deployment configuration~\cite{tinystore2026}, progressing from a single artifact to multi-artifact extraction. The tutorial walks through three deployment stages: infrastructure provisioning, module-aware CI, and multi-artifact production. Each step is reproducible on any monorepo with workspace-aware build tooling.
@@ -206,7 +206,7 @@ RUN npx nx build orders-service --prod
 \end{lstlisting}
 
 \noindent
-The monolith's Docker Compose is extended with a second service entry. Both connect to the same infrastructure. The monolith routes order requests to the extracted service via an environment variable (\texttt{ORDERS\_SERVICE\_URL}). No domain logic changes.\footnote{Full Dockerfiles and compose configuration: \texttt{apps/*/Dockerfile}, \texttt{docker-compose.yml}}
+The monolith's Docker Compose is extended with a second service entry. Both connect to the same infrastructure. The monolith routes order requests to the extracted service via an environment variable (\texttt{ORDERS\_SERVICE\_URL}). No domain logic changes.
 
 \subsection*{Exercise Walkthrough: Controlled Violations and Signals}
 
@@ -237,4 +237,4 @@ Each exercise assumes a clean baseline. After each exercise, revert the violatio
 
 G5 demonstrated that deployment strategy is a progressive concern that mirrors the scalability spectrum. The Tiny Store deployment configuration shows that infrastructure from day one, module-aware CI, and per-target Dockerfiles enable multi-artifact extraction without pipeline rewrites or repository splits.
 
-With boundaries enforced (G1), maintainability preserved (G2), scalability prepared (G3), migration readiness embedded (G4), and deployment strategy aligned (G5), the architecture has one remaining operational concern. G6 addresses observability: the monitoring and tracing infrastructure that validates each progression and provides the evidence base for scaling decisions.
+With boundaries enforced (G1), maintainability preserved (G2), scalability prepared (G3), migration readiness embedded (G4), and deployment strategy aligned (G5), the architecture has one remaining operational concern. G6 addresses observability: the monitoring and tracing infrastructure that verifies each progression and provides the evidence base for scaling decisions.

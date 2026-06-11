@@ -1,0 +1,120 @@
+%% Appendix section: Expert Interview 10 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_10}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 10: Senior Software Engineer}
+\label{sec:interview10}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=8pt,topsep=2pt]
+  \item \emph{G1 and G2 should be unified into a single enforcement-plus-trend index.} The participant proposed that the two guidelines are complementary and could be presented as a single index where the G1 enforcement threshold is conditioned on the G2 trend metric. This is the second voice in the verification series to propose simplification of the G1--G2 boundary; the first surfaced different reformulations.
+
+  \item \emph{G4 is the most important guideline of the Operational Fit dimension and the most under-adopted in practice.} The participant identified G4 (Migration Readiness) as the guideline that actually proves whether modularization is succeeding, while observing that companies only think about migration readiness when migration is already urgent, by which point preparation is no longer possible. The recommendation is to ship G4 as an automated index visible during development, not as a principle.
+
+  \item \emph{Cognitive load and module depth are missing from the architectural metrics conversation.} The participant introduced Ousterhout's \emph{A Philosophy of Software Design} as a complementary lens, proposing that the metric set should include cognitive load and module depth alongside the architectural metrics already in G2. The change amplification ratio (the number of files modified per bug fix) was named as a concrete metric worth importing.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``O G4 é o mais importante. É ele que prova se a gente tá indo no caminho certo ou não. Só que é o que também tem muito atrito de pessoas. Eu raramente vejo isso. A gente tá desenvolvendo aplicação e nunca vejo a gente tá se perguntando no dia a dia, esse módulo tá fácil de ir pro microservice?''} (Interviewee 10, 00:41:28)
+
+\emph{[English: ``G4 is the most important. It is the guideline that proves whether we are heading in the right direction. But it is also the one with the most friction from people. I rarely see it. We are developing the application and I never see us asking, day to day, is this module easy to take to a microservice?'']}
+\end{quote}
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\paragraph*{E1. Per-package ownership as the operational form of G1 at scale.} At GitHub, the Rails monolith was modularized through Packwerk with explicit per-package owners; each team owned the public interface of its package and was responsible for code review when other teams touched that surface. This pattern provided the operational expression of G1 boundary discipline in a 1000-engineer organization. Dimension: D1. Literature gap: practicality of adoption.
+
+\paragraph*{E2. Framework adoption is part of the application, not a dependency.} The participant articulated that choosing a framework such as Rails with Active Record is a decision to absorb the framework into the application surface, not a dependency to insulate against. This position aligns with the dissertation's framing that the framework choice shapes the practical implementation of the guidelines and is not a separable concern. Dimension: D1. Literature gap: modularity definitions.
+
+\paragraph*{E3. Conway's Law as the cross-axis that ties Organizational Alignment to G1 and G2.} The participant identified module-to-team mapping as the organizational constraint that decides how modules are drawn in practice, and proposed that Organizational Alignment should be modeled as a cross-axis traversing G1 to G6 instead of as a parallel dimension. This converges with prior verification sessions that proposed similar reframing. Dimension: D3. Literature gap: Organizational Alignment as research direction.
+
+\paragraph*{B1. Rails ecosystem lacks language-level enforcement; Packwerk is a linter, not enforcement.} The participant reported that Packwerk operates as a linter that can be ignored under delivery pressure (\textit{``ah, tá falhando, adiciona lá no TODO''}). Without language-level enforcement, modularization discipline collapses to a social contract that breaks under load. This is the second appearance in the verification series of the framework-itself-as-obstacle finding. Dimension: D1. Literature gap: enforcement gap in modularity tooling.
+
+\paragraph*{B2. Companies prioritize G4 only when migration is already urgent.} The participant observed that organizations rarely invest in migration readiness in advance; the topic surfaces only when extraction becomes a necessity, by which point the modules are not prepared and the preparation work is added to a tight timeline. This is the strongest empirical signal in the verification series that the G4 narrative needs an automated readiness metric to be adopted proactively. Dimension: D2. Literature gap: migration readiness modeling.
+
+\paragraph*{B3. G3 design guidance is hard to apply without native framework support.} The participant reported that G3 (Progressive Scalability) is the guideline he found hardest to implement in his Rails context, because the framework provides no native pattern for the design steps the guideline prescribes. The recommendation is to deepen G3 with practical guidance, possibly as a separate paper. Dimension: D1. Literature gap: practicality of adoption.
+
+\paragraph*{B4. Circular business dependencies between modules, not framework dependency, are the real extraction obstacle.} The participant articulated that the primary obstacle to extracting a module is not the framework (which can be assumed inherent to the application) but circular dependencies between modules at the business-logic level. This refines the G4 narrative by naming the specific structural property that defeats migration readiness. Dimension: D2. Literature gap: migration readiness modeling.
+
+\paragraph*{G1-gap. G1 and G2 should be presented as a unified enforcement-plus-trend index.} The participant proposed that G1 and G2 are complementary enough to be presented as a single guideline with the G1 enforcement threshold conditioned on the G2 trend metric. The dissertation can either keep them separated (current state) and clarify the complementarity in §G2, or merge them into a single index as a post-defense iteration option. Dimension: D1. Literature gap: modularity definitions.
+
+\paragraph*{G2-gap. Cognitive load and module depth are missing as quality dimensions.} The participant proposed that the G2 metric set should include cognitive load and module depth in the Ousterhout sense, alongside the architectural metrics already present. The change amplification ratio (files modified per bug fix) was named as a concrete metric worth importing. The dissertation should reference \emph{A Philosophy of Software Design} and either incorporate the metric or record it as a deferred extension. Dimension: D1. Literature gap: maintainability metrics.
+
+\paragraph*{G3-gap. G3 needs more practical, framework-aware guidance.} The participant reported that G3 (Progressive Scalability) reads as principle without enough practical pathways for teams operating in framework ecosystems that do not provide native support. The recommendation is to deepen the G3 narrative with concrete steps or to position the deeper treatment as a separate paper. Dimension: D1. Literature gap: progressive scalability and structured intermediate states.
+
+\paragraph*{G4-gap. G4 readiness should be expressed as an automated index visible at development time.} The participant proposed that the G4 readiness should not be a principle the team revisits when extraction is considered, but an automated metric computed continuously and visible in the development feedback loop (\textit{``isso daí eu acho que tem que ser um índice''}). This converges with prior sessions on the need for tooling and adds the specific framing of an in-line readiness index. Dimension: D2. Literature gap: migration readiness modeling.
+
+\paragraph*{G5-gap. Deployment strategy is the least critical guideline of the Operational Fit dimension in monolith-centric teams.} The participant reported that for teams operating a single-deployment-unit monolith, the deployment strategy is straightforward and does not warrant the same prominence as G4 and G6. The dissertation can either narrate G5 as situational (already the current spectrum framing D0-D2) or consider absorbing some of its content into G3 as a deferred reformulation. Dimension: D2. Literature gap: deployment automation depth.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured post-interview questionnaire on the day of the session, allowing the quantitative ratings to be triangulated against the qualitative findings above as part of the methodological triangulation described in Appendix~\ref{ape:methodology}. The reflection field on points not discussed during the interview was returned as a no-content entry; the single-change reflection field, by contrast, was returned with substantive content that this section preserves verbatim in the triangulation discussion below.
+
+\subsubsection*{General framing}
+
+The four Section~1 Likert ratings were 4 (four dimensions reflect practice), 5 (modular monolith as deliberate destination), 4 (G1--G6 ordering reflects how a team would approach the concerns), and 4 (the set is complete). The strongest endorsement is on the architectural-destination framing, which aligns with the qualitative narrative in which the participant defended the framework as not transitional but as a target shape for a 1000-engineer codebase.
+
+\subsubsection*{Per-guideline ratings}
+
+\begin{longtable}{p{2.5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1 Enforce Boundaries & 5 & 4 & 5 & 4 & 4 \\
+G2 Embed Maintainability & 5 & 4 & 5 & 4 & 4 \\
+G3 Progressive Scalability & 4 & 3 & 5 & 4 & 4 \\
+G4 Migration Readiness & 5 & 5 & 5 & 5 & 5 \\
+G5 Deployment Strategy & 3 & 3 & 4 & 3 & 4 \\
+G6 Observability & 5 & 4 & 5 & 5 & 5 \\
+\bottomrule
+\end{longtable}
+
+\noindent
+G4 received the perfect five-five-five-five-five row, which converges exactly with the qualitative finding that G4 is the most important and the most under-adopted guideline. G6 received the next strongest row with five-four-five-five-five, also converging with the qualitative ranking of G6 as defensible alongside G4. G5 received the lowest row across all five dimensions, converging with the qualitative finding that deployment strategy is the least critical guideline for monolith-centric teams. G3 received a clarity rating of three, the lowest single rating in the table, converging with the qualitative critique that G3 needs more practical, framework-aware guidance.
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked the Enforcement Gap (G1) as the only named gap personally encountered in production, and rated the completeness of the named gap set at four. The participant marked thirteen anti-patterns across the six guidelines: three for G1, three for G2, one for G3, three for G4, one for G5, and three for G6. The pattern reinforces the rating-level signal that G4 and G6 are the most consequential guidelines in the participant's operational experience.
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum received the maximum rating of five, the G5 deployment spectrum received five, and the composite binary gates received four. The $\varepsilon_m$ calibration question was returned with the option \emph{I am not confident enough about the right calibration to answer}, which is recorded as methodological honesty rather than a calibration signal.
+
+\subsubsection*{Forced prioritization}
+
+The G1--G6 rank ordering was G5=1, G3=2, G2=3, G4=4, G6=5, G1=6, with G5 ranked highest priority for an early-stage team and G1 ranked lowest. The G7--G12 rank ordering was G12=1, G7=2, G11=3, G9=4, G10=5, G8=6, with G12 (Trade-offs over Dogma) ranked highest and G8 (SRE and DevOps Maturity) ranked lowest. The G1--G6 ranking is the strongest single divergence in this session and is discussed in the triangulation subsection below.
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire converges with the qualitative narrative on four points and diverges on one. The convergences are clear: G4 received the maximum rating across all five dimensions, reinforcing the qualitative claim that G4 is both the most important and the most under-adopted guideline (B2, G4-gap). G3 received the lowest clarity rating in the per-guideline table, converging with the qualitative finding that the guideline needs more practical guidance (B3, G3-gap). G5 received the lowest ratings across all five dimensions, converging with the qualitative finding that deployment strategy is the least critical guideline for monolith-centric teams (G5-gap). The single-change reflection field reproduced verbatim is the strongest convergence of all: \emph{``I think the guidelines are strong in order to make modularity enforceable and measurable, but I would love to see metrics about modules that are still hard to understand and modify if its modules are complexes and its interfaces are verbose, or its design decisions are not obvious. Would be interesting to see cognitive complexity, obviousness, and module depth more explicit across the framework.''} This reproduces the cognitive-load and module-depth proposal that emerged organically in the conversation (G2-gap) and that the dissertation records as the Ousterhout-derived metric extension candidate.
+
+The divergence concerns the G1--G6 forced ranking, where G1 was placed at position six (lowest priority for an early-stage team) and G5 at position one (highest). The qualitative narrative had positioned G1 as the foundational guideline, present in every session in the verification series as the most defensible operational guideline; the participant's own discussion of Packwerk and per-package ownership made G1 a central thread of the session. The most plausible reconciliation is that the ranking was read on a different axis than the qualitative ranking: the participant may have ranked guidelines by \emph{value first delivered}, treating G1 as foundational but already absorbed by any team that takes modularity seriously, and treating G5 as the next-step delta whose value is unlocked once G1 is in place. The dissertation does not over-interpret the divergence and records it as a finding rather than as a reformulation.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Single source on the GitHub experience.} The participant is the second voice in the series with first-hand exposure to industrial-scale Rails monolith modularization through Packwerk (the first surfaced through the Shopify-derived experience). The convergence is informative but not independent; the participant explicitly named the Shopify-published critique of Packwerk as field signal that even the canonical tooling is still iterating.
+
+\paragraph*{L3. Stack bias toward Rails and Ruby.} The participant's most recent operational experience with modularization is in the Ruby on Rails ecosystem. The critiques of the ecosystem's lack of language-level enforcement are valuable but should be read alongside sessions covering different ecosystems (TypeScript, Go, Elixir) where the enforcement story differs.
+
+\paragraph*{L5. Brief discussion of the deferred dimensions.} The session covered D1 and D2 with depth and surfaced D3 (Organizational Alignment) organically through Conway's Law and the cross-axis proposal. D4 (Guideline Orientation) was addressed implicitly through the framework-as-orientation framing but not as a separate topic.
+
+\subsection*{Contributions to the conclusions chapter}
+
+\begin{enumerate}[itemsep=4pt,topsep=2pt]
+  \item \emph{Names G4 as the most consequential guideline of the Operational Fit dimension.} The participant explicitly named G4 as the most important and the most under-adopted, with a concrete prescription that the readiness should be an automated index visible at development time (B2, G4-gap).
+  \item \emph{Adds the unify-G1-and-G2 proposal to the post-defense iteration agenda.} The participant proposed merging G1 and G2 into a single enforcement-plus-trend index, which the dissertation records as a reformulation candidate without committing the current framework to it (G1-gap).
+  \item \emph{Introduces Ousterhout cognitive load and module depth as missing quality dimensions.} The participant named \emph{A Philosophy of Software Design} as the complementary lens that the metric set lacks, with the change amplification ratio as a concrete metric to consider (G2-gap).
+  \item \emph{Reinforces Organizational Alignment as a cross-axis rather than a parallel dimension.} The participant is the third voice in the verification series to propose this reframing, increasing the consolidated signal for the post-defense iteration of the framework (E3).
+  \item \emph{Names circular business dependencies as the specific structural obstacle to extraction.} The participant refines the G4 narrative by identifying the property that defeats migration readiness in practice, distinct from framework coupling (B4).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The tenth session produced two consequential contributions to the verification series. The first is the strongest empirical signal in the series for the G4 narrative: a voice with first-hand experience at GitHub naming G4 as both the most important and the most under-adopted guideline, with a concrete recommendation that the readiness should be expressed as an automated index. The second is the reinforcement of the Organizational Alignment cross-axis proposal, which the series has now heard from three independent voices. The unify-G1-and-G2 proposal and the Ousterhout cognitive-load extension are added to the post-defense iteration agenda without committing the current framework to them.

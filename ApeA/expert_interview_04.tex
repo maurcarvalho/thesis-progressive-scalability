@@ -1,0 +1,125 @@
+%% Appendix section: Expert Interview 04 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_04}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 4: Engineering Manager}
+\label{sec:interview04}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Premature microservices critique.} Small and medium companies adopt microservices as a universal solution for legacy code, producing nanoservices that are harder to maintain than the monolith they replaced. Microservices should be a decision based strictly on computational or scale necessity, not an inevitable final goal.
+  \item \emph{Bounded contexts as the operational definition of G1.} Modules should be bounded contexts, not entity-coupled groupings. The classic mistake is creating oversized modules by coupling around shared entities.
+  \item \emph{Sagas should be removed from the paper.} The participant explicitly suggested simplifying the guidelines and not including distributed-system patterns to avoid biasing the reader toward microservices thinking. This is a stronger version of the saga-catalog critique from prior sessions: the paper should not present sagas at all in a modular monolith discussion.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``A separação total em microsserviços deve ser uma decisão baseada em necessidades computacionais ou de escala, e não um objetivo final inevitável.''} (Interviewee 4, 00:49:12)
+
+\medskip
+
+\emph{[English: ``Full separation into microservices should be a decision based on computational or scale needs, not an inevitable final goal.'']}
+\end{quote}
+
+This captures the participant's central thesis on the microservices-as-destination debate, which aligns directly with the dissertation's central claim and provides industry-side reinforcement from a 240-microservice operational context.
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\subsubsection*{Viability enablers}
+
+\paragraph*{E1. Empirical reinforcement of the microservices-as-destination critique.} The participant's first-hand view of 240 microservices at a major software company and prior consultancy experience advising client organizations provides industry-side confirmation of the dissertation's central thesis: microservices should be chosen on computational necessity, not as an inevitable destination. Dimension: cross-cutting. Literature gap: cross-cutting (framework framing).
+
+\paragraph*{E2. Bounded contexts as operational definition of G1.} The participant operationalized G1 through bounded contexts, criticizing entity-coupling as the dominant failure mode. Dimension: D1. Literature gap: Modularity.
+
+\paragraph*{E3. State isolation extended beyond databases.} The participant emphasized that state isolation should cover caches, queues, and any stateful resource, not only databases. This refines the G3 Data Ownership metric to a broader notion of state ownership. Dimension: D2. Literature gap: Scalability.
+
+\paragraph*{E4. Deployment independence as the most critical operational factor.} The participant identified deployment independence as the most critical factor inside D2, more important than sagas, anti-corruption layers, or specific orchestration patterns. Dimension: D2. Literature gap: Deployment Strategy.
+
+\subsubsection*{Viability barriers}
+
+\paragraph*{B1. Linters insufficient for deep coupling problems.} Static analysis cannot detect modules that migrate together, public interfaces without versioned contracts, or other coupling forms that escape import-level analysis. Reaffirms a barrier surfaced in Interview 01. Dimension: D1. Literature gap: Modularity, Maintainability.
+
+\paragraph*{B2. Theory-practice gap in module boundary drawing.} Many developers fail to draw module boundaries correctly from the start. This is the central failure mode the dissertation should address; the participant framed it as the persistent challenge in transposing modularity theory into daily practice. Dimension: D1. Literature gap: Practicality of Adoption.
+
+\paragraph*{B3. Database foreign keys and team governance.} Separating databases requires repository-level governance and inter-team coordination, not only schema separation. Highlights the cost of progressing through the Isolate level of G3 in real organizations. Dimension: D2 with implications for D3. Literature gap: Scalability with implications for Team Fit.
+
+\subsubsection*{Gaps or missing details}
+
+\paragraph*{G1-gap. Sagas should be removed from the paper.} The participant suggested simplifying the guidelines and not including distributed-system patterns (sagas in particular) to avoid biasing the reader toward microservices thinking. This is the strongest formulation of the G4 catalog critique in the verification series so far: not catalog widening, but catalog removal. Dimension: D2. Literature gap: Migration Readiness.
+
+\paragraph*{G2-gap. Terminology and conceptual differentiation.} The paper should explicitly evidence the trade-offs of microservices (infrastructure duplication, communication overhead, observability cost) and clearly differentiate microservices, modular architecture, and monoliths. Dimension: D4. Literature gap: affects framework framing.
+
+\paragraph*{G3-gap. Anti-Corruption Layer and Adapter conflation.} The paper presents the Anti-Corruption Layer as a specific pattern; the participant clarified that adapters are the more fundamental low-coupling element and that the Anti-Corruption Layer is a particular use of adapters. The discussion should be reframed accordingly. Dimension: D2. Literature gap: Migration Readiness.
+
+\paragraph*{G4-gap. Coupling metrics need a foundational reference.} The participant cited Vlad Khononov's book \emph{Balancing Coupling in Software Design} (Addison-Wesley, 2024)~\cite{khononov2024balancing} as the canonical reference for software coupling metrics. This grounds the G2 metrics (Change Coupling Index, Dependency Attraction, Complexity Concentration) in established literature. Dimension: D1. Literature gap: Maintainability.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured questionnaire (Appendix~\ref{ape:methodology}) within the agreed one-week window. The ratings below complement the qualitative findings above and are presented as part of the methodological triangulation. Both optional reflections in Section 7 were left blank.
+
+\subsubsection*{General framing}
+
+The four ratings of Section 1 (analytical dimensions, deliberate destination thesis, G1 to G6 ordering, completeness of the set) were 5, 5, 5, and 4 on a five-point Likert scale. The completeness rating of 4 is consistent with the qualitative position that the catalog could be tightened (sagas removed) and that the framework would benefit from explicit terminology and trade-off treatment (G1-gap and G2-gap above).
+
+\subsubsection*{Per-guideline ratings}
+
+For each guideline the participant rated five dimensions on the same five-point scale (1 = Very low, 5 = Very high).
+
+\begin{longtable}{p{5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1: Enforce Modular Boundaries  & 5 & 5 & 5 & 5 & 5 \\
+G2: Embed Maintainability       & 5 & 4 & 5 & 5 & 5 \\
+G3: Design for Progressive Scalability & 5 & 5 & 5 & 5 & 5 \\
+G4: Promote Migration Readiness & 5 & 3 & 5 & 5 & 5 \\
+G5: Streamline Deployment Strategy & 5 & 5 & 5 & 5 & 5 \\
+G6: Introduce Observability Patterns & 5 & 4 & 5 & 5 & 5 \\
+\bottomrule
+\end{longtable}
+
+G1, G3, and G5 received perfect ratings across all five dimensions. G4 received the lowest clarity rating in the series so far (3 out of 5), the only sub-4 rating in this participant's responses. G2 and G6 received perfect ratings on four dimensions and 4 on clarity. The G4 clarity rating of 3 is the strongest single-cell signal in this questionnaire and converges with the qualitative critique that sagas should be removed from the paper (G1-gap above).
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked all six named failure-mode concepts (the Enforcement Gap, the Incremental Maintainability Degradation, the Progressive Scalability Gap, the Migration Readiness Gap, the Deployment-Architecture Mismatch, and the Observability Deficit) as personally encountered in production systems. The completeness of the named-gap set was rated 4 out of 5. Across the six anti-pattern blocks, the participant selected fourteen of the eighteen listed anti-patterns, omitting one anti-pattern in each of G1, G3, G4, and G5.
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum, the G5 deployment spectrum, and the composite binary gates mechanism were all rated 5 out of 5. The G3 Extraction Readiness gate $\varepsilon_m = 1$ was rated as ``About right'' in calibration, the central option of a four-point calibration scale. These ratings confirm the structural design choices without reservation.
+
+\subsubsection*{Forced prioritization}
+
+The participant produced a strict ordering on the operational grid with one tie at the top: G1 and G6 were tied at position 1, followed by G2 at position 2, G3 at position 4, G4 at position 5, and G5 at position 6. The G1-G6 pair at the top of the ranking aligns with the qualitative emphasis on bounded contexts (E2) and on observability as a continuous practice. The G5 at the bottom is unexpected given the participant's explicit qualitative finding that deployment independence is the most critical operational factor (E4); the most plausible reconciliation is that the participant interpreted ``introduced first'' in the question prompt as starting with the architectural foundation (G1) and observability (G6) before moving to deployment topology. The research-agenda grid produced a strict ordering led by G12 (Trade-offs over Dogma) at position 1, followed by G7 (Team-Architecture Balance) at position 2, then G10 (Actionable Design Patterns) at position 3, G11 (Contextual Adaptation) at position 4, G8 (SRE and DevOps Maturity) at position 5, and G9 (Frictionless Onboarding) at position 6.
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire and the interview transcript agree on the strongest qualitative signal. G4 received a clarity rating of 3, the only sub-4 rating in the participant's responses, and the qualitative finding G1-gap explicitly proposes removing sagas from the paper. This is the strongest single-respondent convergence between qualitative and quantitative signal in the series to date. G1 perfect ratings and the top position in the ranking grid converge with the qualitative emphasis on bounded contexts as the operational definition of G1 (E2). G5 received perfect ratings on every dimension; the bottom position in the ranking grid does not conflict with the qualitative finding because deployment independence is described in the conversation as the most critical operational factor once the architecture is right, not as the first move when introducing the guidelines.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Possible selection bias.} The participant operates in environments aligned with the dissertation's target architectural pattern. Convergence may be over-represented as evidence for the feasibility of the proposed mechanisms.
+
+\paragraph*{L3. Residual influence of the pre-read paper.} The participant read the paper before the session. Term-level recognition is suggestive rather than conclusive.
+
+\paragraph*{L4. Large-scale enterprise self-report.} The participant's 240-microservice context exceeds the dissertation's target by approximately two orders of magnitude. Insights are valuable but the participant's perspective is more representative of mature engineering organizations than of the early-stage startups the dissertation targets.
+
+\subsection*{Contributions to the conclusions chapter}
+
+\begin{enumerate}[itemsep=3pt,topsep=2pt]
+  \item \emph{Industry-side reinforcement of the microservices-as-destination critique.} A participant managing 240 microservices at large scale explicitly framed full microservices separation as a decision driven by computational or scale need, not as an inevitable destination (E1).
+  \item \emph{Operational definition of G1 through bounded contexts.} Names the canonical anti-pattern (entity-coupling) that produces oversized modules and undermines the boundary discipline G1 promotes (E2).
+  \item \emph{Strongest call to revise the G4 chapter.} The participant suggested removing sagas from the paper altogether. Combined with the saga-catalog widening signals from prior sessions, four of four participants who addressed G4 either contradict its current saga-centric presentation or recommend changes (G1-gap).
+  \item \emph{Foundational reference for the G2 coupling metrics.} Khononov's \emph{Balancing Coupling in Software Design}~\cite{khononov2024balancing} provides a canonical reference that grounds the G2 metric set in established literature (G4-gap).
+  \item \emph{Deployment independence as the operational core.} Identifies the most critical factor inside D2 as deployment independence, refining G5 by name (E4).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The fourth session produced industry-side reinforcement of the dissertation's central thesis from a manager operating a large microservices estate, with the strongest call so far to revise the G4 chapter (remove sagas to avoid biasing toward microservices thinking) and a concrete operational definition of G1 (bounded contexts, not entity-coupling).

@@ -1,0 +1,125 @@
+%% Appendix section: Expert Interview 12 — Empirical Verification of Guidelines G1--G6.
+%% Included from tese.tex via \input{ApeA/expert_interview_12}.
+%% Session metadata, attribution, dimension coverage, and saturation-axis
+%% status are consolidated in the series overview tables of this chapter.
+
+\section{Interview 12: Backend Software Engineer}
+\label{sec:interview12}
+
+\subsection*{Three themes that surfaced most strongly}
+
+\begin{enumerate}[itemsep=8pt,topsep=2pt]
+  \item \emph{Boilerplate-as-deliverable is the operational form of the guidelines.} The participant repeatedly framed the bridge between the guidelines and day-to-day adoption as the existence of a concrete boilerplate that ships with each pattern: an anti-corruption-layer example, a saga skeleton with compensation tests, and a README explaining why the pattern is there. Without the boilerplate the guideline collapses to instruction; with it, the team can replicate the pattern without internalizing the underlying theory.
+
+  \item \emph{Team seniority is the structural lever the framework does not address.} The participant returned to team composition five distinct times during the session, framing seniority as the precondition that determines whether boundary discipline (G1), maintainability metrics (G2), and migration patterns (G4) actually hold. Startup hiring patterns (a mix of juniors and mid-level engineers with few seniors) were named as the recurring source of guideline erosion under delivery pressure.
+
+  \item \emph{Observability is premature for early-stage systems.} The participant explicitly contested G6 on timing grounds: investing in module-scoped observability at a stage where the system has not yet proven that modules will be extracted is treated as a performance cost that may never amortize. This is the second voice in the verification series to push back on G6, with a reasoning distinct from prior critiques.
+\end{enumerate}
+
+\subsection*{Verbatim quote worth preserving}
+
+\begin{quote}
+\emph{``Apesar de ser conceitos bastante avan\c{c}ados para pessoas, voc\^e tendo exemplos ali dentro de um c\'odigo, fica mais f\'acil para um time seguir. Voc\^e faz uma implementa\c{c}\~ao, a\'i outra pessoa vai l\'a e faz de uma maneira errada ou de uma forma ali que n\~ao condiz com o que t\'a dentro do time. Voc\^e fala: 'tem um exemplo aqui, voc\^e pode seguir igual eu fiz aqui'."} (Interviewee 12, 00:21:25)
+
+\emph{[English: ``Even though these are quite advanced concepts for people, having examples inside the code makes it easier for a team to follow. You make one implementation, then someone else goes and does it the wrong way or in a way that does not match what we have in the team. You say: 'there is an example here, you can follow the same pattern I did'.'']}
+\end{quote}
+
+\subsection*{Findings organized by analysis category}
+
+Each finding declares the evaluation dimension it belongs to and the literature gap rows of Chapter~\ref{sec:relatedwork} it maps to, satisfying the cross-referencing step declared in the methodology.
+
+\paragraph*{E1. Anti-corruption layer applied uniformly across internal and external boundaries.} The participant described a team practice in which the anti-corruption-layer pattern was applied not only at the boundary with external partners but also between internal modules of the same application. This uniform treatment converts G1 boundary discipline from a categorical decision (internal versus external) into a single pattern the team applies consistently, lowering the cognitive load of the discipline. Dimension: D1. Literature gap: modularity definitions.
+
+\paragraph*{E2. Boilerplate plus README plus test patterns as the adoption mechanism.} The participant reported that successful guideline adoption in a previous team rested on three artifacts: a boilerplate that ships the pattern as runnable code, a README that explains why the pattern is there with concrete file-and-line pointers, and an explicit testing pattern that demonstrates how the pattern is verified. This is the strongest empirical signal in the verification series for the code-listings-as-prescription approach. Dimension: D4. Literature gap: practicality of adoption.
+
+\paragraph*{E3. Opinionated tooling as a substitute for team maturity.} The participant identified opinionated tooling (SonarQube as the named reference, architectural validators in the Java ecosystem as the broader category) as the practical substitute for team seniority when the guidelines need to hold under hiring pressure. The participant contrasted this with the Node.js ecosystem, where the freedom of the platform amplifies the dependency on team discipline. Dimension: D4. Literature gap: enforcement gap in modularity tooling.
+
+\paragraph*{B1. Team seniority composition decides whether G1, G2, and G4 hold under pressure.} The participant returned to team composition repeatedly, framing the startup hiring pattern (junior and mid-level engineers without enough senior anchors) as the structural cause of guideline erosion. Without senior reviewers on the code-review path, the guideline becomes a social contract that breaks under delivery pressure. Dimension: D1. Literature gap: practicality of adoption.
+
+\paragraph*{B2. G2 maintainability metrics computed from Git history are hard to operationalize.} The participant reported that calculating G2 metrics (modules changing together, churn distributions) from Git history is hard to configure correctly in a pipeline and that the result may not be perfect even when configured. The participant prefers code-review pair discipline for the same outcome, accepting that the metric becomes a qualitative judgment rather than a pipeline gate. Dimension: D1. Literature gap: maintainability metrics.
+
+\paragraph*{B3. G6 observability is a premature performance cost for early-stage systems.} The participant identified G6 as the least defensible of the Operational Fit dimension for early-stage systems, on the grounds that the team does not yet know which modules will be extracted and investing in module-scoped instrumentation is a performance cost that may never amortize. This contests G6 on timing grounds, distinct from prior sessions that contested it on metric scope. Dimension: D2. Literature gap: deployment automation depth.
+
+\paragraph*{B4. Delivery pressure from non-technical management is the dominant practical obstacle.} The participant articulated that the gap between the literature's ideal world and the day-to-day startup reality is not primarily technical: it is the pressure from non-technical management to ship features without absorbing the architectural cost, which converts technical debt into a path the team cannot escape later. The dissertation's six guidelines are read as defensible in principle but blocked by this delivery-pressure dynamic. Dimension: D3. Literature gap: practicality of adoption.
+
+\paragraph*{B5. Tight framework coupling is itself a structural risk.} The participant cited the Martin Fowler analogy of a marriage with the framework: the team cannot know in advance how long the relationship will hold, but the coupling commits the team to the framework's evolution. The participant uses this to caution against the opinionated-framework recommendation that surfaced in prior sessions, even while acknowledging the adoption benefit. Dimension: D4. Literature gap: modularity definitions.
+
+\paragraph*{G1-gap. The framework should explicitly address team-seniority composition as a precondition.} The participant proposed that the guidelines, as currently written, assume a team-seniority composition that startups rarely have, and that the framework should either acknowledge this as a precondition or include guidance on how to operate the guidelines with mixed-seniority teams. The dissertation can either narrate this as a precondition in the introduction to Chapter~4 or absorb it into a future-work extension. Dimension: D3. Literature gap: practicality of adoption.
+
+\paragraph*{G2-gap. Cost-benefit comparison across architectural styles is missing.} The participant proposed that the dissertation would benefit from a cost-benefit comparison across three reference points: an unstructured monolith, a modular monolith, and a microservices ecosystem. The comparison should cover both implementation cost and the cost of the failure modes each style admits. The dissertation can incorporate this as a Chapter~5 future-research direction or as a cross-section table in Chapter~4. Dimension: cross-cutting. Literature gap: migration readiness modeling.
+
+\paragraph*{G3-gap. The G4 boilerplate needs to specify the saga style choice and the testing pattern for compensations.} The participant proposed that the G4 narrative becomes operational only when the boilerplate covers the saga style choice (orchestrated versus choreographed), the compensation-action testing pattern, and the workflow state-management infrastructure (an external durable engine or an in-process coordinator). The dissertation already covers the orchestrated--choreographed contrast in the Foundations for Operational Fit section; the gap is the testing pattern for compensations, which is not currently illustrated. Dimension: D2. Literature gap: migration readiness modeling.
+
+\paragraph*{G4-gap. G6 observability needs a maturity gate that delays the investment until extraction is on the roadmap.} The participant proposed that G6 should be conditioned on a maturity gate rather than presented as a uniform expectation: teams whose modules are not on a near-term extraction trajectory should not pay the observability cost. This converges with the dissertation's spectrum framing of G5 (D0--D2) and suggests an analogous spectrum framing for G6. Dimension: D2. Literature gap: deployment automation depth.
+
+\subsection*{Post-interview questionnaire findings}
+
+The participant returned the structured post-interview questionnaire on the day of the session, allowing the quantitative ratings to be triangulated against the qualitative findings above as part of the methodological triangulation described in Appendix~\ref{ape:methodology}. Both optional reflection fields were filled with substantive content; the reflections are preserved verbatim in the triangulation discussion below.
+
+\subsubsection*{General framing}
+
+The four Section~1 Likert ratings were 4 (four dimensions reflect practice), 5 (modular monolith as deliberate destination), 4 (G1--G6 ordering reflects how a team would approach the concerns), and 5 (the set is complete). The two five ratings consolidate the qualitative endorsement of the framework's framing: the architectural-destination position was a recurring thread in the conversation, and the completeness rating reinforces that the participant did not propose adding a new guideline to the existing six.
+
+\subsubsection*{Per-guideline ratings}
+
+\begin{longtable}{p{2.5cm} c c c c c}
+\toprule
+\textbf{Guideline} & \textbf{Applic.} & \textbf{Clarity} & \textbf{Importance} & \textbf{Adoption} & \textbf{Completeness} \\
+\midrule
+\endhead
+G1 Enforce Boundaries & 5 & 3 & 4 & 4 & 4 \\
+G2 Embed Maintainability & 4 & 4 & 5 & 4 & 5 \\
+G3 Progressive Scalability & 5 & 5 & 4 & 5 & 5 \\
+G4 Migration Readiness & 5 & 5 & 5 & 4 & 4 \\
+G5 Deployment Strategy & 3 & 3 & 4 & 3 & 3 \\
+G6 Observability & 4 & 5 & 5 & 4 & 5 \\
+\bottomrule
+\end{longtable}
+
+\noindent
+G3 and G4 received the strongest rows, with G3 five-five-four-five-five and G4 five-five-five-four-four; these match the qualitative pick of G1 plus G3 plus G4 as the three guidelines the participant would adopt with a new team. G5 received the lowest row across all five dimensions, converging with the qualitative finding that deployment strategy was the least discussed of the operational guidelines. G6 received a five for clarity, importance, and completeness despite the qualitative critique of G6 as premature for early-stage systems; this is a divergence that the triangulation subsection below addresses. G1 received a clarity rating of three, the lowest single rating in the table, converging with the qualitative finding that G1 enforcement depends on team seniority composition rather than on technical clarity (B1).
+
+\subsubsection*{Named gap and anti-pattern recognition}
+
+The participant marked four of the six named gaps as personally encountered in production: the Enforcement Gap (G1), the Incremental Maintainability Degradation (G2), the Migration Readiness Gap (G4), and the Observability Deficit (G6). The completeness of the named gap set was rated five. The participant marked fifteen anti-patterns across the six guidelines: three for G1, three for G2, two for G3, three for G4, two for G5, and two for G6. The G1, G2, G4, and G6 anti-pattern counts converge with the recognized-gap pattern, reinforcing that the participant's operational experience is concentrated on those four guidelines.
+
+\subsubsection*{Spectrum and gate evaluation}
+
+The G3 progressive scalability spectrum received the maximum rating of five, the G5 deployment spectrum received three, and the composite binary gates received the maximum rating of five. The $\varepsilon_m$ calibration question was returned with the option \emph{Too strict to be practically achievable}, which converges with the qualitative critique of delivery-pressure obstacles (B4) and motivates the soft-gates reformulation proposed in the single-change reflection (preserved verbatim below).
+
+\subsubsection*{Forced prioritization}
+
+The G1--G6 rank ordering was G1=1, G5=2, G4=3, G3=4, G2=5, G6=6, with G1 ranked highest priority for an early-stage team and G6 ranked lowest. The G6 lowest position converges with the qualitative critique of G6 as premature for early-stage systems (B3). The G5=2 position is the divergence in this ranking and is discussed in the triangulation subsection below. The G7--G12 rank ordering was G10=1, G12=2, G9=3, G11=4, G7=5, G8=6, with G10 (Actionable Design Patterns) ranked highest; this converges directly with the qualitative emphasis on boilerplate plus README plus test patterns as the operational form the guidelines take in practice (E2).
+
+\subsubsection*{Triangulation with the qualitative findings}
+
+The questionnaire converges with the qualitative narrative on five points and diverges on two. The convergences are clear: G3 and G4 received the strongest rating rows, mirroring the qualitative pick of G1 plus G3 plus G4 as the three guidelines for a new team. G1 received the lowest clarity rating, converging with the qualitative finding that G1 enforcement depends on team-seniority composition rather than on technical clarity (B1). G5 received the lowest ratings across all five dimensions, converging with the qualitative finding that deployment strategy was the least defended guideline. G6 was ranked last in the G1--G6 ordering, converging with the qualitative critique of G6 as premature for early-stage systems (B3). G10 was ranked first in the G7--G12 ordering, converging with the qualitative emphasis on boilerplate-as-deliverable as the strongest cross-cutting recommendation (E2).
+
+The first divergence concerns the G6 per-guideline ratings: clarity, importance, and completeness all received five, even though the qualitative narrative contested G6 as premature for early-stage systems. The most plausible reconciliation is that the per-guideline ratings were read on the guideline's intrinsic merits (a well-defined and complete guideline) while the forced ranking captured the early-stage-team applicability (where G6 ranks last). The dissertation records the distinction as a finding and not as a contradiction. The second divergence concerns the G5 ranking at position two, which is unexpected given the lowest per-guideline ratings the same guideline received in the same instrument. The most plausible reconciliation is that the participant ranked the guidelines by the value of the delta they would deliver in an early-stage team rather than by their intrinsic strength as guidelines; the dissertation does not over-interpret this divergence.
+
+Both optional reflection fields were filled with substantive content. The reflection on points not discussed during the interview was returned verbatim as: \emph{``Acredito que o maior desafio de aplicar essas diretrizes em startups em est\'agio inicial n\~ao \'e a viabilidade t\'ecnica das ferramentas, mas sim o alinhamento cultural e de neg\'ocios. Em ambientes de alt\'issima incerteza, a d\'ivida t\'ecnica muitas vezes \'e uma decis\~ao estrat\'egica consciente para validar o Product-Market Fit o mais r\'apido poss\'ivel. Se engessarmos demais o processo com valida\c{c}\~oes r\'igidas logo no in\'icio, podemos salvar a arquitetura, mas matar o tempo de sobrevida da empresa. As diretrizes t\'ecnicas (G1-G6) funcionam muito bem se houver um equil\'ibrio claro de que a velocidade de entrega do neg\'ocio ainda \'e a prioridade n\'umero um e tiver um time bastante focado e com capacidade para executar.''} This reproduces and amplifies the qualitative finding on delivery pressure as the dominant practical obstacle (B4) and the team-seniority composition as the structural precondition (B1).
+
+The single-change reflection field was returned verbatim as: \emph{``Eu mudaria a forma como os port\~oes compostos bin\'arios ($b_m = 1$, $g_m = 1$, $\varepsilon_m = 1$) s\~ao apresentados. Em vez de trat\'a-los como travas absolutas de build que quebram o deploy em caso de qualquer desvio, eu reestruturaria como `M\'etricas de Alerta Progressivas' (Soft Gates ou Warnings)\ldots\ no est\'agio inicial da startup se o CI/CD apenas avisaria o time sobre o acoplamento crescente sem bloquear a entrega. Conforme a startup cresce e o produto se estabiliza, esses alertas seriam configurados de forma mais r\'igida para virar travas reais (Hard Gates). Isso tornaria a ado\c{c}\~ao do mon\'olito modular muito mais palat\'avel e realista para lideran\c{c}as e times focados em entregas r\'apidas.''} This is a new finding the qualitative session did not surface: a soft-gates-to-hard-gates progression as the maturity-conditioned form of the composite binary gates mechanism. The dissertation records it as a reformulation candidate for the post-defense iteration of the framework, alongside the unify-G1-G2 proposal from prior sessions, and observes that the proposal aligns with the G3 spectrum framing already adopted (Tune, Decouple, Isolate, Extract) by suggesting an analogous progressive framing for the gate mechanism itself.
+
+\subsection*{Limitations of this interview as a verification instrument}
+
+\paragraph*{L2. Second participant from the same current employer.} The current undisclosed employer of this participant overlaps with the current employer of the seventh interviewee in the series. The two participants operate in different functional roles and on different systems within that employer, and the convergence on any shared theme should be read as a sample-overlap signal rather than as independent corroboration. The series accordingly notes overlap rather than amplification when both voices converge on a finding.
+
+\paragraph*{L3. Stack mix toward Node.js and Java.} The participant's most recent operational experience covers the Node.js and Java ecosystems. The critique of the Node.js platform on enforcement freedom is valuable but should be read alongside sessions covering different ecosystems where the enforcement story differs.
+
+\paragraph*{L5. D3 covered through narrative rather than structural prompt.} The session covered D1, D2, and D4 with depth and surfaced D3 (Organizational Alignment) organically through the team-seniority and delivery-pressure threads rather than through a dedicated structural prompt. The D3 findings are therefore observational rather than prescriptive.
+
+\subsection*{Contributions to the conclusions chapter}
+
+\begin{enumerate}[itemsep=4pt,topsep=2pt]
+  \item \emph{Strongest empirical signal in the verification series for the code-listings-as-prescription approach.} The participant articulated the boilerplate-plus-README-plus-tests triple as the operational form the guidelines take in practice, naming the absence of this triple as the recurring cause of adoption failure (E2).
+  \item \emph{Contests G6 on timing grounds.} The participant identified G6 as the guideline most exposed to a premature-optimization critique for early-stage systems, proposing a maturity gate analogous to the G5 spectrum framing (B3, G4-gap).
+  \item \emph{Names team-seniority composition as a structural precondition the framework does not address.} The participant returns to this constraint repeatedly, with startup hiring patterns as the recurring source of guideline erosion (B1, G1-gap).
+  \item \emph{Ranks G4 as the most defensible Operational Fit guideline conditional on the boilerplate.} The participant ranks G4 above G5 and G6 specifically because a working saga and anti-corruption-layer boilerplate converts an advanced concept into a replicable pattern (G4 application of the boilerplate principle).
+  \item \emph{Suggests a cost-benefit cross-style comparison as a Chapter~5 extension.} The participant proposes that the dissertation would benefit from comparing implementation cost across the unstructured monolith, the modular monolith, and the microservices ecosystem (G2-gap).
+  \item \emph{Reinforces the framework-coupling caution as a counterweight to the opinionated-framework recommendation.} The participant cites the Martin Fowler marriage analogy to qualify the prior sessions' enthusiasm for opinionated frameworks (B5).
+\end{enumerate}
+
+\subsection*{Concluding remark}
+
+The twelfth session produced three consequential contributions to the verification series. The first is the strongest articulation in the series of the code-listings-as-prescription approach: a participant whose adoption-failure diagnoses and adoption-success stories both centred on the existence of a working boilerplate with documentation and test patterns. The second is the timing-based critique of G6, which adds a second voice contesting the observability guideline through a reasoning distinct from prior critiques. The third is the explicit framing of team-seniority composition as a structural precondition the framework does not currently acknowledge, with startup hiring patterns named as the recurring source of erosion.
